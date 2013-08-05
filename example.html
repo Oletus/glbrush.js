@@ -41,6 +41,7 @@ loadApp = function() {
                                  ['webgl', 'no-float-webgl', 'canvas'], 0);
     picture.addBuffer(0, [255, 255, 255, 255], true, false);
     drawArea.appendChild(picture.pictureElement());
+    picture.display();
 
     // Add mouse event listeners to the container element that create brush
     // events on the draw area
