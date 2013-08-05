@@ -1,0 +1,99 @@
+<html>
+<head>
+<!-- Copyright Olli Etuaho 2013 -->
+<title>glbrush.js example application</title>
+<script type="text/javascript" src="util2d.js"></script>
+<script type="text/javascript" src="utilgl.js"></script>
+<script type="text/javascript" src="blit_shader.js"></script>
+<script type="text/javascript" src="rasterize_shader.js"></script>
+<script type="text/javascript" src="compositing_shader.js"></script>
+<script type="text/javascript" src="picture_event.js"></script>
+<script type="text/javascript" src="rasterize.js"></script>
+<script type="text/javascript" src="picture_buffer.js"></script>
+<script type="text/javascript" src="undo_state.js"></script>
+<script type="text/javascript" src="picture.js"></script>
+<script type="text/javascript">
+/**
+ * Utility function to get event coordinates relative to an element.
+ */
+function getRelativeCoords(event, element) {
+    var rect = element.getBoundingClientRect();
+    // + 0.5 to move to pixel center
+    if (event.touches !== undefined && event.touches.length > 0) {
+        return new Vec2(event.touches[0].clientX - rect.left + 0.5,
+                        event.touches[0].clientY - rect.top + 0.5);
+    }
+    return new Vec2(event.clientX - rect.left + 0.5,
+                    event.clientY - rect.top + 0.5);
+}
+
+loadApp = function() {
+    // Create a container element for the picture
+    var drawArea = document.createElement('div');
+    var width = 800;
+    var height = 600;
+    drawArea.style.width = width + 'px';
+    drawArea.style.height = height + 'px';
+    document.body.appendChild(drawArea);
+
+    // Initialize a Picture with one opaque layer and add it to the drawArea
+    var picture = Picture.create(0, width, height, 1.0,
+                                 ['webgl', 'no-float-webgl', 'canvas'], 0);
+    picture.addBuffer(0, [255, 255, 255, 255], true, false);
+    drawArea.appendChild(picture.pictureElement());
+
+    // Add mouse event listeners to the container element that create brush
+    // events on the draw area
+    var currentEvent = null;
+    var sid = 0;
+    var sessionEventId = 0;
+    var pressureInd = 0;
+    drawArea.onmousedown = function(e) {
+        ++sessionEventId;
+        var coords = getRelativeCoords(e, drawArea);
+        var oldPixel = picture.getPixelRGBA(coords);
+        // some funky color changes
+        var red = 255 - oldPixel[0];
+        var green = 33;
+        var blue = 42;
+        currentEvent = new BrushEvent(sid, sessionEventId, false,
+                          [red, green, blue], 0.8, 1.0, 20, 1,
+                          BrushEvent.Mode.normal);
+    };
+    drawArea.onmouseup = function(e) {
+        if (currentEvent !== null) {
+            picture.setCurrentBuffer(null);
+            picture.transferEvent(picture.buffers[0], currentEvent);
+            picture.display();
+            currentEvent = null;
+        }
+    };
+    drawArea.onmouseout = drawArea.onmouseup;
+    drawArea.onmousemove = function(e) {
+        if (currentEvent !== null) {
+            ++pressureInd;
+            var pressure = (Math.sin(pressureInd * 0.4) + 2.0) * 0.33;
+            var coords = getRelativeCoords(e, drawArea);
+            currentEvent.pushCoordTriplet(coords.x, coords.y, pressure);
+            picture.setCurrentBuffer(currentEvent);
+            picture.display();
+        }
+    };
+
+    // Add undo to the mix just for kicks
+    var undoButton = document.createElement('input');
+    undoButton.type = 'button';
+    undoButton.value = 'Undo';
+    document.body.appendChild(undoButton);
+    undoButton.onclick = function() {
+        picture.undoLatest(sid);
+        picture.display();
+    };
+
+    // And there's a lot more public API in Picture to use...
+}
+</script>
+</head>
+<body onload="loadApp()" style="background:#888;">
+</body>
+</html>

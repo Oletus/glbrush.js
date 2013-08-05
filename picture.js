@@ -302,7 +302,7 @@ Picture.prototype.usesWebGl = function() {
 
 /**
  * Set a containing widget for this picture. The container is expected to add
- * what's returned from pictureElements() under a displayed HTML element.
+ * what's returned from pictureElement() under a displayed HTML element.
  * @param {Object} container The container.
  */
 Picture.prototype.setContainer = function(container) {
@@ -310,11 +310,10 @@ Picture.prototype.setContainer = function(container) {
 };
 
 /**
- * @return {Array.<HTMLCanvasElement>} the elements that make up the display of
- * the rasterized picture.
+ * @return {HTMLCanvasElement} the element that displays the rasterized picture.
  */
-Picture.prototype.pictureElements = function() {
-    return [this.canvas];
+Picture.prototype.pictureElement = function() {
+    return this.canvas;
 };
 
 /**
