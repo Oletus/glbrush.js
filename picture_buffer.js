@@ -132,7 +132,7 @@ PictureBuffer.prototype.pushEvent = function(event, rasterizer) {
 };
 
 /**
- * Inserts an event at the current insertion point and increments the insertion
+ * Insert an event at the current insertion point and increment the insertion
  * point.
  * @param {PictureEvent} event Event to insert.
  * @param {BaseRasterizer} rasterizer The rasterizer to use.

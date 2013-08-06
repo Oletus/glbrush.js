@@ -225,7 +225,6 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry,
     var height = parseInt(pictureParams[2]);
     var pic = Picture.create(id, width, height, bitmapScale, modesToTry,
                              currentEventAttachment);
-    var targetBuffer = null;
     var i = 1;
     while (i < eventStrings.length) {
         if (eventStrings[i] === 'metadata') {
@@ -243,11 +242,11 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry,
                 var hasAlpha = arr[j++] === '1';
                 var insertionPoint = parseInt(arr[j++]);
                 pic.addBuffer(bufferId, clearColor, hasUndoStates, hasAlpha);
-                targetBuffer = pic.buffers[pic.buffers.length - 1];
+                var targetBuffer = pic.buffers[pic.buffers.length - 1];
                 targetBuffer.setInsertionPoint(insertionPoint);
             } else {
                 var pictureEvent = PictureEvent.parse(arr, 0);
-                pic.pushEvent(targetBuffer, pictureEvent);
+                pic.pushEvent(pic.buffers.length - 1, pictureEvent);
             }
             ++i;
         }
@@ -422,10 +421,9 @@ Picture.prototype.height = function() {
 };
 
 /**
- * Add an event to the top of this picture. Bitmap rasterization scale is
- * applied to the event.
- * @param {GLBuffer|CanvasBuffer} targetBuffer The buffer of this picture to
- * apply the event to.
+ * Add an event to the top of one of this picture's buffers. Bitmap
+ * rasterization scale is applied to the event.
+ * @param {number} targetBuffer The index of the buffer to apply the event to.
  * @param {PictureEvent} event Event to add.
  */
 Picture.prototype.pushEvent = function(targetBuffer, event) {
@@ -434,29 +432,29 @@ Picture.prototype.pushEvent = function(targetBuffer, event) {
 };
 
 /**
- * Add an event to the insertion point of the target buffer. Bitmap
- * rasterization scale is applied to the event.
- * @param {GLBuffer|CanvasBuffer} targetBuffer The buffer of this picture to
- * insert the event to.
+ * Add an event to the insertion point of one of this picture's buffers and
+ * increment the insertion point. Bitmap rasterization scale is applied to the
+ * event.
+ * @param {number} targetBuffer The index of the buffer to insert the event to.
  * @param {PictureEvent} event Event to insert.
  */
 Picture.prototype.insertEvent = function(targetBuffer, event) {
     event.setDisplayScale(this.bitmapScale);
-    targetBuffer.insertEvent(event, this.genericRasterizer);
+    this.buffers[targetBuffer].insertEvent(event, this.genericRasterizer);
 };
 
 /**
  * Transfer an event that has already been previously added to this picture to
- * a different buffer.
- * @param {GLBuffer|CanvasBuffer} targetBuffer The buffer of this picture to
- * apply the event to.
+ * the top of a different buffer.
+ * @param {number} targetBuffer The index of the buffer to apply the event to.
  * @param {PictureEvent} event Event to transfer.
  */
 Picture.prototype.transferEvent = function(targetBuffer, event) {
     if (this.currentEventRasterizer.drawEvent === event) {
-        targetBuffer.pushEvent(event, this.currentEventRasterizer);
+        this.buffers[targetBuffer].pushEvent(event,
+                                             this.currentEventRasterizer);
     } else {
-        targetBuffer.pushEvent(event, this.genericRasterizer);
+        this.buffers[targetBuffer].pushEvent(event, this.genericRasterizer);
     }
 };
 
@@ -554,7 +552,7 @@ Picture.prototype.removeEventSessionId = function(sid, sessionEventId) {
 Picture.prototype.setCurrentEvent = function(cEvent) {
     this.currentEvent = cEvent;
     if (this.currentEvent) {
-        this.currentEventRasterizer.setClip(this.bitmapRect);
+        this.currentEventRasterizer.resetClip();
         this.currentEvent.updateTo(this.currentEventRasterizer);
     }
     this.updateCurrentEventMode();
@@ -563,15 +561,16 @@ Picture.prototype.setCurrentEvent = function(cEvent) {
 /**
  * Search for event from sourceBuffer, remove it from there if it is found, and
  * push it to targetBuffer.
- * @param {PictureBuffer} targetBuffer The buffer to push the event to.
- * @param {PictureBuffer} sourceBuffer The buffer to search the event from.
+ * @param {number} targetBuffer The index of the buffer to push the event to.
+ * @param {number} sourceBuffer The index of the buffer to search the event
+ * from.
  * @param {PictureEvent} event The event to transfer.
  */
 Picture.prototype.moveEvent = function(targetBuffer, sourceBuffer, event) {
-    var eventIndex = sourceBuffer.eventIndexBySessionId(event.sid,
-                                                        event.sessionEventId);
+    var src = this.buffers[sourceBuffer];
+    var eventIndex = src.eventIndexBySessionId(event.sid, event.sessionEventId);
     if (eventIndex >= 0) {
-        sourceBuffer.removeEventIndex(eventIndex, this.genericRasterizer);
+        src.removeEventIndex(eventIndex, this.genericRasterizer);
     }
     this.transferEvent(targetBuffer, event);
 };
@@ -756,11 +755,13 @@ Picture.prototype.animate = function(simultaneousStrokes, speed,
                     var untilPos = (animationPosForStroke % 1.0) +
                                    that.animationSpeed;
                     if (untilPos > 1.0) {
-                        that.transferEvent(that.animationBuffers[bufferIndex],
-                                           event);
+                        event.updateTo(that.animationRasterizers[i]);
+                        that.animationBuffers[bufferIndex].pushEvent(event,
+                            that.animationRasterizers[i]);
                         that.animationEventIndices[i] =
                             getNextEventIndexToAnimate();
                         that.animationRasterizers[i].clear();
+                        that.animationRasterizers[i].resetClip();
                     } else {
                         var untilCoord = event.coords.length * untilPos;
                         untilCoord = Math.ceil(untilCoord / 3) * 3;

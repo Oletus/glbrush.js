@@ -41,6 +41,13 @@ BaseRasterizer.prototype.setClip = function(rect) {
 };
 
 /**
+ * Reset the clipping rectangle.
+ */
+BaseRasterizer.prototype.resetClip = function() {
+    this.clipRect.set(0, this.width, 0, this.height);
+};
+
+/**
  * Get draw event state for the given event. The draw event state represents
  * what parts of the event have been rasterized to this rasterizer's bitmap.
  * Assumes that the intention is to rasterize the given event.
@@ -166,7 +173,7 @@ BaseRasterizer.prototype.free = function() {
 BaseRasterizer.prototype.checkSanity = function() {
     var i, pix;
     this.drawEvent = null;
-    this.setClip(new Rect(0, this.width, 0, this.height));
+    this.resetClip();
     this.clear();
     this.beginLines(false, 1.0);
     this.lineTo(1.5, 1.5, 2.0);
