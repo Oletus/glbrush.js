@@ -27,7 +27,6 @@ var Picture = function(id, boundsRect, bitmapScale, mode,
     this.currentEventAttachment = currentEventAttachment;
     this.currentEvent = null;
     this.currentEventMode = BrushEvent.Mode.normal;
-    this.hasCurrentEvent = false;
 
     this.boundsRect = boundsRect;
     this.bitmapScale = bitmapScale;
@@ -134,13 +133,28 @@ Picture.prototype.moveBuffer = function(fromPosition, toPosition) {
 };
 
 /**
+ * Update the current event compositing mode.
+ * @protected
+ */
+Picture.prototype.updateCurrentEventMode = function() {
+    if (this.currentEvent !== null && this.currentEventAttachment >= 0) {
+        // TODO: assert(this.currentEventAttachment < this.buffers.length)
+        this.currentEventMode = this.currentEvent.mode;
+        if (this.currentEventMode === BrushEvent.Mode.eraser &&
+            !this.buffers[this.currentEventAttachment].hasAlpha) {
+            this.currentEventMode = BrushEvent.Mode.normal;
+        }
+    }
+};
+
+/**
  * Attach the current event to the given buffer in the stack.
  * @param {number} attachment Which buffer index to attach the picture's current
  * event to. Can be set to -1 if no current event is needed.
  */
 Picture.prototype.setCurrentEventAttachment = function(attachment) {
     this.currentEventAttachment = attachment;
-    this.hasCurrentEvent = (this.currentEvent !== null && attachment >= 0);
+    this.updateCurrentEventMode();
 };
 
 /**
@@ -538,18 +552,12 @@ Picture.prototype.removeEventSessionId = function(sid, sessionEventId) {
  * @param {PictureEvent} cEvent The event the user is currently drawing or null.
  */
 Picture.prototype.setCurrentEvent = function(cEvent) {
-    this.hasCurrentEvent = (cEvent !== null &&
-                            this.currentEventAttachment >= 0);
     this.currentEvent = cEvent;
-    if (this.hasCurrentEvent) {
+    if (this.currentEvent) {
         this.currentEventRasterizer.setClip(this.bitmapRect);
         this.currentEvent.updateTo(this.currentEventRasterizer);
-        this.currentEventMode = this.currentEvent.mode;
-        if (this.currentEventMode === BrushEvent.Mode.eraser &&
-            !this.buffers[this.currentEventAttachment].hasAlpha) {
-            this.currentEventMode = BrushEvent.Mode.normal;
-        }
     }
+    this.updateCurrentEventMode();
 };
 
 /**
@@ -587,7 +595,7 @@ Picture.prototype.setupGLCompositing = function() {
             if (this.currentEventAttachment === i) {
                 this.compositingUniforms['uCurrentEvent'] =
                     this.currentEventRasterizer.getTex();
-                if (this.hasCurrentEvent) {
+                if (this.currentEvent) {
                     var color = this.currentEvent.color;
                     this.compositingUniforms['uCurrentColor'] =
                         [color[0] / 255, color[1] / 255, color[2] / 255,
