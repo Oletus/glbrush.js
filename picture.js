@@ -10,11 +10,11 @@
  * are pushed to this picture get this scale applied to them.
  * @param {string=} mode Either 'webgl', 'no-texdata-webgl' or 'canvas'.
  * Defaults to 'webgl'.
- * @param {number} currentBufferAttachment Which buffer index to attach the
- * picture's current buffer to. Can be set to -1 if no current buffer is needed.
+ * @param {number} currentEventAttachment Which buffer index to attach the
+ * picture's current event to. Can be set to -1 if no current event is needed.
  */
 var Picture = function(id, boundsRect, bitmapScale, mode,
-                       currentBufferAttachment) {
+                       currentEventAttachment) {
     this.id = id;
     if (mode === undefined) {
         mode = 'webgl';
@@ -24,10 +24,10 @@ var Picture = function(id, boundsRect, bitmapScale, mode,
     this.animating = false;
 
     this.buffers = [];
-    this.currentBuffer = false;
-    this.currentBufferAttachment = currentBufferAttachment;
+    this.currentEventAttachment = currentEventAttachment;
     this.currentEvent = null;
-    this.currentBufferMode = BrushEvent.Mode.normal;
+    this.currentEventMode = BrushEvent.Mode.normal;
+    this.hasCurrentEvent = false;
 
     this.boundsRect = boundsRect;
     this.bitmapScale = bitmapScale;
@@ -116,7 +116,7 @@ Picture.prototype.addBuffer = function(id, clearColor, hasUndoStates,
 };
 
 /**
- * Move a buffer to the given index in the buffer stack. Current buffer stays
+ * Move a buffer to the given index in the buffer stack. Current event stays
  * attached to the moved buffer, if it exists.
  * @param {number} fromPosition The position of the buffer to move. Must be an
  * integer between 0 and Picture.buffers.length - 1.
@@ -128,19 +128,19 @@ Picture.prototype.moveBuffer = function(fromPosition, toPosition) {
     var buffer = this.buffers[fromPosition];
     this.buffers.splice(fromPosition, 1);
     this.buffers.splice(toPosition, 0, buffer);
-    if (this.currentBufferAttachment === fromPosition) {
-        this.currentBufferAttachment = toPosition;
+    if (this.currentEventAttachment === fromPosition) {
+        this.currentEventAttachment = toPosition;
     }
 };
 
 /**
- * Attach the current buffer to the given buffer in the stack.
+ * Attach the current event to the given buffer in the stack.
  * @param {number} attachment Which buffer index to attach the picture's current
- * buffer to. Can be set to -1 if no current buffer is needed.
+ * event to. Can be set to -1 if no current event is needed.
  */
-Picture.prototype.setCurrentBufferAttachment = function(attachment) {
-    this.currentBufferAttachment = attachment;
-    this.currentBuffer = (this.currentEvent !== null && attachment >= 0);
+Picture.prototype.setCurrentEventAttachment = function(attachment) {
+    this.currentEventAttachment = attachment;
+    this.hasCurrentEvent = (this.currentEvent !== null && attachment >= 0);
 };
 
 /**
@@ -163,12 +163,12 @@ Picture.prototype.setBufferVisible = function(buffer, visible) {
  * @param {Array.<string>} modesToTry Modes to try to initialize the picture.
  * Can contain either 'webgl', 'no-texdata-webgl', 'no-float-webgl' or 'canvas'.
  * Modes are tried in the order they are in the array.
- * @param {number} currentBufferAttachment Which buffer index to attach the
- * picture's current buffer to. Can be set to -1 if no current buffer is needed.
+ * @param {number} currentEventAttachment Which buffer index to attach the
+ * picture's current event to. Can be set to -1 if no current event is needed.
  * @return {Picture} The created picture or null if one couldn't be created.
  */
 Picture.create = function(id, width, height, bitmapScale, modesToTry,
-                          currentBufferAttachment) {
+                          currentEventAttachment) {
     var pictureBounds = new Rect(0, width, 0, height);
     var i = 0;
     var pic = null;
@@ -176,7 +176,7 @@ Picture.create = function(id, width, height, bitmapScale, modesToTry,
         var mode = modesToTry[i];
         if (glUtils.supportsTextureUnits(4) || mode === 'canvas') {
             pic = new Picture(id, pictureBounds, bitmapScale, mode,
-                              currentBufferAttachment);
+                              currentEventAttachment);
             if (pic.mode === undefined) {
                 pic = null;
             }
@@ -197,20 +197,20 @@ Picture.create = function(id, width, height, bitmapScale, modesToTry,
  * @param {Array.<string>} modesToTry Modes to try to initialize the picture.
  * Can contain either 'webgl', 'no-texdata-webgl', 'no-float-webgl' or 'canvas'.
  * Modes are tried in the order they are in the array.
- * @param {number} currentBufferAttachment Which buffer index to attach the
+ * @param {number} currentEventAttachment Which buffer index to attach the
  * picture's current buffer to. Can be set to -1 if no current buffer is needed.
  * @return {Object} Object containing key 'picture' for the created picture and
  * key 'metadata' for the metadata lines or null if picture couldn't be created.
  */
 Picture.parse = function(id, serialization, bitmapScale, modesToTry,
-                         currentBufferAttachment) {
+                         currentEventAttachment) {
     var startTime = new Date().getTime();
     var eventStrings = serialization.split(/\r?\n/);
     var pictureParams = eventStrings[0].split(' ');
     var width = parseInt(pictureParams[1]);
     var height = parseInt(pictureParams[2]);
     var pic = Picture.create(id, width, height, bitmapScale, modesToTry,
-                             currentBufferAttachment);
+                             currentEventAttachment);
     var targetBuffer = null;
     var i = 1;
     while (i < eventStrings.length) {
@@ -322,9 +322,9 @@ Picture.prototype.pictureElement = function() {
  * @protected
  */
 Picture.prototype.initRasterizers = function() {
-    this.currentBufferRasterizer = this.createRasterizer();
-    if (!this.currentBufferRasterizer.checkSanity()) {
-        this.currentBufferRasterizer.free();
+    this.currentEventRasterizer = this.createRasterizer();
+    if (!this.currentEventRasterizer.checkSanity()) {
+        this.currentEventRasterizer.free();
         return false;
     }
     this.genericRasterizer = this.createRasterizer();
@@ -439,8 +439,8 @@ Picture.prototype.insertEvent = function(targetBuffer, event) {
  * @param {PictureEvent} event Event to transfer.
  */
 Picture.prototype.transferEvent = function(targetBuffer, event) {
-    if (this.currentBufferRasterizer.drawEvent === event) {
-        targetBuffer.pushEvent(event, this.currentBufferRasterizer);
+    if (this.currentEventRasterizer.drawEvent === event) {
+        targetBuffer.pushEvent(event, this.currentEventRasterizer);
     } else {
         targetBuffer.pushEvent(event, this.genericRasterizer);
     }
@@ -532,21 +532,22 @@ Picture.prototype.removeEventSessionId = function(sid, sessionEventId) {
 };
 
 /**
- * Update the currentBuffer of this picture, meant to contain the event that the
+ * Update the currentEvent of this picture, meant to contain the event that the
  * user is currently drawing. The event is assumed to already be in the picture
  * bitmap coordinates in pixels, not in the picture coordinates.
  * @param {PictureEvent} cEvent The event the user is currently drawing or null.
  */
-Picture.prototype.setCurrentBuffer = function(cEvent) {
-    this.currentBuffer = (cEvent !== null && this.currentBufferAttachment >= 0);
+Picture.prototype.setCurrentEvent = function(cEvent) {
+    this.hasCurrentEvent = (cEvent !== null &&
+                            this.currentEventAttachment >= 0);
     this.currentEvent = cEvent;
-    if (this.currentBuffer) {
-        this.currentBufferRasterizer.setClip(this.bitmapRect);
-        this.currentEvent.updateTo(this.currentBufferRasterizer);
-        this.currentBufferMode = this.currentEvent.mode;
-        if (this.currentBufferMode === BrushEvent.Mode.eraser &&
-            !this.buffers[this.currentBufferAttachment].hasAlpha) {
-            this.currentBufferMode = BrushEvent.Mode.normal;
+    if (this.hasCurrentEvent) {
+        this.currentEventRasterizer.setClip(this.bitmapRect);
+        this.currentEvent.updateTo(this.currentEventRasterizer);
+        this.currentEventMode = this.currentEvent.mode;
+        if (this.currentEventMode === BrushEvent.Mode.eraser &&
+            !this.buffers[this.currentEventAttachment].hasAlpha) {
+            this.currentEventMode = BrushEvent.Mode.normal;
         }
     }
 };
@@ -575,18 +576,18 @@ Picture.prototype.setupGLCompositing = function() {
     this.compositingProgram = compositingShader.getShaderProgram(
                                   this.glManager,
                                   this.buffers,
-                                  this.currentBufferAttachment,
-                                  this.currentBufferMode,
-                                  this.currentBufferRasterizer.format);
+                                  this.currentEventAttachment,
+                                  this.currentEventMode,
+                                  this.currentEventRasterizer.format);
 
     this.compositingUniforms = {};
     for (var i = 0; i < this.buffers.length; ++i) {
         if (this.buffers[i].visible) {
             this.compositingUniforms['uLayer' + i] = this.buffers[i].tex;
-            if (this.currentBufferAttachment === i) {
-                this.compositingUniforms['uCurrentBuffer'] =
-                    this.currentBufferRasterizer.getTex();
-                if (this.currentBuffer) {
+            if (this.currentEventAttachment === i) {
+                this.compositingUniforms['uCurrentEvent'] =
+                    this.currentEventRasterizer.getTex();
+                if (this.hasCurrentEvent) {
                     var color = this.currentEvent.color;
                     this.compositingUniforms['uCurrentColor'] =
                         [color[0] / 255, color[1] / 255, color[2] / 255,
@@ -621,7 +622,7 @@ Picture.prototype.display = function() {
         }
         for (var i = 0; i < this.buffers.length; ++i) {
             if (this.buffers[i].visible) {
-                if (this.currentBufferAttachment === i && this.currentBuffer &&
+                if (this.currentEventAttachment === i && this.currentEvent &&
                     this.currentEvent.boundingBox !== null) {
                     if (this.buffers[i].hasAlpha) {
                         this.compositingCtx.clearRect(0, 0, this.bitmapWidth(),
@@ -633,12 +634,12 @@ Picture.prototype.display = function() {
                     clipRect.intersectRect(this.currentEvent.boundingBox);
                     CanvasBuffer.drawRasterizer(this.buffers[i].ctx,
                                                 this.compositingCtx,
-                                                this.currentBufferRasterizer,
+                                                this.currentEventRasterizer,
                                                 clipRect,
                                                 false,
                                                 this.currentEvent.color,
                                                 this.currentEvent.opacity,
-                                                this.currentBufferMode);
+                                                this.currentEventMode);
                     this.ctx.drawImage(this.compositingCanvas, 0, 0);
                 } else {
                     this.ctx.drawImage(this.buffers[i].canvas, 0, 0);

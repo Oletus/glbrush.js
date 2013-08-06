@@ -63,7 +63,7 @@ loadApp = function() {
     };
     drawArea.onmouseup = function(e) {
         if (currentEvent !== null) {
-            picture.setCurrentBuffer(null);
+            picture.setCurrentEvent(null);
             picture.transferEvent(picture.buffers[0], currentEvent);
             picture.display();
             currentEvent = null;
@@ -76,7 +76,7 @@ loadApp = function() {
             var pressure = (Math.sin(pressureInd * 0.4) + 2.0) * 0.33;
             var coords = getRelativeCoords(e, drawArea);
             currentEvent.pushCoordTriplet(coords.x, coords.y, pressure);
-            picture.setCurrentBuffer(currentEvent);
+            picture.setCurrentEvent(currentEvent);
             picture.display();
         }
     };
