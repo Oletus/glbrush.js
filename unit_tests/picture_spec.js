@@ -61,6 +61,40 @@ var doPictureTest = function(mode) {
         expect(samplePixel[2]).toBe(34);
         expect(samplePixel[3]).toBe(255);
     });
+
+    it('resizes', function() {
+        var pic = testPicture();
+        var clearColor = [12, 23, 34, 45];
+        pic.addBuffer(1337, clearColor, true, false);
+        var pic2 = Picture.resize(pic, 3.0);
+        expect(pic2.width()).toBe(pic.width());
+        expect(pic2.height()).toBe(pic.height());
+        expect(pic2.bitmapWidth()).toNotBe(pic.bitmapWidth());
+        expect(pic2.bitmapHeight()).toNotBe(pic.bitmapHeight());
+        expect(pic2.bitmapWidth()).toBe(pic2.width() * 3.0);
+        expect(pic2.bitmapHeight()).toBe(pic2.height() * 3.0);
+        var samplePixel = pic2.getPixelRGBA(new Vec2(0, 0));
+        expect(samplePixel[0]).toBe(12);
+        expect(samplePixel[1]).toBe(23);
+        expect(samplePixel[2]).toBe(34);
+        expect(samplePixel[3]).toBe(255);
+    });
+    
+    it('resizes to the maximum scale', function() {
+        var pic = testPicture();
+        var clearColor = [12, 23, 34, 45];
+        pic.addBuffer(1337, clearColor, true, false);
+        var pic2 = Picture.resize(pic, pic.maxBitmapScale());
+        expect(pic2.width()).toBe(pic.width());
+        expect(pic2.height()).toBe(pic.height());
+        expect(pic2.bitmapWidth()).toBeLessThan(glUtils.maxFramebufferSize + 1);
+        expect(pic2.bitmapHeight()).toBeLessThan(glUtils.maxFramebufferSize + 1);
+        var samplePixel = pic2.getPixelRGBA(new Vec2(0, 0));
+        expect(samplePixel[0]).toBe(12);
+        expect(samplePixel[1]).toBe(23);
+        expect(samplePixel[2]).toBe(34);
+        expect(samplePixel[3]).toBe(255);
+    });
 }
  
 describe('Picture', function() {

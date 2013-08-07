@@ -260,6 +260,29 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry,
 };
 
 /**
+ * Create a resized copy of the given picture at the given scale.
+ * @param {Picture} pic The picture to resize.
+ * @param {number} bitmapScale The scale to set to the new picture. The new
+ * picture's bitmap width will be the old picture's width() * bitmapScale.
+ * @return {Picture} A new, resized picture.
+ */
+Picture.resize = function(pic, bitmapScale) {
+    var serialization = pic.serialize();
+    return Picture.parse(pic.id, serialization, bitmapScale, [pic.mode],
+                         pic.currentEventAttachment).picture;
+};
+
+/**
+ * @return {number} The maximum scale to which this picture can be reliably
+ * resized on the current configuration.
+ */
+Picture.prototype.maxBitmapScale = function() {
+    // Note: if WebGL is unsupported, falls back to default (unconfirmed)
+    // glUtils.maxFramebufferSize. This is a reasonable value for 2D canvas.
+    return glUtils.maxFramebufferSize / Math.max(this.width(), this.height());
+};
+
+/**
  * @return {string} A serialization of this Picture. Can be parsed into a new
  * Picture by calling Picture.parse.
  */
