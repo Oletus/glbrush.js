@@ -159,12 +159,11 @@ Picture.prototype.setCurrentEventAttachment = function(attachment) {
 
 /**
  * Set one of this picture's buffers visible or invisible.
- * @param {PictureBuffer} buffer The buffer to adjust.
+ * @param {number} buffer The index of the buffer to adjust.
  * @param {boolean} visible Is the buffer visible?
  */
 Picture.prototype.setBufferVisible = function(buffer, visible) {
-    // TODO: assert that the buffer belongs to this picture.
-    buffer.visible = visible;
+    this.buffers[buffer].visible = visible;
 };
 
 /**
