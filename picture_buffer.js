@@ -644,9 +644,13 @@ var GLBuffer = function(gl, glManager, texBlitProgram, id, width, height,
     this.glManager = glManager;
     this.w = width;
     this.h = height;
-    if (clearColor === undefined)
+    if (clearColor === undefined) {
         clearColor = [0, 0, 0, 0];
+    }
     this.clearColor = clearColor;
+    if (!this.hasAlpha) {
+        this.clearColor[3] = 255;
+    }
 
     var format = this.hasAlpha ? gl.RGBA : gl.RGB;
     this.tex = glUtils.createTex(this.gl, width, height, format);

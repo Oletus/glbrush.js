@@ -884,8 +884,8 @@ Picture.prototype.blamePixel = function(coords) {
  * @return {Uint8Array|Uint8ClampedArray} Unpremultiplied RGBA value.
  */
 Picture.prototype.getPixelRGBA = function(coords) {
+    this.display();
     if (this.usesWebGl()) {
-        this.display();
         var buffer = new ArrayBuffer(4);
         var pixelData = new Uint8Array(buffer);
         var glX = Math.min(Math.floor(coords.x), this.bitmapWidth() - 1);
@@ -895,13 +895,8 @@ Picture.prototype.getPixelRGBA = function(coords) {
         pixelData = color.unpremultiply(pixelData);
         return pixelData;
     } else {
-        var c = [0, 0, 0, 0];
-        for (var j = 0; j < this.buffers.length; ++j) {
-            if (this.buffers[j].visible && this.buffers[j].events.length > 0) {
-                c = color.blend(c, this.buffers[j].getPixelRGBA(coords));
-            }
-        }
-        return c;
+        return this.ctx.getImageData(Math.floor(coords.x),
+                                     Math.floor(coords.y), 1, 1).data;
     }
 };
 
