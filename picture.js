@@ -47,10 +47,7 @@ var Picture = function(id, boundsRect, bitmapScale, mode,
         }
     } else if (this.mode === 'canvas') {
         this.ctx = this.canvas.getContext('2d');
-        this.compositingCanvas = document.createElement('canvas');
-        this.compositingCanvas.width = this.bitmapWidth();
-        this.compositingCanvas.height = this.bitmapHeight();
-        this.compositingCtx = this.compositingCanvas.getContext('2d');
+        this.compositor = new CanvasCompositor(this.ctx);
         this.initRasterizers();
     } else {
         this.mode = undefined;
@@ -96,6 +93,9 @@ Picture.prototype.setupGLState = function() {
                     'or try switching browsers if possible.');
         return false;
     }
+
+    this.compositor = new GLCompositor(this.glManager, this.gl,
+                                       glUtils.maxTextureUnits);
     return true;
 };
 
@@ -596,38 +596,6 @@ Picture.prototype.moveEvent = function(targetBuffer, sourceBuffer, event) {
 };
 
 /**
- * Compile the compositing shader if needed and set compositing uniforms.
- * @protected
- */
-Picture.prototype.setupGLCompositing = function() {
-    this.compositingProgram = compositingShader.getShaderProgram(
-                                  this.glManager,
-                                  this.buffers,
-                                  this.currentEventAttachment,
-                                  this.currentEventMode,
-                                  this.currentEventRasterizer.format);
-
-    this.compositingUniforms = {};
-    for (var i = 0; i < this.buffers.length; ++i) {
-        if (this.buffers[i].visible) {
-            this.compositingUniforms['uLayer' + i] = this.buffers[i].tex;
-            if (this.currentEventAttachment === i) {
-                this.compositingUniforms['uCurrentEvent'] =
-                    this.currentEventRasterizer.getTex();
-                if (this.currentEvent) {
-                    var color = this.currentEvent.color;
-                    this.compositingUniforms['uCurrentColor'] =
-                        [color[0] / 255, color[1] / 255, color[2] / 255,
-                        this.currentEvent.opacity];
-                } else {
-                    this.compositingUniforms['uCurrentColor'] = [0, 0, 0, 0];
-                }
-            }
-        }
-    }
-};
-
-/**
  * Display the latest updated buffers of this picture. Call after doing changes
  * to any of the picture's buffers.
  */
@@ -636,49 +604,20 @@ Picture.prototype.display = function() {
         return;
     }
     if (this.usesWebGl()) {
-        this.setupGLCompositing();
         this.glManager.useFbo(null);
         this.gl.scissor(0, 0, this.bitmapWidth(), this.bitmapHeight());
-        if (this.buffers.length === 0 || this.buffers[0].hasAlpha ||
-            !this.buffers[0].visible) {
-            this.gl.clearColor(0, 0, 0, 0);
-            this.gl.clear(this.gl.COLOR_BUFFER_BIT);
-        }
-        this.glManager.drawFullscreenQuad(this.compositingProgram,
-                                          this.compositingUniforms);
-        this.gl.flush();
-    } else {
-        if (this.buffers.length === 0 || this.buffers[0].hasAlpha ||
-            !this.buffers[0].visible) {
-            this.ctx.clearRect(0, 0, this.bitmapWidth(), this.bitmapHeight());
-        }
-        for (var i = 0; i < this.buffers.length; ++i) {
-            if (this.buffers[i].visible) {
-                if (this.currentEventAttachment === i && this.currentEvent &&
-                    this.currentEvent.boundingBox !== null) {
-                    if (this.buffers[i].hasAlpha) {
-                        this.compositingCtx.clearRect(0, 0, this.bitmapWidth(),
-                                                      this.bitmapHeight());
-                    }
-                    this.compositingCtx.drawImage(this.buffers[i].canvas, 0, 0);
-                    var clipRect = new Rect(0, this.bitmapWidth(),
-                                            0, this.bitmapHeight());
-                    clipRect.intersectRect(this.currentEvent.boundingBox);
-                    CanvasBuffer.drawRasterizer(this.buffers[i].ctx,
-                                                this.compositingCtx,
-                                                this.currentEventRasterizer,
-                                                clipRect,
-                                                false,
-                                                this.currentEvent.color,
-                                                this.currentEvent.opacity,
-                                                this.currentEventMode);
-                    this.ctx.drawImage(this.compositingCanvas, 0, 0);
-                } else {
-                    this.ctx.drawImage(this.buffers[i].canvas, 0, 0);
-                }
-            }
+    }
+    for (var i = 0; i < this.buffers.length; ++i) {
+        this.compositor.pushBuffer(this.buffers[i]);
+        if (this.currentEventAttachment === i) {
+            // Even if there's no this.currentEvent at the moment, push it so
+            // that the GLCompositor can avoid extra shader changes.
+            this.compositor.pushEvent(this.currentEvent,
+                                      this.currentEventRasterizer,
+                                      this.currentEventMode);
         }
     }
+    this.compositor.flush();
 };
 
 /**
