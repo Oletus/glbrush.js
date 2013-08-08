@@ -474,7 +474,7 @@ PictureBuffer.prototype.removeEventIndex = function(eventIndex, rasterizer) {
  * @param {number} width Width of the buffer in pixels. Must be an integer.
  * @param {number} height Height of the buffer in pixels. Must be an integer.
  * @param {Uint8Array|Array.<number>} clearColor The RGBA color to use when
- * clearing the buffer. Channel values are between 0-255.
+ * clearing the buffer. Unpremultiplied and channel values are between 0-255.
  * @param {boolean} hasUndoStates Does this buffer store undo states?
  * @param {boolean} hasAlpha Does this buffer have an alpha channel?
  */
@@ -629,7 +629,7 @@ CanvasBuffer.drawRasterizer = function(dataCtx, targetCtx, raster, clipRect,
  * @param {number} width Width of the buffer in pixels. Must be an integer.
  * @param {number} height Height of the buffer in pixels. Must be an integer.
  * @param {Uint8Array|Array.<number>} clearColor The RGBA color to use when
- * clearing the buffer. Channel values are between 0-255.
+ * clearing the buffer. Unpremultiplied and channel values are between 0-255.
  * @param {boolean} hasUndoStates Does this buffer store undo states?
  * @param {boolean} hasAlpha Does this buffer have an alpha channel?
  */
@@ -695,8 +695,9 @@ GLBuffer.prototype.height = function() {
 GLBuffer.prototype.clear = function() {
     this.updateClip();
     this.glManager.useFboTex(this.tex);
-    this.gl.clearColor(this.clearColor[0] / 255.0, this.clearColor[1] / 255.0,
-                       this.clearColor[2] / 255.0, this.clearColor[3] / 255.0);
+    var clearColor = color.premultiply(this.clearColor);
+    this.gl.clearColor(clearColor[0] / 255.0, clearColor[1] / 255.0,
+                       clearColor[2] / 255.0, clearColor[3] / 255.0);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 };
 

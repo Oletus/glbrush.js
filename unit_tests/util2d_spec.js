@@ -39,6 +39,15 @@ describe('util2d', function() {
             var resultColor = toUint8Array([255, 255, 255, 128]);
             expect(color.unpremultiply(testColor)).toEqual(resultColor);
         });
+        it('premultiplies if alpha is 255', function() {
+            var testColor = toUint8Array([128, 128, 128, 255]);
+            expect(color.premultiply(testColor)).toEqual(testColor);
+        });
+        it('premultiplies if alpha is less than 255', function() {
+            var testColor = toUint8Array([128, 128, 128, 128]);
+            var resultColor = toUint8Array([64, 64, 64, 128]);
+            expect(color.premultiply(testColor)).toEqual(resultColor);
+        });
         it('blends two color values with dstAlpha being 255', function() {
             var dstRGBA = toUint8Array([12, 34, 56, 255]);
             var srcRGBA = toUint8Array([87, 65, 43, 21]);

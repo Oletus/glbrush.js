@@ -31,6 +31,7 @@ cssUtil.rgbaString = function(rgbaArray) {
 
 color = {
     unpremultiply: null,
+    premultiply: null,
     blend: null,
     serializeRGB: null,
     nBlends: null,
@@ -62,6 +63,33 @@ color.unpremultiply = function(premultRGBA) {
         }
     }
     return unmultRGBA;
+};
+
+/**
+ * Premultiply a color value.
+ * @param {Array.<number>|Uint8Array} unpremultRGBA Unpremultiplied color value.
+ * Channel values should be 0-255.
+ * @return {Array.<number>|Uint8Array} The input array, if the result is
+ * identical, or a new array with premultiplied color. Channel values 0-255.
+ */
+color.premultiply = function(unpremultRGBA) {
+    if (unpremultRGBA[3] === 255) {
+        return unpremultRGBA;
+    }
+    var buffer = new ArrayBuffer(4);
+    var premultRGBA = new Uint8Array(buffer);
+    var alpha = unpremultRGBA[3] / 255.0;
+    if (alpha > 0) {
+        for (var i = 0; i < 3; ++i) {
+            premultRGBA[i] = unpremultRGBA[i] * alpha;
+        }
+        premultRGBA[3] = unpremultRGBA[3];
+    } else {
+        for (var i = 0; i < 4; ++i) {
+            premultRGBA[i] = 0;
+        }
+    }
+    return premultRGBA;
 };
 
 /**

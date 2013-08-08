@@ -372,7 +372,8 @@ Picture.prototype.initRasterizers = function() {
  * @param {number} id Identifier for this buffer. Unique at the Picture level.
  * Can be -1 if events won't be serialized separately from this buffer.
  * @param {Array.<number>} clearColor 4-component array with RGBA color that's
- * used to clear this buffer.
+ * used to clear this buffer. Unpremultiplied and channel values are between
+ * 0-255.
  * @param {boolean} hasUndoStates Does the buffer store undo states?
  * @param {boolean} hasAlpha Does the buffer have an alpha channel?
  * @return {GLBuffer|CanvasBuffer} The buffer.
@@ -638,6 +639,11 @@ Picture.prototype.display = function() {
         this.setupGLCompositing();
         this.glManager.useFbo(null);
         this.gl.scissor(0, 0, this.bitmapWidth(), this.bitmapHeight());
+        if (this.buffers.length === 0 || this.buffers[0].hasAlpha ||
+            !this.buffers[0].visible) {
+            this.gl.clearColor(0, 0, 0, 0);
+            this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+        }
         this.glManager.drawFullscreenQuad(this.compositingProgram,
                                           this.compositingUniforms);
         this.gl.flush();

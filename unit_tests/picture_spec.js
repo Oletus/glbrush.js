@@ -39,7 +39,7 @@ var doPictureTest = function(mode) {
         expect(samplePixel[2]).toBe(34);
         expect(samplePixel[3]).toBe(255);
     });
-    
+
     it('composits a current event in addition to buffers', function() {
         var pic = testPicture();
         var clearColor = [12, 23, 34, 45];
@@ -60,6 +60,21 @@ var doPictureTest = function(mode) {
         expect(samplePixel[1]).toBe(23);
         expect(samplePixel[2]).toBe(34);
         expect(samplePixel[3]).toBe(255);
+    });
+
+    it('composits two buffers together', function() {
+        var pic = testPicture();
+        var clearColor = [12, 23, 34, 45];
+        pic.addBuffer(1337, clearColor, true, true);
+        var clearColor2 = [12, 23, 34, 45];
+        pic.addBuffer(1338, clearColor2, true, true);
+        var blendedPixel = color.blend(clearColor, clearColor2);
+        pic.display();
+        var samplePixel = pic.getPixelRGBA(new Vec2(0, 0));
+        expect(samplePixel[0]).toBeCloseTo(blendedPixel[0], -0.8);
+        expect(samplePixel[1]).toBeCloseTo(blendedPixel[1], -0.8);
+        expect(samplePixel[2]).toBeCloseTo(blendedPixel[2], -0.8);
+        expect(samplePixel[3]).toBeCloseTo(blendedPixel[3], -0.8);
     });
 
     it('resizes', function() {
