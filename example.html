@@ -98,9 +98,7 @@ loadApp = function() {
     aniButton.value = 'Animate';
     document.body.appendChild(aniButton);
     aniButton.onclick = function() {
-        if (!picture.animate(4, 0.1)) {
-            alert('Can\'t support animation without working WebGL, sorry!');
-        }
+        picture.animate(4, 0.1);
     };    
 
     // And there's a lot more public API in Picture to use...

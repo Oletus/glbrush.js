@@ -634,9 +634,6 @@ Picture.prototype.display = function() {
  */
 Picture.prototype.animate = function(simultaneousStrokes, speed,
                                      animationFinishedCallBack) {
-    if (!this.supportsAnimation()) {
-        return false;
-    }
     if (this.animating) {
         return true;
     }
@@ -778,20 +775,14 @@ Picture.prototype.stopAnimating = function() {
 };
 
 /**
- * @return {boolean} Does this picture support animation?
- */
-Picture.prototype.supportsAnimation = function() {
-    return this.usesWebGl();
-};
-
-/**
  * Display the current animation frame on the canvas.
  * @protected
  */
 Picture.prototype.displayAnimation = function() {
-    // TODO: Improve compositing shader so that it can be used for animation
-    this.glManager.useFbo(null);
-    this.gl.scissor(0, 0, this.bitmapWidth(), this.bitmapHeight());
+    if (this.usesWebGl()) {
+        this.glManager.useFbo(null);
+        this.gl.scissor(0, 0, this.bitmapWidth(), this.bitmapHeight());
+    }
     var i, j;
     var rasterizerIndexOffset = 0;
     for (i = 0; i < this.animationRasterizers.length; ++i) {
@@ -801,9 +792,7 @@ Picture.prototype.displayAnimation = function() {
         }
     }
     for (i = 0; i < this.animationBuffers.length; ++i) {
-        this.texBlitUniforms.uSrcTex = this.animationBuffers[i].tex;
-        this.glManager.drawFullscreenQuad(this.texBlitProgram,
-                                          this.texBlitUniforms);
+        this.compositor.pushBuffer(this.animationBuffers[i]);
         for (j = 0; j < this.animationRasterizers.length; ++j) {
             // Start from the rasterizer that's first in the bottom-to-top order
             var ri = (j + rasterizerIndexOffset) %
@@ -812,14 +801,12 @@ Picture.prototype.displayAnimation = function() {
                 this.animationEventIndices[ri].bufferIndex === i) {
                 var event = this.eventToAnimate(
                                 this.animationEventIndices[ri].index).event;
-                if (event.mode !== BrushEvent.Mode.eraser) {
-                    this.animationRasterizers[ri].drawWithColor(event.color,
-                                                               event.opacity);
-                }
+                this.compositor.pushEvent(event, this.animationRasterizers[ri],
+                                          event.mode);
             }
         }
     }
-    this.gl.flush();
+    this.compositor.flush();
 };
 
 /**
