@@ -8,65 +8,75 @@
 var compositingShader = {};
 
 /**
- * @param {Array.<PictureBuffer>} buffers The array of buffers to composit.
- * @param {number} currentEventAttachment The index of the buffer which should
- * get the current event applied to it.
- * @param {BrushEvent.Mode} currentEventMode Mode to use when applying the
- * current event.
- * @param {GLRasterizerFormat} currentEventFormat Format of the current event.
+ * @param {Array.<Object>} layers The array of layers to composit. May contain
+ * objects specifying PictureBuffers and objects specifying PictureEvent plus
+ * BaseRasterizer combos which are blended to the previous PictureBuffer.
  * @return {string} The fragment shader source for compositing the given layer
  * stack.
  */
-compositingShader.getFragmentSource = function(buffers,
-                                               currentEventAttachment,
-                                               currentEventMode,
-                                               currentEventFormat) {
+compositingShader.getFragmentSource = function(layers) {
     var src = ['precision highp float;'];
     var i;
-    for (i = 0; i < buffers.length; ++i) {
-        src.push('uniform sampler2D uLayer' + i + ';');
-        if (i === currentEventAttachment) {
-            src.push('uniform sampler2D uCurrentEvent;');
-            src.push('uniform vec4 uCurrentColor;');
+    var lastVisible = false;
+    for (i = 0; i < layers.length; ++i) {
+        if (layers[i].type === CanvasCompositor.Element.buffer) {
+            lastVisible = layers[i].buffer.visible;
+            if (lastVisible) {
+                src.push('uniform sampler2D uLayer' + i + ';');
+            }
+        } else if (lastVisible) {
+            src.push('uniform sampler2D uLayer' + i + ';');
+            src.push('uniform vec4 uColor' + i + ';');
         }
     }
     src.push('varying vec2 vTexCoord;');
     src.push('void main(void) {');
     src.push('  // already premultiplied:');
     src.push('  vec4 color = vec4(0, 0, 0, 0);');
-    var blendingSource = function(color2) {
-        src.push('  color = ' + color2 +
-                 ' + color * (1.0 - ' + color2 + '.w);');
+    var blendingSource = function(dstColor, srcColor) {
+        src.push('  ' + dstColor + ' = ' + srcColor +
+                 ' + ' + dstColor + ' * (1.0 - ' + srcColor + '.w);');
     };
-    for (i = 0; i < buffers.length; ++i) {
-        if (buffers[i].visible) {
-            src.push('  vec4 layer' + i + 'Color' +
+    i = 0;
+    while (i < layers.length) {
+        // TODO: assert(layers[i].type === CanvasCompositor.Element.buffer);
+        if (layers[i].buffer.visible) {
+            var bufferColor = 'layer' + i + 'Color';
+            src.push('  vec4 ' + bufferColor +
                     ' = texture2D(uLayer' + i + ', vTexCoord);');
-            if (i === currentEventAttachment) {
-                if (currentEventFormat === GLRasterizerFormat.alpha) {
-                    src.push('  float currentEventAlpha = ' +
-                             'texture2D(uCurrentEvent, vTexCoord).w;');
+            ++i;
+            while (i < layers.length &&
+                   layers[i].type === CanvasCompositor.Element.event) {
+                if (layers[i].rasterizer.format === GLRasterizerFormat.alpha) {
+                    src.push('  float layer' + i + 'Alpha' +
+                        ' = texture2D(uLayer' + i + ', vTexCoord).w;');
                 } else {
-                    src.push('  vec4 currentEvent = ' +
-                         'texture2D(uCurrentEvent, vTexCoord);');
-                    src.push('  float currentEventAlpha = currentEvent.x + ' +
-                             'currentEvent.y / 256.0;');
+                    src.push('  vec4 layer' + i +
+                        ' = texture2D(uLayer' + i + ', vTexCoord);');
+                    src.push('  float layer' + i + 'Alpha = ' +
+                             'layer' + i + '.x + ' +
+                             'layer' + i + '.y / 256.0;');
                 }
-                src.push('  vec4 currentColor = currentEventAlpha *' +
-                         ' uCurrentColor;');
-                if (currentEventMode === BrushEvent.Mode.normal) {
-                    src.push('  vec4 colorWithCurrent = currentColor + ' +
-                             'layer' + i + 'Color * (1.0 - currentColor.w);');
-                } else if (currentEventMode === BrushEvent.Mode.eraser) {
-                    src.push('  vec4 colorWithCurrent = layer' + i + 'Color' +
-                             ' * (1.0 - currentColor.w);');
+                src.push('  vec4 layer' + i + 'Color = layer' + i + 'Alpha *' +
+                         ' uColor' + i + ';');
+                if (layers[i].mode === BrushEvent.Mode.normal) {
+                    blendingSource(bufferColor, 'layer' + i + 'Color');
+                } else if (layers[i].mode === BrushEvent.Mode.eraser) {
+                    src.push('  ' + bufferColor + ' = ' + bufferColor +
+                             ' * (1.0 - layer' + i + 'Color.w);');
                 } else {
-                    console.log('Unexpected currentEventMode ' +
-                                currentEventMode);
+                    console.log('Unexpected mode in shader generation ' +
+                                layers[i].mode);
                 }
-                blendingSource('colorWithCurrent');
-            } else {
-                blendingSource('layer' + i + 'Color');
+                ++i;
+            }
+            blendingSource('color', bufferColor);
+        } else {
+            ++i;
+            // Skip events attached to invisible layer
+            while (i < layers.length &&
+                   layers[i].type === CanvasCompositor.Element.event) {
+                ++i;
             }
         }
     }
@@ -79,34 +89,28 @@ compositingShader.getFragmentSource = function(buffers,
 /**
  * @param {Object} glManager The state manager returned by glStateManager() in
  * utilgl.
- * @param {Array.<PictureBuffer>} buffers The array of buffers to composit.
- * @param {number} currentEventAttachment The index of the buffer which should
- * get the current event applied to it before compositing.
- * @param {BrushEvent.Mode} currentEventMode Mode to use when applying the
- * current event.
- * @param {GLRasterizerFormat} currentEventFormat Format of the current event.
+ * @param {Array.<Object>} layers The array of layers to composit. May contain
+ * objects specifying PictureBuffers and objects specifying PictureEvent plus
+ * BaseRasterizer combos which are blended to the previous PictureBuffer.
  * @return {ShaderProgram} The shader program for compositing the given layer
- * stack. Contains uniform uCurrentEvent for setting the sampler for the current
- * event rasterizer and uniforms uLayer<n> where <n> is the layer index starting
- * from zero for setting samplers for the layers. 'uCurrentColor' vec4 uniform
- * is used to pass current event color and opacity data, with values ranging
- * from 0 to 1.
+ * stack. Contains uniforms uLayer<n> for visible layers where <n> is the layer
+ * index starting from zero for setting samplers for the layers. 'uColor<n>'
+ * vec4 uniforms are used for event layers to pass event color and opacity data,
+ * with values ranging from 0 to 1.
  */
-compositingShader.getShaderProgram = function(glManager, buffers,
-                                              currentEventAttachment,
-                                              currentEventMode,
-                                              currentEventFormat) {
-    var fragSource = compositingShader.getFragmentSource(buffers,
-               currentEventAttachment, currentEventMode, currentEventFormat);
+compositingShader.getShaderProgram = function(glManager, layers) {
+    var fragSource = compositingShader.getFragmentSource(layers);
     var uniformTypes = {};
-
-    for (var i = 0; i < buffers.length; ++i) {
-        if (buffers[i].visible) {
-            uniformTypes['uLayer' + i] = 'tex2d';
-            if (currentEventAttachment === i) {
-                uniformTypes['uCurrentEvent'] = 'tex2d';
-                uniformTypes['uCurrentColor'] = '4fv';
+    var lastVisible = false;
+    for (var i = 0; i < layers.length; ++i) {
+        if (layers[i].type === CanvasCompositor.Element.buffer) {
+            lastVisible = layers[i].buffer.visible;
+            if (lastVisible) {
+                uniformTypes['uLayer' + i] = 'tex2d';
             }
+        } else if (lastVisible) {
+            uniformTypes['uLayer' + i] = 'tex2d';
+            uniformTypes['uColor' + i] = '4fv';
         }
     }
     return glManager.shaderProgram(fragSource, blitShader.blitVertSrc,

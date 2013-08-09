@@ -217,43 +217,26 @@ GLCompositor.prototype.flushInternal = function(flushed) {
         this.needsClear = false;
     }
 
-    var buffers = [];
-    var eventAttachment = -1;
-    var eventObject = null;
-    for (var i = 0; i < flushed.length; ++i) {
-        if (flushed[i].type === CanvasCompositor.Element.buffer) {
-            buffers.push(flushed[i].buffer);
-        } else {
-            eventAttachment = buffers.length - 1;
-            eventObject = flushed[i];
-        }
-    }
-
-    // TODO: limitation: can only composit one event into one buffer in a pass.
-    var eventMode = BrushEvent.Mode.normal;
-    var eventFormat = GLRasterizerFormat.alpha;
-    if (eventObject !== null) {
-        var eventMode = eventObject.mode;
-        var eventFormat = eventObject.rasterizer.format;
-    }
     var compositingProgram = compositingShader.getShaderProgram(
-        this.glManager, buffers, eventAttachment, eventMode, eventFormat);
+        this.glManager, flushed);
 
     var compositingUniforms = {};
-    for (var i = 0; i < buffers.length; ++i) {
-        if (buffers[i].visible) {
-            compositingUniforms['uLayer' + i] = buffers[i].tex;
-            if (eventAttachment === i) {
-                compositingUniforms['uCurrentEvent'] =
-                    eventObject.rasterizer.getTex();
-                if (eventObject.event !== null) {
-                    var color = eventObject.event.color;
-                    compositingUniforms['uCurrentColor'] =
-                        [color[0] / 255, color[1] / 255, color[2] / 255,
-                        eventObject.event.opacity];
-                } else {
-                    compositingUniforms['uCurrentColor'] = [0, 0, 0, 0];
-                }
+    var lastVisible = false;
+    for (var i = 0; i < flushed.length; ++i) {
+        if (flushed[i].type === CanvasCompositor.Element.buffer) {
+            lastVisible = flushed[i].buffer.visible;
+            if (lastVisible) {
+                compositingUniforms['uLayer' + i] = flushed[i].buffer.tex;
+            }
+        } else if (lastVisible) {
+            compositingUniforms['uLayer' + i] = flushed[i].rasterizer.getTex();
+            if (flushed[i].event !== null) {
+                var color = flushed[i].event.color;
+                compositingUniforms['uColor' + i] =
+                            [color[0] / 255, color[1] / 255, color[2] / 255,
+                            flushed[i].event.opacity];
+            } else {
+                compositingUniforms['uColor' + i] = [0, 0, 0, 0];
             }
         }
     }
