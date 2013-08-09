@@ -1,3 +1,7 @@
+/*
+ * Copyright Olli Etuaho 2013.
+ */
+
 /**
  * A compositor for buffers that have canvas backing.
  * @param {CanvasRenderingContext2D} ctx Target rendering context.
