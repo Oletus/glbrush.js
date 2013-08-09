@@ -747,3 +747,19 @@ GLBuffer.prototype.applyStateObject = function(undoState) {
     this.glManager.useFboTex(this.tex);
     undoState.draw(this.getCurrentClipRect());
 };
+
+/**
+ * @param {Vec2} coords Position of the pixel in bitmap coordinates.
+ * @return {Uint8ClampedArray} Unpremultiplied RGBA value.
+ */
+GLBuffer.prototype.getPixelRGBA = function(coords) {
+    this.glManager.useFboTex(this.tex);
+    var buffer = new ArrayBuffer(4);
+    var pixelData = new Uint8Array(buffer);
+    var glX = Math.min(Math.floor(coords.x), this.width() - 1);
+    var glY = Math.max(0, this.height() - 1 - Math.floor(coords.y));
+    this.gl.readPixels(glX, glY, 1, 1, this.gl.RGBA, this.gl.UNSIGNED_BYTE,
+                       pixelData);
+    pixelData = color.unpremultiply(pixelData);
+    return pixelData;
+};

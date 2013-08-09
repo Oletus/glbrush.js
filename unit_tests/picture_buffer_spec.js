@@ -6,7 +6,7 @@ var testBufferParams = {
     id: 0,
     width: 100,
     height: 100,
-    clearColor: [11, 22, 33, 44],
+    clearColor: [11, 22, 33, 123],
     hasUndoStates: true,
     hasAlpha: true
 };
@@ -28,6 +28,15 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         buffer.clear();
         expectBufferCorrect(buffer, rasterizer, 0);
     });
+    
+    it('gives the color of one pixel', function() {
+        var buffer = createBuffer(params);
+        var samplePixel = buffer.getPixelRGBA(new Vec2(0, 0));
+        expect(samplePixel[0]).toBeCloseTo(params.clearColor[0], -0.8);
+        expect(samplePixel[1]).toBeCloseTo(params.clearColor[1], -0.8);
+        expect(samplePixel[2]).toBeCloseTo(params.clearColor[2], -0.8);
+        expect(samplePixel[3]).toBe(params.clearColor[3]);
+    });
 
     it('plays back one event', function() {
         var buffer = createBuffer(params);
@@ -37,6 +46,19 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         brushEvent.pushCoordTriplet(buffer.width(), buffer.height(), 0.5);
         buffer.pushEvent(brushEvent, rasterizer);
         expectBufferCorrect(buffer, rasterizer, 0);
+    });
+    
+    it('erases from the bitmap', function() {
+        var buffer = createBuffer(params);
+        var rasterizer = createRasterizer(params);
+        var brushEvent = fillingBrushEvent(params.width, params.height,
+                                           [0, 0, 0], BrushEvent.Mode.eraser);
+        buffer.pushEvent(brushEvent, rasterizer);
+        var samplePixel = buffer.getPixelRGBA(new Vec2(0, 0));
+        expect(samplePixel[0]).toBe(0);
+        expect(samplePixel[1]).toBe(0);
+        expect(samplePixel[2]).toBe(0);
+        expect(samplePixel[3]).toBe(0);
     });
     
     var generateBrushEvent = function(seed, width, height) {
