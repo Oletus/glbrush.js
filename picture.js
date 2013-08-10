@@ -252,9 +252,13 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry,
                 var hasUndoStates = arr[j++] === '1';
                 var hasAlpha = arr[j++] === '1';
                 var insertionPoint = parseInt(arr[j++]);
+                var visible = arr[j++] === '1';
+                var opacity = parseFloat(arr[j++]);
                 pic.addBuffer(bufferId, clearColor, hasUndoStates, hasAlpha);
                 var targetBuffer = pic.buffers[pic.buffers.length - 1];
                 targetBuffer.setInsertionPoint(insertionPoint);
+                targetBuffer.visible = visible;
+                targetBuffer.opacity = opacity;
             } else {
                 var pictureEvent = PictureEvent.parse(arr, 0);
                 pictureEvent.scale(bitmapScale);
@@ -307,7 +311,9 @@ Picture.prototype.serialize = function() {
                            ' ' + color.serializeRGBA(buffer.clearColor) +
                            ' ' + (buffer.undoStates !== null ? '1' : '0') +
                            ' ' + (buffer.hasAlpha ? '1' : '0') +
-                           ' ' + buffer.insertionPoint);
+                           ' ' + buffer.insertionPoint +
+                           ' ' + (buffer.visible ? '1' : '0') +
+                           ' ' + buffer.opacity);
         for (var j = 0; j < buffer.events.length; ++j) {
             serialization.push(buffer.events[j].serialize(serializationScale));
         }

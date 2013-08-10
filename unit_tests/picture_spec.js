@@ -167,6 +167,22 @@ var doPictureTest = function(mode) {
         expect(samplePixel[3]).toBe(255);
     });
 
+    it('serializes buffer opacities', function() {
+        var pic = testPicture();
+        var clearColor = [254, 254, 254, 255];
+        pic.addBuffer(1337, clearColor, true, false);
+        var clearColor2 = [0, 0, 0, 255];
+        pic.addBuffer(1338, clearColor2, true, false);
+        pic.setBufferOpacity(1, 0.5);
+        pic = Picture.resize(pic, pic.bitmapScale);
+        expect(pic.buffers[1].opacity).toBe(0.5);
+        var samplePixel = pic.getPixelRGBA(new Vec2(0, 0));
+        expect(samplePixel[0]).toBeCloseTo(127, -0.5);
+        expect(samplePixel[1]).toBeCloseTo(127, -0.5);
+        expect(samplePixel[2]).toBeCloseTo(127, -0.5);
+        expect(samplePixel[3]).toBe(255);
+    });
+
     it('can undo the latest event', function() {
         var pic = testPicture();
         var clearColor = [12, 23, 34, 255];
