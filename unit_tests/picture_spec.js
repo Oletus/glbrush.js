@@ -3,7 +3,7 @@
  */
 
 var doPictureTest = function(mode) {
-    var width = 123;
+    var width = 122;
     var height = 234;
     function testPicture() {
         return new Picture(-1, new Rect(0, width, 0, height), 2.0, mode, 0);
@@ -125,6 +125,32 @@ var doPictureTest = function(mode) {
         expect(samplePixel[1]).toBe(23);
         expect(samplePixel[2]).toBe(34);
         expect(samplePixel[3]).toBe(255);
+    });
+
+    it('does not change if it is resized to the same size twice', function() {
+        var pic = testPicture();
+        var clearColor = [12, 23, 34, 45];
+        pic.addBuffer(1337, clearColor, true, false);
+        var brushEvent = new BrushEvent(0, 0, false, [56, 67, 78], 1.0, 1.0,
+                                        10, 0, BrushEvent.Mode.normal);
+        brushEvent.pushCoordTriplet(0, 0, 1.0);
+        brushEvent.pushCoordTriplet(pic.bitmapWidth(), pic.bitmapHeight(), 1.0);
+        pic.pushEvent(0, brushEvent);
+        var pic2 = Picture.resize(pic, 0.5);
+        pic2 = Picture.resize(pic2, 0.5);
+        expect(pic2.width()).toBe(pic.width());
+        expect(pic2.height()).toBe(pic.height());
+        expect(pic2.bitmapWidth()).toBe(pic2.width() * 0.5);
+        expect(pic2.bitmapHeight()).toBe(pic2.height() * 0.5);
+        var samplePixel = pic2.getPixelRGBA(new Vec2(pic2.bitmapWidth() - 1,
+                                                     pic2.bitmapHeight() - 1));
+        expect(samplePixel[0]).toBe(56);
+        expect(samplePixel[1]).toBe(67);
+        expect(samplePixel[2]).toBe(78);
+        expect(samplePixel[3]).toBe(255);
+        var event = pic2.buffers[0].events[0];
+        expect(event.coords[3]).toBeCloseTo(pic2.bitmapWidth(), 0);
+        expect(event.coords[4]).toBeCloseTo(pic2.bitmapHeight(), 0);
     });
 }
  

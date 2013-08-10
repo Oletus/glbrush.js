@@ -245,7 +245,7 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry,
                 targetBuffer.setInsertionPoint(insertionPoint);
             } else {
                 var pictureEvent = PictureEvent.parse(arr, 0);
-                pictureEvent.setDisplayScale(bitmapScale);
+                pictureEvent.scale(bitmapScale);
                 pic.pushEvent(pic.buffers.length - 1, pictureEvent);
             }
             ++i;
@@ -287,6 +287,7 @@ Picture.prototype.maxBitmapScale = function() {
  * Picture by calling Picture.parse.
  */
 Picture.prototype.serialize = function() {
+    var serializationScale = 1.0 / this.bitmapScale;
     var serialization = ['picture ' + this.width() + ' ' + this.height()];
     for (var i = 0; i < this.buffers.length; ++i) {
         var buffer = this.buffers[i];
@@ -296,7 +297,7 @@ Picture.prototype.serialize = function() {
                            ' ' + (buffer.hasAlpha ? '1' : '0') +
                            ' ' + buffer.insertionPoint);
         for (var j = 0; j < buffer.events.length; ++j) {
-            serialization.push(buffer.events[j].serialize());
+            serialization.push(buffer.events[j].serialize(serializationScale));
         }
     }
     return serialization.join('\n');
@@ -451,7 +452,7 @@ Picture.prototype.height = function() {
  * @param {PictureEvent} event Event to scale.
  */
 Picture.prototype.scaleParsedEvent = function(event) {
-    event.setDisplayScale(this.bitmapScale);
+    event.scale(this.bitmapScale);
 };
 
 /**

@@ -84,7 +84,6 @@ PictureEvent.parse = function(arr, i) {
 var BrushEvent = function(sid, sessionEventId, undone, color, flow, opacity,
                           radius, softness, mode) {
     // TODO: assert(color.length == 3);
-    this.serializationScale = 1.0;
     this.undone = undone;
     this.sid = sid;
     this.sessionEventId = sessionEventId;
@@ -116,13 +115,14 @@ BrushEvent.Mode = {
 BrushEvent.coordsStride = 3; // x, y and pressure coordinates belong together
 
 /**
+ * @param {number} scale Scale to multiply serialized coordinates with.
  * @return {string} A serialization of the event.
  */
-BrushEvent.prototype.serialize = function() {
+BrushEvent.prototype.serialize = function(scale) {
     var eventMessage = this.serializePictureEvent();
     eventMessage += ' ' + color.serializeRGB(this.color);
     eventMessage += ' ' + this.flow + ' ' + this.opacity;
-    eventMessage += ' ' + (this.radius * this.serializationScale);
+    eventMessage += ' ' + (this.radius * scale);
     if (this.soft) {
         eventMessage += ' 1.0';
     } else {
@@ -131,8 +131,8 @@ BrushEvent.prototype.serialize = function() {
     eventMessage += ' ' + this.mode;
     var i = 0;
     while (i < this.coords.length) {
-        eventMessage += ' ' + this.coords[i++] * this.serializationScale;
-        eventMessage += ' ' + this.coords[i++] * this.serializationScale;
+        eventMessage += ' ' + this.coords[i++] * scale;
+        eventMessage += ' ' + this.coords[i++] * scale;
         eventMessage += ' ' + this.coords[i++];
     }
     return eventMessage;
@@ -195,14 +195,13 @@ BrushEvent.prototype.pushCoordTriplet = function(x, y, pressure) {
 };
 
 /**
- * Set the display scale for this event. This will change the coordinates in the
- * stroke. It will still be serialized using the original coordinates, within
- * floating point accuracy.
+ * Scale this event. This will change the coordinates of the stroke. Note that
+ * the event is not cleared from any rasterizers, clear any rasterizers that
+ * have this event manually before calling this function.
  * @param {number} scale Scaling factor. Must be larger than 0.
  */
-BrushEvent.prototype.setDisplayScale = function(scale) {
+BrushEvent.prototype.scale = function(scale) {
     //TODO: assert(scale > 0)
-    this.serializationScale /= scale;
     this.radius *= scale;
     for (var i = 0; i < this.coords.length; ++i) {
         if (i % BrushEvent.coordsStride < 2) {
