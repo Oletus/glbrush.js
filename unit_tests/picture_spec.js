@@ -152,6 +152,20 @@ var doPictureTest = function(mode) {
         expect(event.coords[3]).toBeCloseTo(pic2.bitmapWidth(), 0);
         expect(event.coords[4]).toBeCloseTo(pic2.bitmapHeight(), 0);
     });
+
+    it('composits buffers with opacity', function() {
+        var pic = testPicture();
+        var clearColor = [254, 254, 254, 255];
+        pic.addBuffer(1337, clearColor, true, false);
+        var clearColor2 = [0, 0, 0, 255];
+        pic.addBuffer(1338, clearColor2, true, false);
+        pic.setBufferOpacity(1, 0.5);
+        var samplePixel = pic.getPixelRGBA(new Vec2(0, 0));
+        expect(samplePixel[0]).toBeCloseTo(127, -0.5);
+        expect(samplePixel[1]).toBeCloseTo(127, -0.5);
+        expect(samplePixel[2]).toBeCloseTo(127, -0.5);
+        expect(samplePixel[3]).toBe(255);
+    });
 }
  
 describe('Picture', function() {

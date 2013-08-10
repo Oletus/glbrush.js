@@ -23,6 +23,7 @@ compositingShader.getFragmentSource = function(layers) {
             lastVisible = layers[i].buffer.visible;
             if (lastVisible) {
                 src.push('uniform sampler2D uLayer' + i + ';');
+                src.push('uniform float uOpacity' + i + ';');
             }
         } else if (lastVisible) {
             src.push('uniform sampler2D uLayer' + i + ';');
@@ -42,6 +43,7 @@ compositingShader.getFragmentSource = function(layers) {
         // TODO: assert(layers[i].type === CanvasCompositor.Element.buffer);
         if (layers[i].buffer.visible) {
             var bufferColor = 'layer' + i + 'Color';
+            var bufferOpacity = 'uOpacity' + i;
             src.push('  vec4 ' + bufferColor +
                     ' = texture2D(uLayer' + i + ', vTexCoord);');
             ++i;
@@ -70,6 +72,7 @@ compositingShader.getFragmentSource = function(layers) {
                 }
                 ++i;
             }
+            src.push('  ' + bufferColor + ' *= ' + bufferOpacity + ';');
             blendingSource('color', bufferColor);
         } else {
             ++i;
@@ -96,7 +99,8 @@ compositingShader.getFragmentSource = function(layers) {
  * stack. Contains uniforms uLayer<n> for visible layers where <n> is the layer
  * index starting from zero for setting samplers for the layers. 'uColor<n>'
  * vec4 uniforms are used for event layers to pass event color and opacity data,
- * with values ranging from 0 to 1.
+ * with values ranging from 0 to 1. 'uOpacity<n>' float uniforms are used for
+ * buffer layers to pass opacity, with values ranging from 0 to 1.
  */
 compositingShader.getShaderProgram = function(glManager, layers) {
     var fragSource = compositingShader.getFragmentSource(layers);
@@ -107,6 +111,7 @@ compositingShader.getShaderProgram = function(glManager, layers) {
             lastVisible = layers[i].buffer.visible;
             if (lastVisible) {
                 uniformTypes['uLayer' + i] = 'tex2d';
+                uniformTypes['uOpacity' + i] = '1f';
             }
         } else if (lastVisible) {
             uniformTypes['uLayer' + i] = 'tex2d';

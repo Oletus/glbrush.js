@@ -47,7 +47,7 @@ CanvasCompositor.prototype.pushBuffer = function(buffer) {
     if (!buffer.visible) {
         return;
     }
-    if (!buffer.hasAlpha) {
+    if (buffer.isOpaque()) {
         this.needsClear = false;
         this.pending = [];
     }
@@ -81,12 +81,14 @@ CanvasCompositor.prototype.flush = function() {
     while (i < this.pending.length) {
         if (i + 1 === this.pending.length ||
             this.pending[i + 1].type === CanvasCompositor.Element.buffer) {
+            this.ctx.globalAlpha = this.pending[i].buffer.opacity;
             this.ctx.drawImage(this.pending[i].buffer.canvas, 0, 0);
             ++i;
         } else {
             if (this.pending[i].buffer.hasAlpha) {
                 this.compositingCtx.clearRect(0, 0, this.width, this.height);
             }
+            var opacity = this.pending[i].buffer.opacity;
             this.compositingCtx.drawImage(this.pending[i].buffer.canvas, 0, 0);
             var sourceCtx = this.pending[i].buffer.ctx;
             ++i;
@@ -105,6 +107,7 @@ CanvasCompositor.prototype.flush = function() {
                 ++i;
                 sourceCtx = this.compositingCtx;
             }
+            this.ctx.globalAlpha = opacity;
             this.ctx.drawImage(this.compositingCanvas, 0, 0);
         }
     }
@@ -144,7 +147,7 @@ GLCompositor.prototype.pushBuffer = function(buffer) {
     if (!buffer.visible) {
         return;
     }
-    if (!buffer.hasAlpha) {
+    if (buffer.isOpaque()) {
         this.needsClear = false;
         this.pending = [];
     }
@@ -227,6 +230,7 @@ GLCompositor.prototype.flushInternal = function(flushed) {
             lastVisible = flushed[i].buffer.visible;
             if (lastVisible) {
                 compositingUniforms['uLayer' + i] = flushed[i].buffer.tex;
+                compositingUniforms['uOpacity' + i] = flushed[i].buffer.opacity;
             }
         } else if (lastVisible) {
             compositingUniforms['uLayer' + i] = flushed[i].rasterizer.getTex();

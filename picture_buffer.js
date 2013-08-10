@@ -47,6 +47,7 @@ PictureBuffer.prototype.initializePictureBuffer = function(id, width, height,
     this.currentClipRect = new Rect(0, width, 0, height);
 
     this.visible = true;
+    this.opacity = 1.0;
     this.insertionPoint = 0;
 };
 
@@ -464,6 +465,14 @@ PictureBuffer.prototype.removeEventIndex = function(eventIndex, rasterizer) {
         this.undoEventIndex(eventIndex, rasterizer);
     }
     this.events.splice(eventIndex, 1);
+};
+
+/**
+ * @return {boolean} True if this buffer completely covers everything below when
+ * compositing.
+ */
+PictureBuffer.prototype.isOpaque = function() {
+    return !this.hasAlpha && this.opacity === 1.0;
 };
 
 /**

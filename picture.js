@@ -167,6 +167,15 @@ Picture.prototype.setBufferVisible = function(buffer, visible) {
 };
 
 /**
+ * Set the opacity of one of this picture's buffers.
+ * @param {number} buffer The index of the buffer to adjust.
+ * @param {number} opacity Opacity value to set, range from 0 to 1.
+ */
+Picture.prototype.setBufferOpacity = function(buffer, opacity) {
+    this.buffers[buffer].opacity = opacity;
+};
+
+/**
  * Create a Picture object.
  * @param {number} id Picture's unique id number.
  * @param {number} width Picture width.
