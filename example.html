@@ -47,20 +47,16 @@ loadApp = function() {
     // Add mouse event listeners to the container element that create brush
     // events on the draw area
     var currentEvent = null;
-    var sid = 0;
-    var sessionEventId = 0;
     var pressureInd = 0;
     drawArea.onmousedown = function(e) {
-        ++sessionEventId;
         var coords = getRelativeCoords(e, drawArea);
         var oldPixel = picture.getPixelRGBA(coords);
         // some funky color changes
         var red = 255 - oldPixel[0];
         var green = 33;
         var blue = 42;
-        currentEvent = new BrushEvent(sid, sessionEventId, false,
-                          [red, green, blue], 0.8, 1.0, 20, 1,
-                          BrushEvent.Mode.normal);
+        currentEvent = picture.createBrushEvent([red, green, blue], 0.8, 1.0,
+                                                20, 1, BrushEvent.Mode.normal);
     };
     drawArea.onmouseup = function(e) {
         if (currentEvent !== null) {
@@ -92,7 +88,7 @@ loadApp = function() {
 
     // Add undo to the mix just for kicks
     createButton('Undo', function() {
-        picture.undoLatest(sid);
+        picture.undoLatest();
         picture.display();
     });
 

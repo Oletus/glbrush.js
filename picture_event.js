@@ -66,8 +66,8 @@ PictureEvent.parse = function(arr, i) {
  * @constructor
  * @param {number} sid Session identifier. Must be an integer.
  * @param {number} sessionEventId An event/session specific identifier. The idea
- * is that the sid/sessionEventId pair is unique for this event. Must be an
- * integer.
+ * is that the sid/sessionEventId pair is unique for this event, and that newer
+ * events will have greater sessionEventIds. Must be an integer.
  * @param {boolean} undone Whether this event is undone.
  * @param {Uint8Array|Array.<number>} color The RGB color of the stroke. Channel
  * values are between 0-255.

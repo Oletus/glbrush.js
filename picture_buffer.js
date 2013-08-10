@@ -277,13 +277,15 @@ PictureBuffer.prototype.eventIndexBySessionId = function(searchSid,
 
 /**
  * @param {number} sid Session identifier. Must be an integer.
- * @return {number} The index of the latest non-undone event added with
- * the given session id or -1 if not found.
+ * @param {boolean} canBeUndone Whether to consider undone events.
+ * @return {number} The index of the latest event added with the given session
+ * id or -1 if not found.
  */
-PictureBuffer.prototype.findLatest = function(sid) {
+PictureBuffer.prototype.findLatest = function(sid, canBeUndone) {
     var i = this.events.length - 1;
     while (i >= 0) {
-        if (!this.events[i].undone && this.events[i].sid === sid) {
+        if ((canBeUndone || !this.events[i].undone) &&
+            this.events[i].sid === sid) {
             return i;
         }
         i--;

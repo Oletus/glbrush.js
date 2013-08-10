@@ -23,6 +23,9 @@ var Picture = function(id, boundsRect, bitmapScale, mode,
 
     this.animating = false;
 
+    this.activeSid = 0;
+    this.activeSessionEventId = 0;
+
     this.buffers = [];
     this.currentEventAttachment = currentEventAttachment;
     this.currentEvent = null;
@@ -313,6 +316,45 @@ Picture.prototype.serialize = function() {
 };
 
 /**
+ * Set the session with the given sid active for purposes of createBrushEvent
+ * and undoLatest.
+ * @param {number} sid The session id to activate. Must be a positive integer.
+ */
+Picture.prototype.setActiveSession = function(sid) {
+    this.activeSid = sid;
+    this.activeSessionEventId = 0;
+    var latest = this.findLatest(sid, true);
+    if (latest !== null) {
+        this.activeSessionEventId = latest.sessionEventId + 1;
+    }
+};
+
+/**
+ * Create a brush event using the current active session. The event is marked as
+ * not undone.
+ * @param {Uint8Array|Array.<number>} color The RGB color of the stroke. Channel
+ * values are between 0-255.
+ * @param {number} flow Alpha value controlling blending individual brush
+ * samples (circles) to each other in the rasterizer. Range 0 to 1. Normalized
+ * to represent the resulting maximum alpha value in the rasterizer's bitmap in
+ * case of a straight stroke and the maximum pressure.
+ * @param {number} opacity Alpha value controlling blending the rasterizer
+ * stroke to the target buffer. Range 0 to 1.
+ * @param {number} radius The stroke radius in pixels.
+ * @param {number} softness Value controlling the softness. Range 0 to 1.
+ * @param {BrushEvent.Mode} mode Blending mode to use.
+ * @return {BrushEvent} The created brush event.
+ */
+Picture.prototype.createBrushEvent = function(color, flow, opacity, radius,
+                                              softness, mode) {
+    var event = new BrushEvent(this.activeSid, this.activeSessionEventId, false,
+                               color, flow, opacity, radius, softness, mode);
+    this.activeSessionEventId++;
+    return event;
+};
+
+
+/**
  * @param {HTMLCanvasElement} canvas Canvas to use for rasterization.
  * @return {WebGLRenderingContext} Context to use or null if unsuccessful.
  */
@@ -489,29 +531,45 @@ Picture.prototype.insertEvent = function(targetBuffer, event) {
 };
 
 /**
- * Undo the latest event applied to this picture.
- * @param {number} sid The session id for which to undo the latest event which
- * has not yet been undone.
- * @return {PictureEvent} The event that was undone or null if no event found.
+ * Find the latest event from the given session.
+ * @param {number} sid The session id to search.
+ * @param {boolean} canBeUndone Whether to consider undone events.
+ * @return {Object} The latest event indices or null if no event found. The
+ * object will have keys eventIndex, bufferIndex and sessionEventId.
+ * @protected
  */
-Picture.prototype.undoLatest = function(sid) {
-    var undoIndex = 0;
-    var undoBufferIndex = 0;
+Picture.prototype.findLatest = function(sid, canBeUndone) {
+    var latestIndex = 0;
+    var latestBufferIndex = 0;
     var latestId = -1;
     for (var i = 0; i < this.buffers.length; ++i) {
-        var candidateIndex = this.buffers[i].findLatest(sid);
+        var candidateIndex = this.buffers[i].findLatest(sid, canBeUndone);
         if (candidateIndex >= 0 &&
             this.buffers[i].events[candidateIndex].sessionEventId > latestId) {
-            undoBufferIndex = i;
-            undoIndex = candidateIndex;
-            latestId = this.buffers[i].events[undoIndex].sessionEventId;
+            latestBufferIndex = i;
+            latestIndex = candidateIndex;
+            latestId = this.buffers[i].events[latestIndex].sessionEventId;
         }
     }
     if (latestId >= 0) {
-        return this.buffers[undoBufferIndex].undoEventIndex(undoIndex,
-                                                        this.genericRasterizer);
+        return {eventIndex: latestIndex, bufferIndex: latestBufferIndex,
+            sessionEventId: latestId};
     }
     return null;
+};
+
+/**
+ * Undo the latest non-undone event applied to this picture by the current
+ * active session.
+ * @return {PictureEvent} The event that was undone or null if no event found.
+ */
+Picture.prototype.undoLatest = function() {
+    var latest = this.findLatest(this.activeSid, false);
+    if (latest === null) {
+        return null;
+    }
+    return this.buffers[latest.bufferIndex].undoEventIndex(latest.eventIndex,
+                                                        this.genericRasterizer);
 };
 
 /**

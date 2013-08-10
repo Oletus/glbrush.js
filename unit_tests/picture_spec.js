@@ -166,7 +166,44 @@ var doPictureTest = function(mode) {
         expect(samplePixel[2]).toBeCloseTo(127, -0.5);
         expect(samplePixel[3]).toBe(255);
     });
-}
+
+    it('can undo the latest event', function() {
+        var pic = testPicture();
+        var clearColor = [12, 23, 34, 255];
+        pic.addBuffer(1337, clearColor, true, false);
+        var brushEvent = new BrushEvent(0, 0, false, [56, 67, 78], 1.0, 1.0,
+                                        10, 0, BrushEvent.Mode.normal);
+        brushEvent.pushCoordTriplet(0, 0, 1.0);
+        brushEvent.pushCoordTriplet(pic.bitmapWidth(), pic.bitmapHeight(), 1.0);
+        pic.pushEvent(0, brushEvent);
+        var undoneEvent = pic.undoLatest();
+        expect(undoneEvent).toBe(brushEvent);
+        var samplePixel = pic.getPixelRGBA(new Vec2(0, 0));
+        expect(samplePixel[0]).toBe(12);
+        expect(samplePixel[1]).toBe(23);
+        expect(samplePixel[2]).toBe(34);
+        expect(samplePixel[3]).toBe(255);
+    });
+
+    it('only undoes events from the current active session', function() {
+        var pic = testPicture();
+        var clearColor = [12, 23, 34, 255];
+        pic.addBuffer(1337, clearColor, true, false);
+        var brushEvent = new BrushEvent(0, 0, false, [56, 67, 78], 1.0, 1.0,
+                                        10, 0, BrushEvent.Mode.normal);
+        brushEvent.pushCoordTriplet(0, 0, 1.0);
+        brushEvent.pushCoordTriplet(pic.bitmapWidth(), pic.bitmapHeight(), 1.0);
+        pic.pushEvent(0, brushEvent);
+        pic.setActiveSession(pic.activeSid + 1);
+        var undoneEvent = pic.undoLatest();
+        expect(undoneEvent).toBe(null);
+        var samplePixel = pic.getPixelRGBA(new Vec2(0, 0));
+        expect(samplePixel[0]).toBe(56);
+        expect(samplePixel[1]).toBe(67);
+        expect(samplePixel[2]).toBe(78);
+        expect(samplePixel[3]).toBe(255);
+    });
+};
  
 describe('Picture', function() {
     var modes = ['canvas', 'webgl', 'no-texdata-webgl', 'no-float-webgl'];
