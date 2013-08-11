@@ -35,7 +35,6 @@ CanvasCompositor.Element = {
 CanvasCompositor.prototype.prepare = function() {
     this.pending = [];
     this.needsClear = true;
-    this.lastVisible = true;
 };
 
 /**
@@ -43,10 +42,7 @@ CanvasCompositor.prototype.prepare = function() {
  * @param {CanvasBuffer} buffer Buffer to composit.
  */
 CanvasCompositor.prototype.pushBuffer = function(buffer) {
-    this.lastVisible = buffer.visible;
-    if (!buffer.visible) {
-        return;
-    }
+    // TODO: assert(buffer.visible);
     if (buffer.isOpaque()) {
         this.needsClear = false;
         this.pending = [];
@@ -64,7 +60,7 @@ CanvasCompositor.prototype.pushBuffer = function(buffer) {
  */
 CanvasCompositor.prototype.pushRasterizer = function(rasterizer, color, opacity,
                                                      mode, boundingBox) {
-    if (!this.lastVisible || opacity === 0 || boundingBox === null) {
+    if (opacity === 0 || boundingBox === null) {
         return;
     }
     this.pending.push({type: CanvasCompositor.Element.rasterizer,
@@ -147,10 +143,7 @@ GLCompositor.prototype.prepare = CanvasCompositor.prototype.prepare;
  * @param {GLBuffer} buffer Buffer to composit.
  */
 GLCompositor.prototype.pushBuffer = function(buffer) {
-    this.lastVisible = buffer.visible;
-    if (!buffer.visible) {
-        return;
-    }
+    // TODO: assert(buffer.visible);
     if (buffer.isOpaque()) {
         this.needsClear = false;
         this.pending = [];
@@ -174,9 +167,6 @@ GLCompositor.prototype.pushBuffer = function(buffer) {
  */
 GLCompositor.prototype.pushRasterizer = function(rasterizer, color, opacity,
                                                  mode, boundingBox) {
-    if (!this.lastVisible) {
-        return;
-    }
     // TODO: assert(this.pending.length > 0);
     ++this.currentBufferRasterizers;
     if (this.currentBufferRasterizers + 1 >= this.multitexturingLimit) {
@@ -234,7 +224,6 @@ GLCompositor.prototype.flushInternal = function(flushed) {
     var compositingUniforms = {};
     for (var i = 0; i < flushed.length; ++i) {
         if (flushed[i].type === CanvasCompositor.Element.buffer) {
-            // TODO: assert(flushed[i].buffer.visible);
             compositingUniforms['uLayer' + i] = flushed[i].buffer.tex;
             compositingUniforms['uOpacity' + i] = flushed[i].buffer.opacity;
         } else {
