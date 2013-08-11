@@ -684,11 +684,21 @@ Picture.prototype.display = function() {
     for (var i = 0; i < this.buffers.length; ++i) {
         this.compositor.pushBuffer(this.buffers[i]);
         if (this.currentEventAttachment === i) {
-            // Even if there's no this.currentEvent at the moment, push it so
-            // that the GLCompositor can avoid extra shader changes.
-            this.compositor.pushEvent(this.currentEvent,
-                                      this.currentEventRasterizer,
-                                      this.currentEventMode);
+            if (this.currentEvent) {
+                this.compositor.pushRasterizer(this.currentEventRasterizer,
+                                               this.currentEvent.color,
+                                               this.currentEvent.opacity,
+                                               this.currentEventMode,
+                                               this.currentEvent.boundingBox);
+            } else {
+                // Even if there's no this.currentEvent at the moment, push so
+                // that the GLCompositor can avoid extra shader changes.
+                this.compositor.pushRasterizer(this.currentEventRasterizer,
+                                               [0, 0, 0],
+                                               0,
+                                               this.currentEventMode,
+                                               null);
+            }
         }
     }
     this.compositor.flush();
@@ -875,8 +885,9 @@ Picture.prototype.displayAnimation = function() {
                 this.animationEventIndices[ri].bufferIndex === i) {
                 var event = this.eventToAnimate(
                                 this.animationEventIndices[ri].index).event;
-                this.compositor.pushEvent(event, this.animationRasterizers[ri],
-                                          event.mode);
+                this.compositor.pushRasterizer(this.animationRasterizers[ri],
+                                               event.color, event.opacity,
+                                               event.mode, event.boundingBox);
             }
         }
     }

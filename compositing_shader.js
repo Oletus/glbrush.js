@@ -9,8 +9,8 @@ var compositingShader = {};
 
 /**
  * @param {Array.<Object>} layers The array of layers to composit. May contain
- * objects specifying PictureBuffers and objects specifying PictureEvent plus
- * BaseRasterizer combos which are blended to the previous PictureBuffer.
+ * objects specifying PictureBuffers and objects specifying BaseRasterizers
+ * which are blended to the previous PictureBuffer.
  * @return {string} The fragment shader source for compositing the given layer
  * stack.
  */
@@ -48,7 +48,7 @@ compositingShader.getFragmentSource = function(layers) {
                     ' = texture2D(uLayer' + i + ', vTexCoord);');
             ++i;
             while (i < layers.length &&
-                   layers[i].type === CanvasCompositor.Element.event) {
+                   layers[i].type === CanvasCompositor.Element.rasterizer) {
                 if (layers[i].rasterizer.format === GLRasterizerFormat.alpha) {
                     src.push('  float layer' + i + 'Alpha' +
                         ' = texture2D(uLayer' + i + ', vTexCoord).w;');
@@ -76,9 +76,9 @@ compositingShader.getFragmentSource = function(layers) {
             blendingSource('color', bufferColor);
         } else {
             ++i;
-            // Skip events attached to invisible layer
+            // Skip rasterizers attached to invisible layer
             while (i < layers.length &&
-                   layers[i].type === CanvasCompositor.Element.event) {
+                   layers[i].type === CanvasCompositor.Element.rasterizer) {
                 ++i;
             }
         }
@@ -93,12 +93,12 @@ compositingShader.getFragmentSource = function(layers) {
  * @param {Object} glManager The state manager returned by glStateManager() in
  * utilgl.
  * @param {Array.<Object>} layers The array of layers to composit. May contain
- * objects specifying PictureBuffers and objects specifying PictureEvent plus
- * BaseRasterizer combos which are blended to the previous PictureBuffer.
+ * objects specifying PictureBuffers and objects specifying BaseRasterizers
+ * which are blended to the previous PictureBuffer.
  * @return {ShaderProgram} The shader program for compositing the given layer
  * stack. Contains uniforms uLayer<n> for visible layers where <n> is the layer
  * index starting from zero for setting samplers for the layers. 'uColor<n>'
- * vec4 uniforms are used for event layers to pass event color and opacity data,
+ * vec4 uniforms are used for rasterizer layers to pass color and opacity data,
  * with values ranging from 0 to 1. 'uOpacity<n>' float uniforms are used for
  * buffer layers to pass opacity, with values ranging from 0 to 1.
  */

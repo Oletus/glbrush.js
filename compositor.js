@@ -25,7 +25,7 @@ var CanvasCompositor = function(ctx) {
  */
 CanvasCompositor.Element = {
     buffer: 0,
-    event: 1
+    rasterizer: 1
 };
 
 /**
@@ -55,17 +55,21 @@ CanvasCompositor.prototype.pushBuffer = function(buffer) {
 };
 
 /**
- * Add an event to composit to the target context.
- * @param {PictureEvent} event Event to merge to the last pushed buffer.
- * @param {Rasterizer} rasterizer Rasterizer that holds the rasterized event.
- * @param {BrushEvent.Mode} mode Blending mode for the event.
+ * Add a rasterizer to composit to the target context.
+ * @param {Rasterizer} rasterizer Rasterizer to merge to the last pushed buffer.
+ * @param {Uint8Array|Array.<number>} color Color to color the rasterizer with.
+ * @param {number} opacity Opacity to use for blending the rasterizer.
+ * @param {BrushEvent.Mode} mode Blending mode to use.
+ * @param {Rect} boundingBox Bounding box for the rasterizer.
  */
-CanvasCompositor.prototype.pushEvent = function(event, rasterizer, mode) {
-    if (!this.lastVisible || event === null || event.boundingBox === null) {
+CanvasCompositor.prototype.pushRasterizer = function(rasterizer, color, opacity,
+                                                     mode, boundingBox) {
+    if (!this.lastVisible || opacity === 0 || boundingBox === null) {
         return;
     }
-    this.pending.push({type: CanvasCompositor.Element.event, event: event,
-                       rasterizer: rasterizer, mode: mode});
+    this.pending.push({type: CanvasCompositor.Element.rasterizer,
+                       rasterizer: rasterizer, color: color, opacity: opacity,
+                       mode: mode, boundingBox: boundingBox});
 };
 
 /**
@@ -93,16 +97,16 @@ CanvasCompositor.prototype.flush = function() {
             var sourceCtx = this.pending[i].buffer.ctx;
             ++i;
             while (i < this.pending.length &&
-                  this.pending[i].type === CanvasCompositor.Element.event) {
+                 this.pending[i].type === CanvasCompositor.Element.rasterizer) {
                 var clipRect = new Rect(0, this.width, 0, this.height);
-                clipRect.intersectRect(this.pending[i].event.boundingBox);
+                clipRect.intersectRect(this.pending[i].boundingBox);
                 CanvasBuffer.drawRasterizer(sourceCtx,
                                             this.compositingCtx,
                                             this.pending[i].rasterizer,
                                             clipRect,
                                             false,
-                                            this.pending[i].event.color,
-                                            this.pending[i].event.opacity,
+                                            this.pending[i].color,
+                                            this.pending[i].opacity,
                                             this.pending[i].mode);
                 ++i;
                 sourceCtx = this.compositingCtx;
@@ -126,7 +130,7 @@ CanvasCompositor.prototype.flush = function() {
 var GLCompositor = function(glManager, gl, multitexturingLimit) {
     this.glManager = glManager;
     this.gl = gl;
-    this.currentBufferEvents = 0;
+    this.currentBufferRasterizers = 0;
     this.multitexturingLimit = multitexturingLimit;
 
     this.prepare();
@@ -156,33 +160,37 @@ GLCompositor.prototype.pushBuffer = function(buffer) {
         this.pending = [];
     }
     this.pending.push({type: CanvasCompositor.Element.buffer, buffer: buffer});
-    this.currentBufferEvents = 0;
+    this.currentBufferRasterizers = 0;
 };
 
 /**
- * Add an event to composit to the framebuffer.
- * @param {PictureEvent} event Event to merge to the last pushed buffer.
- * @param {BaseRasterizer} rasterizer Rasterizer that holds the rasterized
- * event.
- * @param {BrushEvent.Mode} mode Blending mode for the event.
+ * Add a rasterizer to composit to the framebuffer.
+ * @param {BaseRasterizer} rasterizer Rasterizer to merge to the last pushed
+ * buffer.
+ * @param {Uint8Array|Array.<number>} color Color to color the rasterizer with.
+ * @param {number} opacity Opacity to use for blending the rasterizer.
+ * @param {BrushEvent.Mode} mode Blending mode to use.
+ * @param {Rect} boundingBox Bounding box for the rasterizer.
  */
-GLCompositor.prototype.pushEvent = function(event, rasterizer, mode) {
+GLCompositor.prototype.pushRasterizer = function(rasterizer, color, opacity,
+                                                 mode, boundingBox) {
     if (!this.lastVisible) {
         return;
     }
     // TODO: assert(this.pending.length > 0);
-    ++this.currentBufferEvents;
-    if (this.currentBufferEvents + 1 >= this.multitexturingLimit) {
+    ++this.currentBufferRasterizers;
+    if (this.currentBufferRasterizers + 1 >= this.multitexturingLimit) {
         // TODO: handle this case with a separate FBO
-        console.log('Maximum event count exceeded in GLCompositor');
+        console.log('Maximum rasterizer count exceeded in GLCompositor');
         return;
     }
     if (this.pending.length + 1 >= this.multitexturingLimit) {
         this.flushUntilLastBuffer();
     }
     // TODO: assert(this.stackToFlush.length < this.multiTexturingLimit);
-    this.pending.push({type: CanvasCompositor.Element.event, event: event,
-                       rasterizer: rasterizer, mode: mode});
+    this.pending.push({type: CanvasCompositor.Element.rasterizer,
+                       rasterizer: rasterizer, color: color, opacity: opacity,
+                       mode: mode, boundingBox: boundingBox});
 };
 
 /**
@@ -195,12 +203,12 @@ GLCompositor.prototype.flush = function() {
 };
 
 /**
- * Flush events up to the latest buffer in the pending stack.
+ * Flush rasterizers up to the latest buffer in the pending stack.
  * @protected
  */
 GLCompositor.prototype.flushUntilLastBuffer = function() {
     var i = this.pending.length - 1;
-    while (this.pending[i].type === CanvasCompositor.Element.event) {
+    while (this.pending[i].type === CanvasCompositor.Element.rasterizer) {
         --i;
         // TODO: assert(i >= 0);
     }
@@ -234,14 +242,10 @@ GLCompositor.prototype.flushInternal = function(flushed) {
             }
         } else if (lastVisible) {
             compositingUniforms['uLayer' + i] = flushed[i].rasterizer.getTex();
-            if (flushed[i].event !== null) {
-                var color = flushed[i].event.color;
-                compositingUniforms['uColor' + i] =
-                            [color[0] / 255, color[1] / 255, color[2] / 255,
-                            flushed[i].event.opacity];
-            } else {
-                compositingUniforms['uColor' + i] = [0, 0, 0, 0];
-            }
+            var color = flushed[i].color;
+            compositingUniforms['uColor' + i] =
+                        [color[0] / 255, color[1] / 255, color[2] / 255,
+                        flushed[i].opacity];
         }
     }
     this.glManager.drawFullscreenQuad(compositingProgram, compositingUniforms);
