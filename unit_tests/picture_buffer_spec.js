@@ -53,7 +53,7 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         var rasterizer = createRasterizer(params);
         var brushEvent = fillingBrushEvent(params.width, params.height,
                                            [0, 0, 0], 1.0,
-                                           BrushEvent.Mode.eraser);
+                                           BrushEvent.Mode.erase);
         buffer.pushEvent(brushEvent, rasterizer);
         var samplePixel = buffer.getPixelRGBA(new Vec2(0, 0));
         expect(samplePixel[0]).toBe(0);

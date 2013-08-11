@@ -60,7 +60,7 @@ compositingShader.getFragmentSource = function(layers) {
                      ' uColor' + i + ';');
             if (layers[i].mode === BrushEvent.Mode.normal) {
                 blendingSource(bufferColor, 'layer' + i + 'Color');
-            } else if (layers[i].mode === BrushEvent.Mode.eraser) {
+            } else if (layers[i].mode === BrushEvent.Mode.erase) {
                 src.push('  ' + bufferColor + ' = ' + bufferColor +
                          ' * (1.0 - layer' + i + 'Color.w);');
             } else {

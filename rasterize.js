@@ -660,7 +660,7 @@ GLDoubleBufferedRasterizer.prototype.getTex = function() {
  */
 GLDoubleBufferedRasterizer.prototype.drawWithColor = function(color, opacity,
                                                               mode) {
-    if (mode === BrushEvent.Mode.eraser) {
+    if (mode === BrushEvent.Mode.erase) {
         this.gl.blendFunc(this.gl.ZERO, this.gl.ONE_MINUS_SRC_ALPHA);
     }
     this.convUniformParameters.uSrcTex = this.getTex();
@@ -670,7 +670,7 @@ GLDoubleBufferedRasterizer.prototype.drawWithColor = function(color, opacity,
     this.convUniformParameters.uColor[3] = opacity;
     this.glManager.drawFullscreenQuad(this.conversionProgram,
                                       this.convUniformParameters);
-    if (mode === BrushEvent.Mode.eraser) {
+    if (mode === BrushEvent.Mode.erase) {
         this.gl.blendFunc(this.gl.ONE, this.gl.ONE_MINUS_SRC_ALPHA);
     }
 };

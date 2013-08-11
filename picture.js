@@ -143,7 +143,7 @@ Picture.prototype.updateCurrentEventMode = function() {
     if (this.currentEvent !== null && this.currentEventAttachment >= 0) {
         // TODO: assert(this.currentEventAttachment < this.buffers.length)
         this.currentEventMode = this.currentEvent.mode;
-        if (this.currentEventMode === BrushEvent.Mode.eraser &&
+        if (this.currentEventMode === BrushEvent.Mode.erase &&
             !this.buffers[this.currentEventAttachment].hasAlpha) {
             this.currentEventMode = BrushEvent.Mode.normal;
         }

@@ -616,13 +616,13 @@ CanvasBuffer.drawRasterizer = function(dataCtx, targetCtx, raster, clipRect,
     // br.y + br.h <= this.height);
     var targetData = dataCtx.getImageData(br.x, br.y, br.w, br.h);
     if (opaque &&
-        (mode === BrushEvent.Mode.normal || mode === BrushEvent.Mode.eraser)) {
+        (mode === BrushEvent.Mode.normal || mode === BrushEvent.Mode.erase)) {
         raster.drawWithColorToOpaque(targetData, color, opacity,
                                      br.x, br.y, br.w, br.h);
     } else if (mode === BrushEvent.Mode.normal) {
         raster.drawWithColor(targetData, color, opacity,
                              br.x, br.y, br.w, br.h);
-    } else if (mode === BrushEvent.Mode.eraser) {
+    } else if (mode === BrushEvent.Mode.erase) {
         raster.erase(targetData, opacity, br.x, br.y, br.w, br.h);
     } else if (mode === BrushEvent.Mode.multiply) {
         raster.multiply(targetData, color, opacity, br.x, br.y, br.w, br.h);
@@ -741,7 +741,7 @@ GLBuffer.prototype.updateClip = function() {
 GLBuffer.prototype.drawRasterizerWithColor = function(raster, color, opacity,
                                                       mode) {
     this.updateClip();
-    if (mode === BrushEvent.Mode.normal || mode === BrushEvent.Mode.eraser) {
+    if (mode === BrushEvent.Mode.normal || mode === BrushEvent.Mode.erase) {
         this.glManager.useFboTex(this.tex);
         raster.drawWithColor(color, opacity, mode);
     } else {

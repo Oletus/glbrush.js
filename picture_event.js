@@ -104,7 +104,7 @@ BrushEvent.prototype = new PictureEvent('brush');
  * @enum {number}
  */
 BrushEvent.Mode = {
-    eraser: 0,
+    erase: 0,
     normal: 1,
     multiply: 2
 };
