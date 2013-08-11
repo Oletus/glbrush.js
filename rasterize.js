@@ -295,6 +295,46 @@ Rasterizer.prototype.erase = function(targetData, opacity, x, y, w, h) {
 };
 
 /**
+ * Draw the rasterizer's contents to the given bitmap with multiply blending.
+ * @param {ImageData} targetData The buffer to draw to.
+ * @param {Uint8Array|Array.<number>} color Color to use for drawing. Channel
+ * values should be 0-255.
+ * @param {number} opacity Opacity to use when drawing the rasterization result.
+ * Opacity for each individual pixel is its rasterized opacity times this
+ * opacity value.
+ * @param {number} x Left edge of the area to copy to targetData. Must be an
+ * integer.
+ * @param {number} y Top edge of the area to copy to targetData. Must be an
+ * integer.
+ * @param {number} w Width of the targetData buffer and the area to copy there.
+ * Must be an integer.
+ * @param {number} h Height of the targetData buffer and the area to copy there.
+ * Must be an integer.
+ */
+Rasterizer.prototype.multiply = function(targetData, color, opacity,
+                                         x, y, w, h) {
+    var tData = targetData.data;
+    for (var yi = 0; yi < h; ++yi) {
+        var ind = yi * w * 4;
+        var sind = x + (y + yi) * this.width;
+        for (var xi = 0; xi < w; ++xi) {
+            var alphaT = tData[ind + 3] / 255;
+            var alphaS = this.data[sind] * opacity;
+            var alpha = alphaS + alphaT * (1.0 - alphaS);
+            tData[ind] = tData[ind] *
+                         (1.0 - (1.0 - color[0] / 255) * alphaS);
+            tData[ind + 1] = tData[ind + 1] *
+                             (1.0 - (1.0 - color[1] / 255) * alphaS);
+            tData[ind + 2] = tData[ind + 2] *
+                             (1.0 - (1.0 - color[2] / 255) * alphaS);
+            tData[ind + 3] = 255 * alpha;
+            ind += 4;
+            ++sind;
+        }
+    }
+};
+
+/**
  * Draw the rasterizer's contents to the given bitmap. The target bitmap must
  * be opaque i.e. contain only pixels with alpha 255.
  * @param {ImageData} targetData The buffer to draw to.

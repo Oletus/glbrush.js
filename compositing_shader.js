@@ -64,8 +64,20 @@ compositingShader.getFragmentSource = function(layers) {
                 src.push('  ' + bufferColor + ' = ' + bufferColor +
                          ' * (1.0 - layer' + i + 'Color.w);');
             } else {
-                console.log('Unexpected mode in shader generation ' +
-                            layers[i].mode);
+                src.push('  float blendedAlpha' + i + ' = layer' + i +
+                         'Color.w + ' + bufferColor + '.w * (1.0 - layer' + i +
+                         'Color.w);');
+                var bufferUnpremul = '(' + bufferColor + '.xyz / ' +
+                                     bufferColor + '.w)';
+                if (layers[i].mode === BrushEvent.Mode.multiply) {
+                    src.push('  ' + bufferColor + ' = vec4(' + bufferUnpremul +
+                             ' * (1.0 - (1.0 - uColor' + i + '.xyz) * layer' +
+                             i + 'Color.w) * blendedAlpha' + i +
+                             ', blendedAlpha' + i + ');');
+                } else {
+                    console.log('Unexpected mode in shader generation ' +
+                                layers[i].mode);
+                }
             }
             ++i;
         }

@@ -6,7 +6,7 @@ var testBufferParams = {
     id: 0,
     width: 100,
     height: 100,
-    clearColor: [11, 22, 33, 123],
+    clearColor: [60, 120, 180, 150],
     hasUndoStates: true,
     hasAlpha: true
 };
@@ -47,12 +47,13 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         buffer.pushEvent(brushEvent, rasterizer);
         expectBufferCorrect(buffer, rasterizer, 0);
     });
-    
+
     it('erases from the bitmap', function() {
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
         var brushEvent = fillingBrushEvent(params.width, params.height,
-                                           [0, 0, 0], BrushEvent.Mode.eraser);
+                                           [0, 0, 0], 1.0,
+                                           BrushEvent.Mode.eraser);
         buffer.pushEvent(brushEvent, rasterizer);
         var samplePixel = buffer.getPixelRGBA(new Vec2(0, 0));
         expect(samplePixel[0]).toBe(0);
@@ -60,7 +61,24 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         expect(samplePixel[2]).toBe(0);
         expect(samplePixel[3]).toBe(0);
     });
-    
+
+    it('blends an event to the bitmap with the multiply mode', function() {
+        var buffer = createBuffer(params);
+        var rasterizer = createRasterizer(params);
+        var opacity = 0.5;
+        var brushEvent = fillingBrushEvent(params.width, params.height,
+                                           [0.2 * 255, 0.4 * 255, 0.8 * 255],
+                                           opacity, BrushEvent.Mode.multiply);
+        buffer.pushEvent(brushEvent, rasterizer);
+        var samplePixel = buffer.getPixelRGBA(new Vec2(0, 0));
+        expect(samplePixel[0]).toBeCloseTo(params.clearColor[0] * (0.2 + (1.0 - 0.2) * opacity), -1.0);
+        expect(samplePixel[1]).toBeCloseTo(params.clearColor[1] * (0.4 + (1.0 - 0.4) * opacity), -1.0);
+        expect(samplePixel[2]).toBeCloseTo(params.clearColor[2] * (0.8 + (1.0 - 0.8) * opacity), -1.0);
+        var targetAlpha = params.clearColor[3] / 255;
+        var alpha = (targetAlpha + opacity - targetAlpha * opacity) * 255;
+        expect(samplePixel[3]).toBeCloseTo(alpha, -1.0);
+    });
+
     var generateBrushEvent = function(seed, width, height) {
         var event = testBrushEvent();
         for (var j = 0; j < 10; ++j) {
@@ -153,7 +171,7 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         buffer.insertEvent(event, rasterizer);
         expectBufferCorrect(buffer, rasterizer, 3);
     });
-    
+
     it ('has its contents replaced by an event', function() {
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
@@ -187,6 +205,7 @@ describe('GLBuffer', function() {
     canvas.height = params.height;
     var gl = Picture.initWebGL(canvas);
     var glManager = glStateManager(gl);
+    var compositor = new GLCompositor(glManager, gl, 8);
     var texBlitProgram = glManager.shaderProgram(blitShader.blitSrc,
                                                  blitShader.blitVertSrc,
                                                  {uSrcTex: 'tex2d'});
@@ -195,9 +214,10 @@ describe('GLBuffer', function() {
     };
 
     var createBuffer = function(params) {
-        return new GLBuffer(gl, glManager, texBlitProgram, params.id,
-                            params.width, params.height, params.clearColor,
-                            params.hasUndoStates, params.hasAlpha);
+        return new GLBuffer(gl, glManager, compositor, texBlitProgram,
+                            params.id, params.width, params.height,
+                            params.clearColor, params.hasUndoStates,
+                            params.hasAlpha);
     };
     var createRasterizer = function(params) {
         return new GLDoubleBufferedRasterizer(gl, glManager, params.width,

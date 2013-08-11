@@ -440,7 +440,8 @@ Picture.prototype.initRasterizers = function() {
 Picture.prototype.createBuffer = function(id, clearColor, hasUndoStates,
                                           hasAlpha) {
     if (this.usesWebGl()) {
-        return new GLBuffer(this.gl, this.glManager, this.texBlitProgram, id,
+        return new GLBuffer(this.gl, this.glManager, this.compositor,
+                            this.texBlitProgram, id,
                             this.bitmapWidth(), this.bitmapHeight(),
                             clearColor, hasUndoStates, hasAlpha);
     } else if (this.mode === 'canvas') {

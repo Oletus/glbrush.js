@@ -615,7 +615,8 @@ CanvasBuffer.drawRasterizer = function(dataCtx, targetCtx, raster, clipRect,
     // TODO: assert(br.x >= 0 && br.y >= 0 && br.x + br.w <= this.width &&
     // br.y + br.h <= this.height);
     var targetData = dataCtx.getImageData(br.x, br.y, br.w, br.h);
-    if (opaque) {
+    if (opaque &&
+        (mode === BrushEvent.Mode.normal || mode === BrushEvent.Mode.eraser)) {
         raster.drawWithColorToOpaque(targetData, color, opacity,
                                      br.x, br.y, br.w, br.h);
     } else if (mode === BrushEvent.Mode.normal) {
@@ -623,6 +624,8 @@ CanvasBuffer.drawRasterizer = function(dataCtx, targetCtx, raster, clipRect,
                              br.x, br.y, br.w, br.h);
     } else if (mode === BrushEvent.Mode.eraser) {
         raster.erase(targetData, opacity, br.x, br.y, br.w, br.h);
+    } else if (mode === BrushEvent.Mode.multiply) {
+        raster.multiply(targetData, color, opacity, br.x, br.y, br.w, br.h);
     }
     targetCtx.putImageData(targetData, br.x, br.y);
 };
@@ -633,6 +636,8 @@ CanvasBuffer.drawRasterizer = function(dataCtx, targetCtx, raster, clipRect,
  * @param {WebGLRenderingContext} gl The rendering context.
  * @param {Object} glManager The state manager returned by glStateManager() in
  * utilgl.
+ * @param {GLCompositor} compositor The compositor to use for blends that are
+ * not supported by blendFunc.
  * @param {ShaderProgram} texBlitProgram Shader program to use for blits. Must
  * have uniform sampler uSrcTex for the source texture.
  * @param {number} id Identifier for this buffer. Unique at the Picture level.
@@ -644,8 +649,8 @@ CanvasBuffer.drawRasterizer = function(dataCtx, targetCtx, raster, clipRect,
  * @param {boolean} hasUndoStates Does this buffer store undo states?
  * @param {boolean} hasAlpha Does this buffer have an alpha channel?
  */
-var GLBuffer = function(gl, glManager, texBlitProgram, id, width, height,
-                        clearColor, hasUndoStates, hasAlpha) {
+var GLBuffer = function(gl, glManager, compositor, texBlitProgram, id, width,
+                        height, clearColor, hasUndoStates, hasAlpha) {
     this.texBlitProgram = texBlitProgram;
     this.texBlitUniforms = texBlitProgram.uniformParameters();
     this.initializePictureBuffer(id, width, height, hasUndoStates, hasAlpha);
@@ -653,6 +658,7 @@ var GLBuffer = function(gl, glManager, texBlitProgram, id, width, height,
     this.undoStateInterval = 32;
     this.gl = gl;
     this.glManager = glManager;
+    this.compositor = compositor;
     this.w = width;
     this.h = height;
     if (clearColor === undefined) {
@@ -735,8 +741,24 @@ GLBuffer.prototype.updateClip = function() {
 GLBuffer.prototype.drawRasterizerWithColor = function(raster, color, opacity,
                                                       mode) {
     this.updateClip();
-    this.glManager.useFboTex(this.tex);
-    raster.drawWithColor(color, opacity, mode);
+    if (mode === BrushEvent.Mode.normal || mode === BrushEvent.Mode.eraser) {
+        this.glManager.useFboTex(this.tex);
+        raster.drawWithColor(color, opacity, mode);
+    } else {
+        // Copy into helper texture from this.tex, then use compositor to render
+        // that blended with the contents of the rasterizer back to this.tex.
+        var helper = glUtils.createTex(this.gl, this.w, this.h);
+        this.glManager.useFboTex(helper);
+        this.texBlitUniforms.uSrcTex = this.tex;
+        this.glManager.drawFullscreenQuad(this.texBlitProgram,
+                                          this.texBlitUniforms);
+
+        this.glManager.useFboTex(this.tex);
+        this.compositor.pushBufferTex(helper, 1.0);
+        this.compositor.pushRasterizer(raster, color, opacity, mode, null);
+        this.compositor.flush();
+        this.gl.deleteTexture(helper);
+    }
 };
 
 /**

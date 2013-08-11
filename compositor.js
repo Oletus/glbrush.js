@@ -144,7 +144,18 @@ GLCompositor.prototype.prepare = CanvasCompositor.prototype.prepare;
  */
 GLCompositor.prototype.pushBuffer = function(buffer) {
     // TODO: assert(buffer.visible);
-    if (buffer.isOpaque()) {
+    this.pushBufferTex(buffer.tex, buffer.opacity, buffer.isOpaque());
+};
+
+/**
+ * Add a texture to composit to the framebuffer. The texture is treated the same
+ * way as buffers are.
+ * @param {WebGLTexture} tex The texture that has the buffer contents.
+ * @param {number} opacity The buffer opacity.
+ * @param {boolean} isOpaque True if the texture is completely opaque.
+ */
+GLCompositor.prototype.pushBufferTex = function(tex, opacity, isOpaque) {
+    if (isOpaque) {
         this.needsClear = false;
         this.pending = [];
     }
@@ -152,7 +163,8 @@ GLCompositor.prototype.pushBuffer = function(buffer) {
         this.flushInternal();
         this.pending = [];
     }
-    this.pending.push({type: CanvasCompositor.Element.buffer, buffer: buffer});
+    this.pending.push({type: CanvasCompositor.Element.buffer, tex: tex,
+                       opacity: opacity});
     this.currentBufferRasterizers = 0;
 };
 
@@ -224,8 +236,8 @@ GLCompositor.prototype.flushInternal = function(flushed) {
     var compositingUniforms = {};
     for (var i = 0; i < flushed.length; ++i) {
         if (flushed[i].type === CanvasCompositor.Element.buffer) {
-            compositingUniforms['uLayer' + i] = flushed[i].buffer.tex;
-            compositingUniforms['uOpacity' + i] = flushed[i].buffer.opacity;
+            compositingUniforms['uLayer' + i] = flushed[i].tex;
+            compositingUniforms['uOpacity' + i] = flushed[i].opacity;
         } else {
             compositingUniforms['uLayer' + i] = flushed[i].rasterizer.getTex();
             var color = flushed[i].color;
