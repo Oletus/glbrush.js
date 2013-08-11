@@ -232,15 +232,12 @@ GLCompositor.prototype.flushInternal = function(flushed) {
         this.glManager, flushed);
 
     var compositingUniforms = {};
-    var lastVisible = false;
     for (var i = 0; i < flushed.length; ++i) {
         if (flushed[i].type === CanvasCompositor.Element.buffer) {
-            lastVisible = flushed[i].buffer.visible;
-            if (lastVisible) {
-                compositingUniforms['uLayer' + i] = flushed[i].buffer.tex;
-                compositingUniforms['uOpacity' + i] = flushed[i].buffer.opacity;
-            }
-        } else if (lastVisible) {
+            // TODO: assert(flushed[i].buffer.visible);
+            compositingUniforms['uLayer' + i] = flushed[i].buffer.tex;
+            compositingUniforms['uOpacity' + i] = flushed[i].buffer.opacity;
+        } else {
             compositingUniforms['uLayer' + i] = flushed[i].rasterizer.getTex();
             var color = flushed[i].color;
             compositingUniforms['uColor' + i] =

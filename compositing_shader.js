@@ -17,15 +17,12 @@ var compositingShader = {};
 compositingShader.getFragmentSource = function(layers) {
     var src = ['precision highp float;'];
     var i;
-    var lastVisible = false;
     for (i = 0; i < layers.length; ++i) {
         if (layers[i].type === CanvasCompositor.Element.buffer) {
-            lastVisible = layers[i].buffer.visible;
-            if (lastVisible) {
-                src.push('uniform sampler2D uLayer' + i + ';');
-                src.push('uniform float uOpacity' + i + ';');
-            }
-        } else if (lastVisible) {
+            // TODO: assert(layers[i].buffer.visible);
+            src.push('uniform sampler2D uLayer' + i + ';');
+            src.push('uniform float uOpacity' + i + ';');
+        } else {
             src.push('uniform sampler2D uLayer' + i + ';');
             src.push('uniform vec4 uColor' + i + ';');
         }
@@ -41,47 +38,39 @@ compositingShader.getFragmentSource = function(layers) {
     i = 0;
     while (i < layers.length) {
         // TODO: assert(layers[i].type === CanvasCompositor.Element.buffer);
-        if (layers[i].buffer.visible) {
-            var bufferColor = 'layer' + i + 'Color';
-            var bufferOpacity = 'uOpacity' + i;
-            src.push('  vec4 ' + bufferColor +
+        // TODO: assert(layers[i].buffer.visible);
+        var bufferColor = 'layer' + i + 'Color';
+        var bufferOpacity = 'uOpacity' + i;
+        src.push('  vec4 ' + bufferColor +
+                ' = texture2D(uLayer' + i + ', vTexCoord);');
+        ++i;
+        while (i < layers.length &&
+               layers[i].type === CanvasCompositor.Element.rasterizer) {
+            if (layers[i].rasterizer.format === GLRasterizerFormat.alpha) {
+                src.push('  float layer' + i + 'Alpha' +
+                    ' = texture2D(uLayer' + i + ', vTexCoord).w;');
+            } else {
+                src.push('  vec4 layer' + i +
                     ' = texture2D(uLayer' + i + ', vTexCoord);');
-            ++i;
-            while (i < layers.length &&
-                   layers[i].type === CanvasCompositor.Element.rasterizer) {
-                if (layers[i].rasterizer.format === GLRasterizerFormat.alpha) {
-                    src.push('  float layer' + i + 'Alpha' +
-                        ' = texture2D(uLayer' + i + ', vTexCoord).w;');
-                } else {
-                    src.push('  vec4 layer' + i +
-                        ' = texture2D(uLayer' + i + ', vTexCoord);');
-                    src.push('  float layer' + i + 'Alpha = ' +
-                             'layer' + i + '.x + ' +
-                             'layer' + i + '.y / 256.0;');
-                }
-                src.push('  vec4 layer' + i + 'Color = layer' + i + 'Alpha *' +
-                         ' uColor' + i + ';');
-                if (layers[i].mode === BrushEvent.Mode.normal) {
-                    blendingSource(bufferColor, 'layer' + i + 'Color');
-                } else if (layers[i].mode === BrushEvent.Mode.eraser) {
-                    src.push('  ' + bufferColor + ' = ' + bufferColor +
-                             ' * (1.0 - layer' + i + 'Color.w);');
-                } else {
-                    console.log('Unexpected mode in shader generation ' +
-                                layers[i].mode);
-                }
-                ++i;
+                src.push('  float layer' + i + 'Alpha = ' +
+                         'layer' + i + '.x + ' +
+                         'layer' + i + '.y / 256.0;');
             }
-            src.push('  ' + bufferColor + ' *= ' + bufferOpacity + ';');
-            blendingSource('color', bufferColor);
-        } else {
-            ++i;
-            // Skip rasterizers attached to invisible layer
-            while (i < layers.length &&
-                   layers[i].type === CanvasCompositor.Element.rasterizer) {
-                ++i;
+            src.push('  vec4 layer' + i + 'Color = layer' + i + 'Alpha *' +
+                     ' uColor' + i + ';');
+            if (layers[i].mode === BrushEvent.Mode.normal) {
+                blendingSource(bufferColor, 'layer' + i + 'Color');
+            } else if (layers[i].mode === BrushEvent.Mode.eraser) {
+                src.push('  ' + bufferColor + ' = ' + bufferColor +
+                         ' * (1.0 - layer' + i + 'Color.w);');
+            } else {
+                console.log('Unexpected mode in shader generation ' +
+                            layers[i].mode);
             }
+            ++i;
         }
+        src.push('  ' + bufferColor + ' *= ' + bufferOpacity + ';');
+        blendingSource('color', bufferColor);
     }
     src.push('  gl_FragColor = color;');
     src.push('}');
@@ -105,15 +94,12 @@ compositingShader.getFragmentSource = function(layers) {
 compositingShader.getShaderProgram = function(glManager, layers) {
     var fragSource = compositingShader.getFragmentSource(layers);
     var uniformTypes = {};
-    var lastVisible = false;
     for (var i = 0; i < layers.length; ++i) {
         if (layers[i].type === CanvasCompositor.Element.buffer) {
-            lastVisible = layers[i].buffer.visible;
-            if (lastVisible) {
-                uniformTypes['uLayer' + i] = 'tex2d';
-                uniformTypes['uOpacity' + i] = '1f';
-            }
-        } else if (lastVisible) {
+            // TODO: assert(layers[i].buffer.visible);
+            uniformTypes['uLayer' + i] = 'tex2d';
+            uniformTypes['uOpacity' + i] = '1f';
+        } else {
             uniformTypes['uLayer' + i] = 'tex2d';
             uniformTypes['uColor' + i] = '4fv';
         }
