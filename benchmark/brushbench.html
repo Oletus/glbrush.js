@@ -1,0 +1,82 @@
+<html>
+<head>
+<!-- Copyright Olli Etuaho 2013 -->
+<title>glbrush.js brush benchmark</title>
+<script type="text/javascript" src="../util2d.js"></script>
+<script type="text/javascript" src="../utilgl.js"></script>
+<script type="text/javascript" src="../blit_shader.js"></script>
+<script type="text/javascript" src="../rasterize_shader.js"></script>
+<script type="text/javascript" src="../compositing_shader.js"></script>
+<script type="text/javascript" src="../compositor.js"></script>
+<script type="text/javascript" src="../picture_event.js"></script>
+<script type="text/javascript" src="../rasterize.js"></script>
+<script type="text/javascript" src="../picture_buffer.js"></script>
+<script type="text/javascript" src="../undo_state.js"></script>
+<script type="text/javascript" src="../picture.js"></script>
+<script type="text/javascript">
+
+/**
+ * @return {number} time spent in milliseconds.
+ */
+measureBrushStrokeTime = function(testPic, eventCount, radius, softness, mode,
+                                  report) {
+    var w = testPic.bitmapWidth();
+    var color = [39, 95, 188];
+    var flow = 0.5;
+    var opacity = 0.5;
+    var angle = 0;
+    var startTime = new Date().getTime();
+    for (var i = 0; i < eventCount; ++i) {
+        var event = testPic.createBrushEvent(color, flow, opacity, radius,
+                                             softness, mode);
+        angle += 0.2;
+        var xa = Math.cos(angle) / 100;
+        var ya = Math.sin(angle) / 100;
+        for (var j = 0; j < 100; ++j) {
+            var x = (xa * j + 1) * w * 0.5;
+            var y = (ya * j + 1) * w * 0.5;
+            event.pushCoordTriplet(x, y, 1.0);
+        }
+        testPic.pushEvent(0, event);
+    }
+    testPic.display();
+    var totalTime = new Date().getTime() - startTime;
+    if (report) {
+        document.body.appendChild(testPic.pictureElement());
+        timeMessage = 'Mode: ' + testPic.mode + ', brush events per second: ' +
+                      (eventCount / totalTime * 1000).toFixed(2);
+        console.log(timeMessage);
+        timeDisplay = document.createElement('div');
+        timeDisplay.textContent = timeMessage;
+        document.body.appendChild(timeDisplay);
+    }
+    return totalTime;
+}
+
+runTest = function() {
+    var eventCount = 1000;
+    var mode = BrushEvent.Mode.normal;
+    var bufferHasAlpha = true;
+    var hasUndoStates = true;
+    var radius = 20;
+    var softness = 1.0;
+
+    var w = 1024;
+    var pictureMode = 'webgl';
+    var testPic = Picture.create(0, w, w, 1.0, [pictureMode], 0);
+    if (testPic === null) {
+        console.log('Could not test mode ' + pictureMode);
+        return undefined;
+    }
+    testPic.addBuffer(0, [255, 255, 255, 128], hasUndoStates, bufferHasAlpha);
+    for (var report = 0; report <= 1; ++report) {
+        var totalTime = measureBrushStrokeTime(testPic, 1000, radius, softness,
+                                               mode, report === 1);
+    }
+    return totalTime;
+}
+</script>
+</head>
+<body onload="runTest()" style="background:#888;">
+</body>
+</html>
