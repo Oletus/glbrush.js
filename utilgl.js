@@ -9,6 +9,7 @@ glUtils = {
     supportsTextureUnits: null,
     updateClip: null,
     glSupported: true, // these values will be updated later
+    availableExtensions: [],
     maxTextureUnits: 32,
     maxFramebufferSize: 2048,
     textureUnits: null
@@ -355,7 +356,6 @@ var glStateManager = function(gl) {
     };
 
     return {
-        availableExtensions: gl.getSupportedExtensions(),
         extensionTextureFloat: gl.getExtension('OES_texture_float'),
         shaderProgram: shaderProgramCache(gl),
         drawFullscreenQuad: drawFullscreenQuadInternal,
@@ -372,6 +372,9 @@ var glStateManager = function(gl) {
         glUtils.glSupported = false;
         return;
     }
+    glUtils.availableExtensions = gl.getSupportedExtensions();
+    console.log(glUtils.availableExtensions);
+
     glUtils.maxTextureUnits = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS);
     // Do a best effort at determining framebuffer size limits:
     var maxFramebufferSizes = gl.getParameter(gl.MAX_VIEWPORT_DIMS);

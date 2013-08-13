@@ -66,8 +66,6 @@ var Picture = function(id, boundsRect, bitmapScale, mode,
 Picture.prototype.setupGLState = function() {
     this.glManager = glStateManager(this.gl);
 
-    console.log(this.glManager.availableExtensions);
-
     var useFloatRasterizer = (this.mode === 'webgl' ||
                               this.mode === 'no-texdata-webgl');
     if (useFloatRasterizer) {
