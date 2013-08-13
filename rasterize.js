@@ -513,8 +513,8 @@ var GLDoubleBufferedRasterizer = function(gl, glManager, width, height) {
     this.initGLRasterizer(gl, glManager, GLRasterizerFormat.redGreen,
                           GLDoubleBufferedRasterizer.maxCircles, 3);
     // TODO: Move to gl.RG if EXT_texture_RG becomes available in WebGL
-    this.tex0 = glUtils.createTex(gl, width, height, gl.RGB);
-    this.tex1 = glUtils.createTex(gl, width, height, gl.RGB);
+    this.tex0 = glUtils.createTexture(gl, width, height, gl.RGB);
+    this.tex1 = glUtils.createTexture(gl, width, height, gl.RGB);
     this.tex0Inval = new Rect();
     this.tex1Inval = new Rect();
     this.currentTex = 0;
@@ -866,7 +866,7 @@ var GLFloatRasterizer = function(gl, glManager, width, height) {
     this.initBaseRasterizer(width, height);
     this.initGLRasterizer(gl, glManager, GLRasterizerFormat.alpha,
                           GLFloatRasterizer.maxCircles, 3);
-    this.tex = glUtils.createTex(gl, width, height, this.gl.RGBA,
+    this.tex = glUtils.createTexture(gl, width, height, this.gl.RGBA,
                                  this.gl.FLOAT);
 
     if (!GLFloatRasterizer.nFillShader) {
@@ -1016,10 +1016,10 @@ var GLFloatTexDataRasterizer = function(gl, glManager, width, height) {
     // Not useful if more parameters are added.
     this.initGLRasterizer(gl, glManager, GLRasterizerFormat.alpha,
                           GLFloatTexDataRasterizer.maxCircles, 4);
-    this.tex = glUtils.createTex(gl, width, height, this.gl.RGBA,
+    this.tex = glUtils.createTexture(gl, width, height, this.gl.RGBA,
                                  this.gl.FLOAT);
 
-    this.parameterTex = glUtils.createTex(gl, this.maxCircles, 1, this.gl.RGBA,
+    this.parameterTex = glUtils.createTexture(gl, this.maxCircles, 1, this.gl.RGBA,
                                           this.gl.FLOAT);
 
     if (!GLFloatTexDataRasterizer.fillShader) {

@@ -670,7 +670,7 @@ var GLBuffer = function(gl, glManager, compositor, texBlitProgram, id, width,
     }
 
     var format = this.hasAlpha ? gl.RGBA : gl.RGB;
-    this.tex = glUtils.createTex(this.gl, width, height, format);
+    this.tex = glUtils.createTexture(this.gl, width, height, format);
 
     if (this.gl.checkFramebufferStatus(this.gl.FRAMEBUFFER) !==
         this.gl.FRAMEBUFFER_COMPLETE) {
@@ -747,7 +747,7 @@ GLBuffer.prototype.drawRasterizerWithColor = function(raster, color, opacity,
     } else {
         // Copy into helper texture from this.tex, then use compositor to render
         // that blended with the contents of the rasterizer back to this.tex.
-        var helper = glUtils.createTex(this.gl, this.w, this.h);
+        var helper = glUtils.createTexture(this.gl, this.w, this.h);
         this.glManager.useFboTex(helper);
         this.texBlitUniforms.uSrcTex = this.tex;
         this.glManager.drawFullscreenQuad(this.texBlitProgram,

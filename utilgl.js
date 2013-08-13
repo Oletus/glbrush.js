@@ -3,7 +3,7 @@
  */
 
 glUtils = {
-    createTex: null,
+    createTexture: null,
     getShader: null,
     initGl: null,
     supportsTextureUnits: null,
@@ -24,7 +24,7 @@ glUtils = {
  * @param {GLenum=} type Texture type. Defaults to gl.UNSIGNED_BYTE.
  * @return {WebGLTexture} The created texture.
  */
-glUtils.createTex = function(gl, width, height, format, type) {
+glUtils.createTexture = function(gl, width, height, format, type) {
     if (format === undefined) {
         format = gl.RGBA;
     }

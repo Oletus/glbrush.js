@@ -74,7 +74,7 @@ var GLUndoState = function(index, srcTex, gl, glManager, texBlitProgram,
     this.height = height;
     this.hasAlpha = hasAlpha;
     var format = this.hasAlpha ? gl.RGBA : gl.RGB;
-    this.tex = glUtils.createTex(gl, this.width, this.height, format);
+    this.tex = glUtils.createTexture(gl, this.width, this.height, format);
     this.update(index, srcTex);
 };
 
