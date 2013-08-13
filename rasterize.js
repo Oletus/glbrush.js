@@ -322,11 +322,11 @@ Rasterizer.prototype.multiply = function(targetData, color, opacity,
             var alphaS = this.data[sind] * opacity;
             var alpha = alphaS + alphaT * (1.0 - alphaS);
             tData[ind] = tData[ind] *
-                         (1.0 - (1.0 - color[0] / 255) * alphaS);
+                         (1.0 + alphaS * (color[0] / 255 - 1.0));
             tData[ind + 1] = tData[ind + 1] *
-                             (1.0 - (1.0 - color[1] / 255) * alphaS);
+                             (1.0 + alphaS * (color[1] / 255 - 1.0));
             tData[ind + 2] = tData[ind + 2] *
-                             (1.0 - (1.0 - color[2] / 255) * alphaS);
+                             (1.0 + alphaS * (color[2] / 255 - 1.0));
             tData[ind + 3] = 255 * alpha;
             ind += 4;
             ++sind;
