@@ -626,6 +626,8 @@ CanvasBuffer.drawRasterizer = function(dataCtx, targetCtx, raster, clipRect,
         raster.erase(targetData, opacity, br.x, br.y, br.w, br.h);
     } else if (mode === BrushEvent.Mode.multiply) {
         raster.multiply(targetData, color, opacity, br.x, br.y, br.w, br.h);
+    } else if (mode === BrushEvent.Mode.screen) {
+        raster.screen(targetData, color, opacity, br.x, br.y, br.w, br.h);
     }
     targetCtx.putImageData(targetData, br.x, br.y);
 };

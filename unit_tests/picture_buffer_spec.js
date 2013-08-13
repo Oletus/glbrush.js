@@ -79,6 +79,23 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         expect(samplePixel[3]).toBeCloseTo(alpha, -1.0);
     });
 
+    it('blends an event to the bitmap with the screen mode', function() {
+        var buffer = createBuffer(params);
+        var rasterizer = createRasterizer(params);
+        var opacity = 0.5;
+        var brushEvent = fillingBrushEvent(params.width, params.height,
+                                           [0.2 * 255, 0.4 * 255, 0.8 * 255],
+                                           opacity, BrushEvent.Mode.screen);
+        buffer.pushEvent(brushEvent, rasterizer);
+        var samplePixel = buffer.getPixelRGBA(new Vec2(0, 0));
+        expect(samplePixel[0]).toBeCloseTo((255 - (255 - params.clearColor[0]) * (1.0 - 0.2)) * opacity + (1.0 - opacity) * params.clearColor[0], -1.0);
+        expect(samplePixel[1]).toBeCloseTo((255 - (255 - params.clearColor[1]) * (1.0 - 0.4)) * opacity + (1.0 - opacity) * params.clearColor[1], -1.0);
+        expect(samplePixel[2]).toBeCloseTo((255 - (255 - params.clearColor[2]) * (1.0 - 0.8)) * opacity + (1.0 - opacity) * params.clearColor[2], -1.0);
+        var targetAlpha = params.clearColor[3] / 255;
+        var alpha = (targetAlpha + opacity - targetAlpha * opacity) * 255;
+        expect(samplePixel[3]).toBeCloseTo(alpha, -1.0);
+    });
+
     var generateBrushEvent = function(seed, width, height) {
         var event = testBrushEvent();
         for (var j = 0; j < 10; ++j) {

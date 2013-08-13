@@ -46,8 +46,8 @@ compositingShader.getFragmentSource = function(layers) {
         eq = eq.replace(/dstColor/g, '(' + bufferColor + '.xyz / ' +
                         bufferColor + '.w)');
         eq = eq.replace(/srcAlpha/g, 'layer' + i + 'Color.w');
-        src.push('  ' + bufferColor + ' = vec4(' + eq +
-            ' * blendedAlpha' + i + ', blendedAlpha' + i + ');');
+        src.push('  ' + bufferColor + ' = vec4((' + eq +
+            ') * blendedAlpha' + i + ', blendedAlpha' + i + ');');
     };
     i = 0;
     while (i < layers.length) {
@@ -80,6 +80,10 @@ compositingShader.getFragmentSource = function(layers) {
             } else {
                 if (layers[i].mode === BrushEvent.Mode.multiply) {
                     blendEq('dstColor * (1.0 + srcAlpha * (srcColor - 1.0))');
+                } else if (layers[i].mode === BrushEvent.Mode.screen) {
+                    blendEq('srcAlpha * ' +
+                            '(1.0 - (1.0 - srcColor) * (1.0 - dstColor)) + ' +
+                            '(1.0 - srcAlpha) * dstColor');
                 } else {
                     console.log('Unexpected mode in shader generation ' +
                                 layers[i].mode);

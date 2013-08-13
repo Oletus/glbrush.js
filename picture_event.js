@@ -106,7 +106,8 @@ BrushEvent.prototype = new PictureEvent('brush');
 BrushEvent.Mode = {
     erase: 0,
     normal: 1,
-    multiply: 2
+    multiply: 2,
+    screen: 3
 };
 
 /**
