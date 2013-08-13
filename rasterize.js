@@ -867,7 +867,7 @@ var GLFloatRasterizer = function(gl, glManager, width, height) {
     this.initGLRasterizer(gl, glManager, GLRasterizerFormat.alpha,
                           GLFloatRasterizer.maxCircles, 3);
     this.tex = glUtils.createTexture(gl, width, height, this.gl.RGBA,
-                                 this.gl.FLOAT);
+                                     this.gl.FLOAT);
 
     if (!GLFloatRasterizer.nFillShader) {
         // TODO: assert(!GLFloatRasterizer.nSoftShader)
@@ -1017,10 +1017,10 @@ var GLFloatTexDataRasterizer = function(gl, glManager, width, height) {
     this.initGLRasterizer(gl, glManager, GLRasterizerFormat.alpha,
                           GLFloatTexDataRasterizer.maxCircles, 4);
     this.tex = glUtils.createTexture(gl, width, height, this.gl.RGBA,
-                                 this.gl.FLOAT);
+                                     this.gl.FLOAT);
 
-    this.parameterTex = glUtils.createTexture(gl, this.maxCircles, 1, this.gl.RGBA,
-                                          this.gl.FLOAT);
+    this.parameterTex = glUtils.createTexture(gl, this.maxCircles, 1,
+                                              this.gl.RGBA, this.gl.FLOAT);
 
     if (!GLFloatTexDataRasterizer.fillShader) {
         GLFloatTexDataRasterizer.fillShader =
