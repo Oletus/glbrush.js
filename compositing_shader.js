@@ -35,6 +35,20 @@ compositingShader.getFragmentSource = function(layers) {
         src.push('  ' + dstColor + ' = ' + srcColor +
                  ' + ' + dstColor + ' * (1.0 - ' + srcColor + '.w);');
     };
+    // Add rasterizer layer blending operation to src. The given blending
+    // equation eq must use unpremultiplied vec3 srcColor, unpremultiplied vec3
+    // dstColor and srcAlpha to produce a vec3 value.
+    var blendEq = function(eq) {
+        src.push('  float blendedAlpha' + i + ' = layer' + i + 'Color.w + ' +
+                 bufferColor + '.w * (1.0 - layer' + i + 'Color.w);');
+        // Unpremultiplied colors:
+        eq = eq.replace(/srcColor/g, 'uColor' + i + '.xyz');
+        eq = eq.replace(/dstColor/g, '(' + bufferColor + '.xyz / ' +
+                        bufferColor + '.w)');
+        eq = eq.replace(/srcAlpha/g, 'layer' + i + 'Color.w');
+        src.push('  ' + bufferColor + ' = vec4(' + eq +
+            ' * blendedAlpha' + i + ', blendedAlpha' + i + ');');
+    };
     i = 0;
     while (i < layers.length) {
         // TODO: assert(layers[i].type === CanvasCompositor.Element.buffer);
@@ -64,16 +78,8 @@ compositingShader.getFragmentSource = function(layers) {
                 src.push('  ' + bufferColor + ' = ' + bufferColor +
                          ' * (1.0 - layer' + i + 'Color.w);');
             } else {
-                src.push('  float blendedAlpha' + i + ' = layer' + i +
-                         'Color.w + ' + bufferColor + '.w * (1.0 - layer' + i +
-                         'Color.w);');
-                var bufferUnpremul = '(' + bufferColor + '.xyz / ' +
-                                     bufferColor + '.w)';
                 if (layers[i].mode === BrushEvent.Mode.multiply) {
-                    src.push('  ' + bufferColor + ' = vec4(' + bufferUnpremul +
-                             ' * (1.0 - (1.0 - uColor' + i + '.xyz) * layer' +
-                             i + 'Color.w) * blendedAlpha' + i +
-                             ', blendedAlpha' + i + ');');
+                    blendEq('dstColor * (1.0 + srcAlpha * (srcColor - 1.0))');
                 } else {
                     console.log('Unexpected mode in shader generation ' +
                                 layers[i].mode);
