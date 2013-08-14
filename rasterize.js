@@ -568,11 +568,13 @@ var GLDoubleBufferedRasterizer = function(gl, glManager, width, height) {
         for (var i = 1; i <= GLDoubleBufferedRasterizer.maxCircles; ++i) {
             GLDoubleBufferedRasterizer.nFillShader.push(
                 new RasterizeShader(GLRasterizerFormat.redGreen, false, i,
-                                    false, RasterizeShader.parametersInUniforms,
+                                    false,
+                                    RasterizeShader.ParameterMode.inUniforms,
                                     true));
             GLDoubleBufferedRasterizer.nSoftShader.push(
                 new RasterizeShader(GLRasterizerFormat.redGreen, true, i,
-                                    false, RasterizeShader.parametersInUniforms,
+                                    false,
+                                    RasterizeShader.ParameterMode.inUniforms,
                                     true));
         }
     }
@@ -918,11 +920,11 @@ var GLFloatRasterizer = function(gl, glManager, width, height) {
         for (i = 1; i <= GLFloatRasterizer.maxCircles; ++i) {
             GLFloatRasterizer.nFillShader.push(
                 new RasterizeShader(GLRasterizerFormat.alpha, false, i, false,
-                                    RasterizeShader.parametersInUniforms,
+                                    RasterizeShader.ParameterMode.inUniforms,
                                     true));
             GLFloatRasterizer.nSoftShader.push(
                 new RasterizeShader(GLRasterizerFormat.alpha, true, i, false,
-                                    RasterizeShader.parametersInUniforms,
+                                    RasterizeShader.ParameterMode.inUniforms,
                                     true));
         }
     }
@@ -1068,11 +1070,11 @@ var GLFloatTexDataRasterizer = function(gl, glManager, width, height) {
         GLFloatTexDataRasterizer.fillShader =
             new RasterizeShader(GLRasterizerFormat.alpha, false,
                                 GLFloatTexDataRasterizer.maxCircles, true,
-                                RasterizeShader.parametersInTex, false);
+                                RasterizeShader.ParameterMode.inTex, false);
         GLFloatTexDataRasterizer.softShader =
             new RasterizeShader(GLRasterizerFormat.alpha, true,
                                 GLFloatTexDataRasterizer.maxCircles, true,
-                                RasterizeShader.parametersInTex, false);
+                                RasterizeShader.ParameterMode.inTex, false);
     }
     this.fillCircleProgram =
         GLFloatTexDataRasterizer.fillShader.programInstance(this.gl);

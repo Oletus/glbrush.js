@@ -10,6 +10,7 @@ glUtils = {
     updateClip: null,
     glSupported: true, // these values will be updated later
     availableExtensions: [],
+    maxVaryingVectors: 8, // minimum mandated by the spec
     maxTextureUnits: 32,
     maxFramebufferSize: 2048,
     textureUnits: null

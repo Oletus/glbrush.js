@@ -12,24 +12,19 @@
  * @param {number} circles Amount of circles to draw in a single pass.
  * @param {boolean} dynamicCircles The amount of circles drawn in a single pass
  * can be set at run-time using an uniform.
- * @param {number} parameterMode How are circle parameters passed to the shader?
- * Set to either RasterizeShader.parametersInTex or
- * RasterizeShader.parametersInUniforms.
+ * @param {RasterizeShader.ParameterMode} parameterMode How are circle
+ * parameters passed to the shader?
  * @param {boolean=} unroll Unroll the loop. By default unrolling happens if
  * parameterMode is parametersInUniforms.
  */
 var RasterizeShader = function(format, soft, circles, dynamicCircles,
                                parameterMode, unroll) {
-    if (parameterMode !== RasterizeShader.parametersInTex &&
-        parameterMode !== RasterizeShader.parametersInUniforms) {
-        console.log('Invalid shader requested! Invalid parameterMode.');
-        return;
-    }
     if (unroll === undefined) {
-        unroll = parameterMode !== RasterizeShader.parametersInTex;
+        unroll = parameterMode !== RasterizeShader.ParameterMode.inTex;
     }
-    if (circles > 6 && parameterMode !== RasterizeShader.parametersInTex) {
-        console.log('Invalid shader requested! Too many circles for uniforms.');
+    if (circles + 2 > glUtils.maxVaryingVectors &&
+        parameterMode !== RasterizeShader.ParameterMode.inTex) {
+        console.log('Invalid RasterizeShader requested! Too many circles.');
         return;
     }
     this.doubleBuffered = (format === GLRasterizerFormat.redGreen);
@@ -42,10 +37,14 @@ var RasterizeShader = function(format, soft, circles, dynamicCircles,
     this.cachedProgram = null;
 };
 
-/** @const */
-RasterizeShader.parametersInTex = 100;
-/** @const */
-RasterizeShader.parametersInUniforms = 101;
+/**
+ * How to pass parameters to the shader.
+ * @enum {number}
+ */
+RasterizeShader.ParameterMode = {
+    inTex: 0,
+    inUniforms: 1
+};
 
 /**
  * Computes the uniforms used in the shader program.
@@ -69,11 +68,11 @@ RasterizeShader.prototype.uniforms = function(width, height) {
     }
     if (this.dynamicCircles) {
         var countInVertex =
-            this.parameterMode === RasterizeShader.parametersInUniforms;
+            this.parameterMode === RasterizeShader.ParameterMode.inUniforms;
         us.push({name: 'uCircleCount', type: 'int', shortType: '1i',
                  inFragment: true, inVertex: countInVertex, defaultValue: 1});
     }
-    if (this.parameterMode === RasterizeShader.parametersInTex) {
+    if (this.parameterMode === RasterizeShader.ParameterMode.inTex) {
         us.push({name: 'uCircleParameters', type: 'sampler2D',
                  shortType: 'tex2d', inFragment: true, inVertex: false,
                  defaultValue: null});
@@ -174,7 +173,7 @@ RasterizeShader.prototype.varyingSource = function() {
     if (this.doubleBuffered) {
         src.push('varying vec2 vSrcTexCoord;');
     }
-    if (this.parameterMode === RasterizeShader.parametersInTex) {
+    if (this.parameterMode === RasterizeShader.ParameterMode.inTex) {
         src.push('varying vec2 vPixelCoords; // in pixels');
     } else {
         if (this.unroll) {
@@ -238,10 +237,15 @@ RasterizeShader.prototype.fragmentInnerLoopSource = function(index,
     var src = [];
     if (this.dynamicCircles) {
         src.push('    if (' + index + ' < uCircleCount) {');
+        // Note that this probably qualifies as non-uniform flow control. See
+        // GLSL ES 1.0.17 spec Appendix A.6.
+        // TODO: See if moving the texture2D call outside the if would help
+        // performance or compatibility. It would be required by the spec if it
+        // was mipmapped.
     } else {
         src.push('    {');
     }
-    if (this.parameterMode === RasterizeShader.parametersInTex) {
+    if (this.parameterMode === RasterizeShader.ParameterMode.inTex) {
         src.push('      vec4 parameterColor = texture2D(uCircleParameters,' +
                  'vec2((float(' + index + ') + 0.5) / ' + this.circles +
                  '.0, 0.5));');
@@ -310,7 +314,7 @@ RasterizeShader.prototype.fragmentSource = function() {
  */
 RasterizeShader.prototype.vertexInnerLoopSource = function(index, arrayIndex) {
     var src = [];
-    if (this.parameterMode === RasterizeShader.parametersInUniforms) {
+    if (this.parameterMode === RasterizeShader.ParameterMode.inUniforms) {
         if (arrayIndex === undefined) {
             arrayIndex = '[' + index + ']';
         }
@@ -347,7 +351,7 @@ RasterizeShader.prototype.vertexSource = function() {
         src.push('  vSrcTexCoord = vec2((aVertexPosition.x + 1.0) * 0.5, ' +
                  '(aVertexPosition.y + 1.0) * 0.5);');
     }
-    if (this.parameterMode === RasterizeShader.parametersInTex) {
+    if (this.parameterMode === RasterizeShader.ParameterMode.inTex) {
         src.push('  vPixelCoords = vec2(aVertexPosition.x + 1.0, ' +
                  '1.0 - aVertexPosition.y) / uPixelPitch;');
     }
