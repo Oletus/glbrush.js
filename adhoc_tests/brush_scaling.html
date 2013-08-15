@@ -1,0 +1,99 @@
+<html>
+<head>
+<!-- Copyright Olli Etuaho 2013 -->
+<title>glbrush.js brush benchmark</title>
+<script type="text/javascript" src="../util2d.js"></script>
+<script type="text/javascript" src="../utilgl.js"></script>
+<script type="text/javascript" src="../blit_shader.js"></script>
+<script type="text/javascript" src="../rasterize_shader.js"></script>
+<script type="text/javascript" src="../compositing_shader.js"></script>
+<script type="text/javascript" src="../compositor.js"></script>
+<script type="text/javascript" src="../picture_event.js"></script>
+<script type="text/javascript" src="../rasterize.js"></script>
+<script type="text/javascript" src="../picture_buffer.js"></script>
+<script type="text/javascript" src="../undo_state.js"></script>
+<script type="text/javascript" src="../picture.js"></script>
+<script type="text/javascript">
+
+// Test brush scaling by resizing the picture bitmap on each frame.
+
+var runTest = function() {
+    var w = 256;
+    var pictureMode = 'webgl';
+    var bitmapScale = 1.0;
+    var t = 0;
+    var testPic = Picture.create(0, w, w, bitmapScale, [pictureMode], 0);
+    testPic.addBuffer(0, [255, 255, 255, 255], false, false);
+    var color = [0, 0, 0];
+    var flow = 0.8;
+    var opacity = 1.0;
+    var radius = 30;
+    var softness = 1.0;
+    var mode = BrushEvent.Mode.normal;
+    var event = testPic.createBrushEvent(color, flow, opacity, radius, softness,
+                                         mode);
+    for (var j = 0; j < 101; ++j) {
+        var x = (0.005 * j + 0.2) * w;
+        var y = 0.18 * w;
+        event.pushCoordTriplet(x, y, (x * 1.2) / w);
+    }
+    testPic.pushEvent(0, event);
+    event = testPic.createBrushEvent(color, flow, opacity, radius, softness,
+                                         mode);
+    for (var j = 0; j < 2; ++j) {
+        var x = (0.5 * j + 0.2) * w;
+        var y = 0.39 * w;
+        event.pushCoordTriplet(x, y, (x * 1.2) / w);
+    }
+    testPic.pushEvent(0, event);
+    softness = 0.0;
+    event = testPic.createBrushEvent(color, flow, opacity, radius, softness,
+                                         mode);
+    for (var j = 0; j < 101; ++j) {
+        var x = (0.005 * j + 0.2) * w;
+        var y = 0.61 * w;
+        event.pushCoordTriplet(x, y, (x * 1.2) / w);
+    }
+    testPic.pushEvent(0, event);
+    event = testPic.createBrushEvent(color, flow, opacity, radius, softness,
+                                         mode);
+    for (var j = 0; j < 2; ++j) {
+        var x = (0.5 * j + 0.2) * w;
+        var y = 0.82 * w;
+        event.pushCoordTriplet(x, y, (x * 1.2) / w);
+    }
+    testPic.pushEvent(0, event);
+
+    var drawFrame = function() {
+        t = (t + 1) % 4;
+        bitmapScale = 0.5 + t * 0.5;
+        testPic = Picture.resize(testPic, bitmapScale);
+        var parent = document.getElementById('parent');
+        parent.innerHTML = '';
+        picElement = testPic.pictureElement();
+        picElement.style.width = '100%';
+        picElement.style.height = '100%';
+        parent.appendChild(picElement);
+        testPic.display();
+        setTimeout(drawFrame, 1000);
+        var picScale = document.getElementById('picScale');
+        picScale.innerHTML = 'Bitmap width: ' + testPic.bitmapWidth();
+    }
+
+    if (testPic === null) {
+        console.log('Could not test mode ' + pictureMode);
+    } else {
+        setTimeout(drawFrame, 100);
+    }
+};
+
+</script>
+</head>
+<body onload="runTest()" style="background:#888;">
+<div id="parent" style="width: 256px; height: 256px;">
+</div>
+<p id="picScale"></p>
+<p id="description">Ideally the appearance should change as little as possible 
+as the brush strokes are re-rendered at different resolutions.</p>
+</body>
+</html>
