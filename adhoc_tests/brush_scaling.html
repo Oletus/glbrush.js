@@ -67,7 +67,7 @@ var runTest = function() {
 
     var drawFrame = function() {
         if (testPics.length <= t) {
-            bitmapScale = 0.75 + t * 0.5;
+            bitmapScale = 0.5 + t * 0.5;
             testPics[t] = Picture.resize(testPic, bitmapScale);
         }
         testPic = testPics[t];

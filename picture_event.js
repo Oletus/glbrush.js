@@ -7,8 +7,8 @@
  * the brush stroke.
  * @constructor
  * @param {number} coordsInd Index in the coords array. Must be an integer.
- * @param {number} t How much of the current segment has been processed. Needed
- * for exactly aligning the endpoints of segments.
+ * @param {number} t How much of the current segment has been processed, in
+ * pixels. Needed for exactly aligning the endpoints of segments.
  * @param {Vec2} direction Tangent of the brush stroke at the beginning of the
  * current segment.
  */
@@ -296,6 +296,8 @@ BrushEvent.prototype.updateTo = function(rasterizer, untilCoord) {
             continue;
         }
 
+        t = t / d; // Make t relative to the distance to use it as t in bezier
+
         // Brush smoothing. By default, make a straight line.
         var bezier_x = x1 + direction.x * 0.5;
         var bezier_y = y1 + direction.y * 0.5;
@@ -313,7 +315,8 @@ BrushEvent.prototype.updateTo = function(rasterizer, untilCoord) {
         // we'll split the smoothed stroke segment to line segments with approx
         // length of BrushEvent.lineSegmentLength, trying to fit them nicely
         // between the two stroke segment endpoints
-        var tSegment = 1.0 / Math.ceil(d / BrushEvent.lineSegmentLength);
+        var tSegment = (0.99999 - t) /
+                       Math.ceil(d / BrushEvent.lineSegmentLength);
 
         while (t < 1.0) {
             xd = x1 * Math.pow(1.0 - t, 2) + bezier_x * t * (1.0 - t) * 2 +
@@ -328,7 +331,7 @@ BrushEvent.prototype.updateTo = function(rasterizer, untilCoord) {
             }
             t += tSegment;
         }
-        t -= 1.0;
+        t = (t - 1.0) * d; // Make t an absolute pixel value
         if (d < BrushEvent.lineSegmentLength)
             prevDirection = undefined;
         else {
