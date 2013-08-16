@@ -22,6 +22,7 @@ var runTest = function() {
     var pictureMode = 'webgl';
     var bitmapScale = 1.0;
     var t = 0;
+    var testPics = [];
     var testPic = Picture.create(0, w, w, bitmapScale, [pictureMode], 0);
     testPic.addBuffer(0, [255, 255, 255, 255], false, false);
     var color = [0, 0, 0];
@@ -65,9 +66,12 @@ var runTest = function() {
     testPic.pushEvent(0, event);
 
     var drawFrame = function() {
-        t = (t + 1) % 4;
-        bitmapScale = 0.5 + t * 0.5;
-        testPic = Picture.resize(testPic, bitmapScale);
+        if (testPics.length <= t) {
+            bitmapScale = 0.75 + t * 0.5;
+            testPics[t] = Picture.resize(testPic, bitmapScale);
+        }
+        testPic = testPics[t];
+        t = (t + 1) % 6;
         var parent = document.getElementById('parent');
         parent.innerHTML = '';
         picElement = testPic.pictureElement();
