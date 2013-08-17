@@ -15,15 +15,19 @@ function testBrushEvent() {
                           BrushEvent.Mode.normal);
 }
 
-function fillingBrushEvent(widthToFill, heightToFill, color, opacity, mode) {
+function fillingBrushEvent(widthToFill, heightToFill, color, opacity, mode,
+                           flow) {
     if (color === undefined) {
         color = [0, 0, 0];
     }
     if (mode === undefined) {
         mode = BrushEvent.Mode.normal;
     }
+    if (flow === undefined) {
+        flow = 1.0;
+    }
     var radius = Math.max(widthToFill, heightToFill) + 2;
-    var event = new BrushEvent(0, 1, false, color, 1.0, opacity, radius, 0.0,
+    var event = new BrushEvent(0, 1, false, color, flow, opacity, radius, 0.0,
                           mode);
     event.pushCoordTriplet(0, 0, 1.0);
     event.pushCoordTriplet(widthToFill, heightToFill, 1.0);

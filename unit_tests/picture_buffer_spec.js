@@ -61,6 +61,26 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         expect(samplePixel[2]).toBe(0);
         expect(samplePixel[3]).toBe(0);
     });
+    
+    it('blends an event to the bitmap with the normal mode, opacity and flow', function() {
+        var buffer = createBuffer(params);
+        var rasterizer = createRasterizer(params);
+        var opacity = 0.5;
+        var flow = 0.5;
+        var brushEvent = fillingBrushEvent(params.width, params.height,
+                                           [0.2 * 255, 0.4 * 255, 0.8 * 255],
+                                           opacity, BrushEvent.Mode.normal,
+                                           flow);
+        buffer.pushEvent(brushEvent, rasterizer);
+        var samplePixel = buffer.getPixelRGBA(new Vec2(params.width * 0.5,
+                                                       params.height * 0.5));
+        expect(samplePixel[0]).toBeCloseTo(params.clearColor[0] * (1.0 - opacity * flow) + 0.2 * 255 * opacity * flow, -1.0);
+        expect(samplePixel[1]).toBeCloseTo(params.clearColor[1] * (1.0 - opacity * flow) + 0.4 * 255 * opacity * flow, -1.0);
+        expect(samplePixel[2]).toBeCloseTo(params.clearColor[2] * (1.0 - opacity * flow) + 0.8 * 255 * opacity * flow, -1.0);
+        var targetAlpha = params.clearColor[3] / 255;
+        var alpha = (targetAlpha + opacity * flow - targetAlpha * opacity * flow) * 255;
+        expect(samplePixel[3]).toBeCloseTo(alpha, -1.5);
+    });
 
     it('blends an event to the bitmap with the multiply mode', function() {
         var buffer = createBuffer(params);

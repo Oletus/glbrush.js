@@ -70,9 +70,14 @@ compositingShader.getFragmentSource = function(layers) {
                          'layer' + i + '.x + ' +
                          'layer' + i + '.y / 256.0;');
             }
-            src.push('  vec4 layer' + i + 'Color = layer' + i + 'Alpha *' +
-                     ' uColor' + i + ';');
+            // Unpremultiplied color
+            src.push('  vec4 layer' + i + 'Color = vec4(uColor' + i + '.xyz,' +
+            'layer' + i + 'Alpha * uColor' + i + '.w);');
             if (layers[i].mode === BrushEvent.Mode.normal) {
+                // premultiply
+                src.push('  layer' + i + 'Color = vec4(layer' + i +
+                         'Color.xyz * layer' + i + 'Color.w, layer' + i +
+                         'Color.w);');
                 blendingSource(bufferColor, 'layer' + i + 'Color');
             } else if (layers[i].mode === BrushEvent.Mode.erase) {
                 src.push('  ' + bufferColor + ' = ' + bufferColor +
@@ -109,9 +114,10 @@ compositingShader.getFragmentSource = function(layers) {
  * @return {ShaderProgram} The shader program for compositing the given layer
  * stack. Contains uniforms uLayer<n> for visible layers where <n> is the layer
  * index starting from zero for setting samplers for the layers. 'uColor<n>'
- * vec4 uniforms are used for rasterizer layers to pass color and opacity data,
- * with values ranging from 0 to 1. 'uOpacity<n>' float uniforms are used for
- * buffer layers to pass opacity, with values ranging from 0 to 1.
+ * vec4 uniforms are used for rasterizer layers to pass unpremultiplied color
+ * and opacity data, with values ranging from 0 to 1. 'uOpacity<n>' float
+ * uniforms are used for buffer layers to pass opacity, with values ranging from
+ * 0 to 1.
  */
 compositingShader.getShaderProgram = function(glManager, layers) {
     var fragSource = compositingShader.getFragmentSource(layers);

@@ -62,6 +62,22 @@ var doPictureTest = function(mode) {
         expect(samplePixel[3]).toBe(255);
     });
 
+    it('composits a current event with opacity', function() {
+        var pic = testPicture();
+        var clearColor = [12, 23, 34, 45];
+        pic.addBuffer(1337, clearColor, true, false);
+        var brushEvent = new BrushEvent(0, 0, false, [56, 67, 78], 1.0, 0.5,
+                                        10, 0, BrushEvent.Mode.normal);
+        brushEvent.pushCoordTriplet(0, 0, 1.0);
+        brushEvent.pushCoordTriplet(width, height, 1.0);
+        pic.setCurrentEvent(brushEvent);
+        var samplePixel = pic.getPixelRGBA(new Vec2(0, 0));
+        expect(samplePixel[0]).toBeCloseTo(56 * 0.5 + 12 * 0.5, -0.5);
+        expect(samplePixel[1]).toBeCloseTo(67 * 0.5 + 23 * 0.5, -0.5);
+        expect(samplePixel[2]).toBeCloseTo(78 * 0.5 + 34 * 0.5, -0.5);
+        expect(samplePixel[3]).toBe(255);
+    });
+
     it('composits two buffers together', function() {
         var pic = testPicture();
         var clearColor = [12, 23, 34, 45];
