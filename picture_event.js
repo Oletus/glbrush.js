@@ -117,7 +117,7 @@ BrushEvent.coordsStride = 3; // x, y and pressure coordinates belong together
  */
 BrushEvent.prototype.serialize = function(scale) {
     var eventMessage = this.serializePictureEvent();
-    eventMessage += ' ' + color.serializeRGB(this.color);
+    eventMessage += ' ' + colorUtil.serializeRGB(this.color);
     eventMessage += ' ' + this.flow + ' ' + this.opacity;
     eventMessage += ' ' + (this.radius * scale);
     if (this.soft) {
@@ -257,7 +257,7 @@ BrushEvent.prototype.updateTo = function(rasterizer, untilCoord) {
 
     if (i === 0) {
         var nBlends = Math.ceil(this.radius * 2);
-        var alpha = color.alphaForNBlends(this.flow, nBlends);
+        var alpha = colorUtil.alphaForNBlends(this.flow, nBlends);
         rasterizer.beginLines(this.soft, alpha);
     }
 

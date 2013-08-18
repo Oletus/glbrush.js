@@ -29,7 +29,7 @@ cssUtil.rgbaString = function(rgbaArray) {
     ',' + Math.floor(rgbaArray[2]) + ',' + (rgbaArray[3] / 255) + ')';
 };
 
-color = {
+colorUtil = {
     unpremultiply: null,
     premultiply: null,
     blend: null,
@@ -45,7 +45,7 @@ color = {
  * @return {Array.<number>|Uint8Array} The input array, if the result is
  * identical, or a new array with unpremultiplied color. Channel values 0-255.
  */
-color.unpremultiply = function(premultRGBA) {
+colorUtil.unpremultiply = function(premultRGBA) {
     if (premultRGBA[3] === 255) {
         return premultRGBA;
     }
@@ -72,7 +72,7 @@ color.unpremultiply = function(premultRGBA) {
  * @return {Array.<number>|Uint8Array} The input array, if the result is
  * identical, or a new array with premultiplied color. Channel values 0-255.
  */
-color.premultiply = function(unpremultRGBA) {
+colorUtil.premultiply = function(unpremultRGBA) {
     if (unpremultRGBA[3] === 255) {
         return unpremultRGBA;
     }
@@ -98,7 +98,7 @@ color.premultiply = function(unpremultRGBA) {
  * @param {Array.<number>|Uint8Array} srcRGBA Source RGBA value.
  * @return {Uint8Array} Resulting RGBA color value.
  */
-color.blend = function(dstRGBA, srcRGBA) {
+colorUtil.blend = function(dstRGBA, srcRGBA) {
     var srcAlpha = srcRGBA[3] / 255.0;
     var dstAlpha = dstRGBA[3] / 255.0;
     var alpha = srcAlpha + dstAlpha * (1.0 - srcAlpha);
@@ -117,7 +117,7 @@ color.blend = function(dstRGBA, srcRGBA) {
  * @param {Array.<number>|Uint8Array} RGB RGB value.
  * @return {string} Serialized representation of the value.
  */
-color.serializeRGB = function(RGB) {
+colorUtil.serializeRGB = function(RGB) {
     return RGB[0] + ' ' + RGB[1] + ' ' + RGB[2];
 };
 
@@ -126,7 +126,7 @@ color.serializeRGB = function(RGB) {
  * @param {Array.<number>|Uint8Array} RGBA RGBA value.
  * @return {string} Serialized representation of the value.
  */
-color.serializeRGBA = function(RGBA) {
+colorUtil.serializeRGBA = function(RGBA) {
     return RGBA[0] + ' ' + RGBA[1] + ' ' + RGBA[2] + ' ' + RGBA[3];
 };
 
@@ -137,7 +137,7 @@ color.serializeRGBA = function(RGBA) {
  * @param {number} n Amount of times to blend. Must be an integer.
  * @return {number} The resulting alpha value.
  */
-color.nBlends = function(alpha, n) {
+colorUtil.nBlends = function(alpha, n) {
     if (alpha === 1.0) {
         return 1.0;
     }
@@ -156,7 +156,7 @@ color.nBlends = function(alpha, n) {
  * @return {number} Such alpha value that blending it with itself n times
  * results in the given flow value.
  */
-color.alphaForNBlends = function(flow, n) {
+colorUtil.alphaForNBlends = function(flow, n) {
     if (flow < 1.0) {
         // Solved from alpha blending differential equation:
         // flow'(n) = (1.0 - flow(n)) * adjustedFlow
@@ -166,7 +166,7 @@ color.alphaForNBlends = function(flow, n) {
         var high = flow;
         // Bisect until result is close enough
         while (true) {
-            var blended = color.nBlends(guess, n);
+            var blended = colorUtil.nBlends(guess, n);
             if (blended < flow) {
                 low = guess;
             } else {

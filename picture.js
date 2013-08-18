@@ -306,7 +306,7 @@ Picture.prototype.serialize = function() {
     for (var i = 0; i < this.buffers.length; ++i) {
         var buffer = this.buffers[i];
         serialization.push('buffer ' + buffer.id +
-                           ' ' + color.serializeRGBA(buffer.clearColor) +
+                           ' ' + colorUtil.serializeRGBA(buffer.clearColor) +
                            ' ' + (buffer.undoStates !== null ? '1' : '0') +
                            ' ' + (buffer.hasAlpha ? '1' : '0') +
                            ' ' + buffer.insertionPoint +
@@ -931,7 +931,7 @@ Picture.prototype.getPixelRGBA = function(coords) {
         var glY = Math.max(0, this.bitmapHeight() - 1 - Math.floor(coords.y));
         this.gl.readPixels(glX, glY, 1, 1, this.gl.RGBA, this.gl.UNSIGNED_BYTE,
                            pixelData);
-        pixelData = color.unpremultiply(pixelData);
+        pixelData = colorUtil.unpremultiply(pixelData);
         return pixelData;
     } else {
         return this.ctx.getImageData(Math.floor(coords.x),

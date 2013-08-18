@@ -714,7 +714,7 @@ GLBuffer.prototype.height = function() {
 GLBuffer.prototype.clear = function() {
     this.updateClip();
     this.glManager.useFboTex(this.tex);
-    var clearColor = color.premultiply(this.clearColor);
+    var clearColor = colorUtil.premultiply(this.clearColor);
     this.gl.clearColor(clearColor[0] / 255.0, clearColor[1] / 255.0,
                        clearColor[2] / 255.0, clearColor[3] / 255.0);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
@@ -795,6 +795,6 @@ GLBuffer.prototype.getPixelRGBA = function(coords) {
     var glY = Math.max(0, this.height() - 1 - Math.floor(coords.y));
     this.gl.readPixels(glX, glY, 1, 1, this.gl.RGBA, this.gl.UNSIGNED_BYTE,
                        pixelData);
-    pixelData = color.unpremultiply(pixelData);
+    pixelData = colorUtil.unpremultiply(pixelData);
     return pixelData;
 };

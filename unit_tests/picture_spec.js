@@ -84,7 +84,7 @@ var doPictureTest = function(mode) {
         pic.addBuffer(1337, clearColor, true, true);
         var clearColor2 = [35, 46, 57, 68];
         pic.addBuffer(1338, clearColor2, true, true);
-        var blendedPixel = color.blend(clearColor, clearColor2);
+        var blendedPixel = colorUtil.blend(clearColor, clearColor2);
         pic.display(); // test that displaying twice doesn't leave underlying
         // pixels visible
         var samplePixel = pic.getPixelRGBA(new Vec2(0, 0));
@@ -101,7 +101,7 @@ var doPictureTest = function(mode) {
         var clearColor2 = [35, 46, 57, 68];
         pic.addBuffer(1338, clearColor2, true, true);
         pic.moveBuffer(1, 0);
-        var blendedPixel = color.blend(clearColor2, clearColor);
+        var blendedPixel = colorUtil.blend(clearColor2, clearColor);
         var samplePixel = pic.getPixelRGBA(new Vec2(0, 0));
         expect(samplePixel[0]).toBeCloseTo(blendedPixel[0], -0.8);
         expect(samplePixel[1]).toBeCloseTo(blendedPixel[1], -0.8);

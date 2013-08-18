@@ -32,44 +32,44 @@ describe('util2d', function() {
 
         it('unpremultiplies if alpha is 255', function() {
             var testColor = toUint8Array([128, 128, 128, 255]);
-            expect(color.unpremultiply(testColor)).toEqual(testColor);
+            expect(colorUtil.unpremultiply(testColor)).toEqual(testColor);
         });
         it('unpremultiplies if alpha is less than 255', function() {
             var testColor = toUint8Array([128, 128, 128, 128]);
             var resultColor = toUint8Array([255, 255, 255, 128]);
-            expect(color.unpremultiply(testColor)).toEqual(resultColor);
+            expect(colorUtil.unpremultiply(testColor)).toEqual(resultColor);
         });
         it('premultiplies if alpha is 255', function() {
             var testColor = toUint8Array([128, 128, 128, 255]);
-            expect(color.premultiply(testColor)).toEqual(testColor);
+            expect(colorUtil.premultiply(testColor)).toEqual(testColor);
         });
         it('premultiplies if alpha is less than 255', function() {
             var testColor = toUint8Array([128, 128, 128, 128]);
             var resultColor = toUint8Array([64, 64, 64, 128]);
-            expect(color.premultiply(testColor)).toEqual(resultColor);
+            expect(colorUtil.premultiply(testColor)).toEqual(resultColor);
         });
         it('blends two color values with dstAlpha being 255', function() {
             var dstRGBA = toUint8Array([12, 34, 56, 255]);
             var srcRGBA = toUint8Array([87, 65, 43, 21]);
             var resultColor = toUint8Array([18, 37, 55, 255]);
-            var blended = color.blend(dstRGBA, srcRGBA);
+            var blended = colorUtil.blend(dstRGBA, srcRGBA);
             expect(blended).toEqual(resultColor);
         });
         it('blends two color values with dstAlpha less than 255', function() {
             var dstRGBA = toUint8Array([12, 34, 56, 78]);
             var srcRGBA = toUint8Array([87, 65, 43, 21]);
             var resultColor = toUint8Array([29, 41, 53, 93]);
-            var blended = color.blend(dstRGBA, srcRGBA);
+            var blended = colorUtil.blend(dstRGBA, srcRGBA);
             expect(blended).toEqual(resultColor);
         });
         it('blends with associativity', function() {
             var RGBAA = toUint8Array([123, 234, 134, 245]);
             var RGBAB = toUint8Array([12, 34, 56, 78]);
             var RGBAC = toUint8Array([87, 65, 43, 21]);
-            var blendedBC = color.blend(RGBAB, RGBAC);
-            var resultA = color.blend(RGBAA, blendedBC);
-            var blendedAB = color.blend(RGBAA, RGBAB);
-            var resultB = color.blend(blendedAB, RGBAC);
+            var blendedBC = colorUtil.blend(RGBAB, RGBAC);
+            var resultA = colorUtil.blend(RGBAA, blendedBC);
+            var blendedAB = colorUtil.blend(RGBAA, RGBAB);
+            var resultB = colorUtil.blend(blendedAB, RGBAC);
             for (var i = 0; i < 4; ++i) {
                 expect(resultA[i]).toBeCloseTo(resultB[i], -0.5);
             }
@@ -77,9 +77,9 @@ describe('util2d', function() {
         it('computes the alpha value that results to given alpha with n blends', function() {
             for (var flow = 0.01; flow < 0.99; flow += 0.01) {
                 for (var n = 2; n < 10; ++n) {
-                    var alpha = color.alphaForNBlends(flow, n);
+                    var alpha = colorUtil.alphaForNBlends(flow, n);
                     expect(alpha).toBeLessThan(flow);
-                    expect(color.nBlends(alpha, n)).toBeCloseTo(flow, 0.01);
+                    expect(colorUtil.nBlends(alpha, n)).toBeCloseTo(flow, 0.01);
                 }
             }
         });
