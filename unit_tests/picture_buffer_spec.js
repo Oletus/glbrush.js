@@ -55,9 +55,9 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
     it('gives the color of one pixel', function() {
         var buffer = createBuffer(params);
         var samplePixel = buffer.getPixelRGBA(new Vec2(0, 0));
-        expect(samplePixel[0]).toBeCloseTo(params.clearColor[0], -0.8);
-        expect(samplePixel[1]).toBeCloseTo(params.clearColor[1], -0.8);
-        expect(samplePixel[2]).toBeCloseTo(params.clearColor[2], -0.8);
+        expect(samplePixel[0]).toBeNear(params.clearColor[0], 8);
+        expect(samplePixel[1]).toBeNear(params.clearColor[1], 8);
+        expect(samplePixel[2]).toBeNear(params.clearColor[2], 8);
         expect(samplePixel[3]).toBe(params.clearColor[3]);
     });
 
@@ -97,12 +97,12 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         buffer.pushEvent(brushEvent, rasterizer);
         var samplePixel = buffer.getPixelRGBA(new Vec2(params.width * 0.5,
                                                        params.height * 0.5));
-        expect(samplePixel[0]).toBeCloseTo(params.clearColor[0] * (1.0 - opacity * flow) + 0.2 * 255 * opacity * flow, -1.0);
-        expect(samplePixel[1]).toBeCloseTo(params.clearColor[1] * (1.0 - opacity * flow) + 0.4 * 255 * opacity * flow, -1.0);
-        expect(samplePixel[2]).toBeCloseTo(params.clearColor[2] * (1.0 - opacity * flow) + 0.8 * 255 * opacity * flow, -1.0);
+        expect(samplePixel[0]).toBeNear(params.clearColor[0] * (1.0 - opacity * flow) + 0.2 * 255 * opacity * flow, 10);
+        expect(samplePixel[1]).toBeNear(params.clearColor[1] * (1.0 - opacity * flow) + 0.4 * 255 * opacity * flow, 10);
+        expect(samplePixel[2]).toBeNear(params.clearColor[2] * (1.0 - opacity * flow) + 0.8 * 255 * opacity * flow, 10);
         var targetAlpha = params.clearColor[3] / 255;
         var alpha = (targetAlpha + opacity * flow - targetAlpha * opacity * flow) * 255;
-        expect(samplePixel[3]).toBeCloseTo(alpha, -1.5);
+        expect(samplePixel[3]).toBeNear(alpha, 15);
     });
 
     it('blends an event to the bitmap with the multiply mode', function() {
@@ -114,12 +114,12 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
                                            opacity, PictureEvent.Mode.multiply);
         buffer.pushEvent(brushEvent, rasterizer);
         var samplePixel = buffer.getPixelRGBA(new Vec2(0, 0));
-        expect(samplePixel[0]).toBeCloseTo(params.clearColor[0] * (0.2 + (1.0 - 0.2) * opacity), -1.0);
-        expect(samplePixel[1]).toBeCloseTo(params.clearColor[1] * (0.4 + (1.0 - 0.4) * opacity), -1.0);
-        expect(samplePixel[2]).toBeCloseTo(params.clearColor[2] * (0.8 + (1.0 - 0.8) * opacity), -1.0);
+        expect(samplePixel[0]).toBeNear(params.clearColor[0] * (0.2 + (1.0 - 0.2) * opacity), 10);
+        expect(samplePixel[1]).toBeNear(params.clearColor[1] * (0.4 + (1.0 - 0.4) * opacity), 10);
+        expect(samplePixel[2]).toBeNear(params.clearColor[2] * (0.8 + (1.0 - 0.8) * opacity), 10);
         var targetAlpha = params.clearColor[3] / 255;
         var alpha = (targetAlpha + opacity - targetAlpha * opacity) * 255;
-        expect(samplePixel[3]).toBeCloseTo(alpha, -1.0);
+        expect(samplePixel[3]).toBeNear(alpha, 15);
     });
 
     it('blends an event to the bitmap with the screen mode', function() {
@@ -131,12 +131,12 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
                                            opacity, PictureEvent.Mode.screen);
         buffer.pushEvent(brushEvent, rasterizer);
         var samplePixel = buffer.getPixelRGBA(new Vec2(0, 0));
-        expect(samplePixel[0]).toBeCloseTo((255 - (255 - params.clearColor[0]) * (1.0 - 0.2)) * opacity + (1.0 - opacity) * params.clearColor[0], -1.0);
-        expect(samplePixel[1]).toBeCloseTo((255 - (255 - params.clearColor[1]) * (1.0 - 0.4)) * opacity + (1.0 - opacity) * params.clearColor[1], -1.0);
-        expect(samplePixel[2]).toBeCloseTo((255 - (255 - params.clearColor[2]) * (1.0 - 0.8)) * opacity + (1.0 - opacity) * params.clearColor[2], -1.0);
+        expect(samplePixel[0]).toBeNear((255 - (255 - params.clearColor[0]) * (1.0 - 0.2)) * opacity + (1.0 - opacity) * params.clearColor[0], 10);
+        expect(samplePixel[1]).toBeNear((255 - (255 - params.clearColor[1]) * (1.0 - 0.4)) * opacity + (1.0 - opacity) * params.clearColor[1], 10);
+        expect(samplePixel[2]).toBeNear((255 - (255 - params.clearColor[2]) * (1.0 - 0.8)) * opacity + (1.0 - opacity) * params.clearColor[2], 10);
         var targetAlpha = params.clearColor[3] / 255;
         var alpha = (targetAlpha + opacity - targetAlpha * opacity) * 255;
-        expect(samplePixel[3]).toBeCloseTo(alpha, -1.0);
+        expect(samplePixel[3]).toBeNear(alpha, 10);
     });
 
     var generateBrushEvent = function(seed, width, height) {

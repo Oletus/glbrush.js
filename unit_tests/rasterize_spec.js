@@ -45,7 +45,7 @@ describe('Rasterizing system', function() {
         expect(testRasterizer.prevX).toBe(0);
         expect(testRasterizer.prevY).toBe(0.5);
         expect(testRasterizer.prevR).toBe(4);
-        expect(testRasterizer.t).toBeCloseTo(0.5, 3);
+        expect(testRasterizer.t).toBeNear(0.5, 0.001);
         if (testFillCircleCalls) {
             expect(testRasterizer.fillCircleCalls.length).toBe(1);
             expect(testRasterizer.fillCircleCalls[0].centerX).toBe(0);
@@ -57,15 +57,15 @@ describe('Rasterizing system', function() {
         expect(testRasterizer.prevX).toBe(2);
         expect(testRasterizer.prevY).toBe(0.5);
         expect(testRasterizer.prevR).toBe(5);
-        expect(testRasterizer.t).toBeCloseTo(0.5, 3);
+        expect(testRasterizer.t).toBeNear(0.5, 0.001);
         if (testFillCircleCalls) {
             expect(testRasterizer.fillCircleCalls.length).toBe(3);
-            expect(testRasterizer.fillCircleCalls[1].centerX).toBeCloseTo(0.5, 3);
-            expect(testRasterizer.fillCircleCalls[1].centerY).toBeCloseTo(0.5, 3);
-            expect(testRasterizer.fillCircleCalls[1].radius).toBeCloseTo(4.25, 3);
-            expect(testRasterizer.fillCircleCalls[2].centerX).toBeCloseTo(1.5, 3);
-            expect(testRasterizer.fillCircleCalls[2].centerY).toBeCloseTo(0.5, 3);
-            expect(testRasterizer.fillCircleCalls[2].radius).toBeCloseTo(4.75, 3);
+            expect(testRasterizer.fillCircleCalls[1].centerX).toBeNear(0.5, 0.001);
+            expect(testRasterizer.fillCircleCalls[1].centerY).toBeNear(0.5, 0.001);
+            expect(testRasterizer.fillCircleCalls[1].radius).toBeNear(4.25, 0.001);
+            expect(testRasterizer.fillCircleCalls[2].centerX).toBeNear(1.5, 0.001);
+            expect(testRasterizer.fillCircleCalls[2].centerY).toBeNear(0.5, 0.001);
+            expect(testRasterizer.fillCircleCalls[2].radius).toBeNear(4.75, 0.001);
         }
     }
 
@@ -118,7 +118,7 @@ describe('Rasterizing system', function() {
             for (var i = 0.1; i < 1.0; i += 0.1) { 
                 var samplePoint = new Vec2(rasterizer.width, rasterizer.height);
                 samplePoint.scale(i);
-                expect(rasterizer.getPixel(samplePoint)).toBeCloseTo(i, 1);
+                expect(rasterizer.getPixel(samplePoint)).toBeNear(i, 0.05);
             }
         });
 
@@ -130,7 +130,7 @@ describe('Rasterizing system', function() {
             for (var i = 0.1; i < 1.0; i += 0.1) { 
                 var samplePoint = new Vec2(0, rasterizer.height);
                 samplePoint.scale(i);
-                expect(rasterizer.getPixel(samplePoint)).toBeCloseTo(i, 1);
+                expect(rasterizer.getPixel(samplePoint)).toBeNear(i, 0.05);
             }
         });
     };

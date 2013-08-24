@@ -1,6 +1,14 @@
 /*
  * Copyright Olli Etuaho 2013.
  */
+ 
+beforeEach(function() {
+  this.addMatchers({
+    toBeNear: function(expected, tolerance) {
+      return Math.abs(this.actual - expected) <= tolerance;
+    }
+  });
+});
 
 describe('util2d', function() {
 
@@ -71,7 +79,7 @@ describe('util2d', function() {
             var blendedAB = colorUtil.blend(RGBAA, RGBAB);
             var resultB = colorUtil.blend(blendedAB, RGBAC);
             for (var i = 0; i < 4; ++i) {
-                expect(resultA[i]).toBeCloseTo(resultB[i], -0.5);
+                expect(resultA[i]).toBeNear(resultB[i], 5);
             }
         });
         it('computes the alpha value that results to given alpha with n blends', function() {
@@ -79,7 +87,7 @@ describe('util2d', function() {
                 for (var n = 2; n < 10; ++n) {
                     var alpha = colorUtil.alphaForNBlends(flow, n);
                     expect(alpha).toBeLessThan(flow);
-                    expect(colorUtil.nBlends(alpha, n)).toBeCloseTo(flow, 0.01);
+                    expect(colorUtil.nBlends(alpha, n)).toBeNear(flow, 0.01);
                 }
             }
         });
@@ -94,38 +102,38 @@ describe('util2d', function() {
 
         it('calculates its length', function() {
             var vec = new Vec2(3, 4);
-            expect(vec.length()).toBeCloseTo(5, 3);
+            expect(vec.length()).toBeNear(5, 0.001);
         });
 
         it('calculates distance with another Vec2', function() {
             var vecA = new Vec2(3, 4);
             var vecB = new Vec2(7, 7);
-            expect(vecA.distance(vecB)).toBeCloseTo(5, 3);
+            expect(vecA.distance(vecB)).toBeNear(5, 0.001);
         });
 
         it('can be normalized', function() {
             var vec = new Vec2(3, 4);
             vec.normalize();
-            expect(vec.length()).toBeCloseTo(1, 3);
+            expect(vec.length()).toBeNear(1, 0.001);
         });
 
         it('calculates a dot product', function() {
             var vecA = new Vec2(1.2, 3.4);
             var vecB = new Vec2(8.7, 6.5);
-            expect(vecA.dotProduct(vecB)).toBeCloseTo(1.2 * 8.7 + 3.4 * 6.5, 3);
+            expect(vecA.dotProduct(vecB)).toBeNear(1.2 * 8.7 + 3.4 * 6.5, 0.001);
         });
 
         it('scales', function() {
             var vec = new Vec2(1, 2);
             vec.scale(3.4);
-            expect(vec.x).toBeCloseTo(3.4, 5);
-            expect(vec.y).toBeCloseTo(6.8, 5);
+            expect(vec.x).toBeNear(3.4, 0.00001);
+            expect(vec.y).toBeNear(6.8, 0.00001);
         });
 
         it('calculates a slope to another Vec2', function() {
             var vecA = new Vec2(1.2, 3.4);
             var vecB = new Vec2(8.7, 6.5);
-            expect(vecA.slope(vecB)).toBeCloseTo((6.5 - 3.4) / (8.7 - 1.2), 3);
+            expect(vecA.slope(vecB)).toBeNear((6.5 - 3.4) / (8.7 - 1.2), 0.001);
         });
         
         it('projects to a line', function() {
@@ -133,9 +141,9 @@ describe('util2d', function() {
             var vecB = new Vec2(8.7, 6.5);
             var vecC = new Vec2(9.0, 1.2);
             vecC.projectToLine(vecA, vecB);
-            expect(vecC.y - vecA.y).toBeCloseTo((vecC.x - vecA.x) * vecA.slope(vecB), 3);
+            expect(vecC.y - vecA.y).toBeNear((vecC.x - vecA.x) * vecA.slope(vecB), 0.001);
             var origC = new Vec2(9.0, 1.2);
-            expect(vecC.slope(origC)).toBeCloseTo(-1.0 / vecA.slope(vecB), 3);
+            expect(vecC.slope(origC)).toBeNear(-1.0 / vecA.slope(vecB), 0.001);
         });
 
         it('projects to a circle', function() {
@@ -143,15 +151,15 @@ describe('util2d', function() {
             var radius = 5.0;
             var center = new Vec2(6.7, 8.9);
             vec.projectToCircle(center.x, center.y, radius);
-            expect(vec.distance(center)).toBeCloseTo(radius, 5);
-            expect(Math.atan2(vec.y - center.y, vec.x - center.x)).toBeCloseTo(Math.atan2(3.4 - center.y, 1.2 - center.x), 5);
+            expect(vec.distance(center)).toBeNear(radius, 0.00001);
+            expect(Math.atan2(vec.y - center.y, vec.x - center.x)).toBeNear(Math.atan2(3.4 - center.y, 1.2 - center.x), 0.00001);
         });
         
         it('calculates its distance to a line', function() {
             var vecA = new Vec2(1.2, 3.4);
             var vecB = new Vec2(8.7, 6.5);
             var vecC = new Vec2(9.0, 1.2);
-            expect(vecC.distanceToLine(vecA, vecB)).toBeCloseTo(5.0126811, 3);
+            expect(vecC.distanceToLine(vecA, vecB)).toBeNear(5.0126811, 0.001);
         });
     });
 

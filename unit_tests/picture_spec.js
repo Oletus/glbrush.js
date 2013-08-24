@@ -72,9 +72,9 @@ var doPictureTest = function(mode) {
         brushEvent.pushCoordTriplet(width, height, 1.0);
         pic.setCurrentEvent(brushEvent);
         var samplePixel = pic.getPixelRGBA(new Vec2(0, 0));
-        expect(samplePixel[0]).toBeCloseTo(56 * 0.5 + 12 * 0.5, -0.5);
-        expect(samplePixel[1]).toBeCloseTo(67 * 0.5 + 23 * 0.5, -0.5);
-        expect(samplePixel[2]).toBeCloseTo(78 * 0.5 + 34 * 0.5, -0.5);
+        expect(samplePixel[0]).toBeNear(56 * 0.5 + 12 * 0.5, 5);
+        expect(samplePixel[1]).toBeNear(67 * 0.5 + 23 * 0.5, 5);
+        expect(samplePixel[2]).toBeNear(78 * 0.5 + 34 * 0.5, 5);
         expect(samplePixel[3]).toBe(255);
     });
 
@@ -88,10 +88,10 @@ var doPictureTest = function(mode) {
         pic.display(); // test that displaying twice doesn't leave underlying
         // pixels visible
         var samplePixel = pic.getPixelRGBA(new Vec2(0, 0));
-        expect(samplePixel[0]).toBeCloseTo(blendedPixel[0], -0.8);
-        expect(samplePixel[1]).toBeCloseTo(blendedPixel[1], -0.8);
-        expect(samplePixel[2]).toBeCloseTo(blendedPixel[2], -0.8);
-        expect(samplePixel[3]).toBeCloseTo(blendedPixel[3], -0.8);
+        expect(samplePixel[0]).toBeNear(blendedPixel[0], 8);
+        expect(samplePixel[1]).toBeNear(blendedPixel[1], 8);
+        expect(samplePixel[2]).toBeNear(blendedPixel[2], 8);
+        expect(samplePixel[3]).toBeNear(blendedPixel[3], 8);
     });
 
     it('can change the order of two buffers', function() {
@@ -103,10 +103,10 @@ var doPictureTest = function(mode) {
         pic.moveBuffer(1, 0);
         var blendedPixel = colorUtil.blend(clearColor2, clearColor);
         var samplePixel = pic.getPixelRGBA(new Vec2(0, 0));
-        expect(samplePixel[0]).toBeCloseTo(blendedPixel[0], -0.8);
-        expect(samplePixel[1]).toBeCloseTo(blendedPixel[1], -0.8);
-        expect(samplePixel[2]).toBeCloseTo(blendedPixel[2], -0.8);
-        expect(samplePixel[3]).toBeCloseTo(blendedPixel[3], -0.8);
+        expect(samplePixel[0]).toBeNear(blendedPixel[0], 8);
+        expect(samplePixel[1]).toBeNear(blendedPixel[1], 8);
+        expect(samplePixel[2]).toBeNear(blendedPixel[2], 8);
+        expect(samplePixel[3]).toBeNear(blendedPixel[3], 8);
     });
 
     it('resizes', function() {
@@ -165,8 +165,8 @@ var doPictureTest = function(mode) {
         expect(samplePixel[2]).toBe(78);
         expect(samplePixel[3]).toBe(255);
         var event = pic2.buffers[0].events[0];
-        expect(event.coords[3]).toBeCloseTo(pic2.bitmapWidth(), 0);
-        expect(event.coords[4]).toBeCloseTo(pic2.bitmapHeight(), 0);
+        expect(event.coords[3]).toBeNear(pic2.bitmapWidth(), 1);
+        expect(event.coords[4]).toBeNear(pic2.bitmapHeight(), 1);
     });
 
     it('composits buffers with opacity', function() {
@@ -177,9 +177,9 @@ var doPictureTest = function(mode) {
         pic.addBuffer(1338, clearColor2, true, false);
         pic.setBufferOpacity(1, 0.5);
         var samplePixel = pic.getPixelRGBA(new Vec2(0, 0));
-        expect(samplePixel[0]).toBeCloseTo(127, -0.5);
-        expect(samplePixel[1]).toBeCloseTo(127, -0.5);
-        expect(samplePixel[2]).toBeCloseTo(127, -0.5);
+        expect(samplePixel[0]).toBeNear(127, 5);
+        expect(samplePixel[1]).toBeNear(127, 5);
+        expect(samplePixel[2]).toBeNear(127, 5);
         expect(samplePixel[3]).toBe(255);
     });
 
@@ -193,9 +193,9 @@ var doPictureTest = function(mode) {
         pic = Picture.resize(pic, pic.bitmapScale);
         expect(pic.buffers[1].opacity).toBe(0.5);
         var samplePixel = pic.getPixelRGBA(new Vec2(0, 0));
-        expect(samplePixel[0]).toBeCloseTo(127, -0.5);
-        expect(samplePixel[1]).toBeCloseTo(127, -0.5);
-        expect(samplePixel[2]).toBeCloseTo(127, -0.5);
+        expect(samplePixel[0]).toBeNear(127, 5);
+        expect(samplePixel[1]).toBeNear(127, 5);
+        expect(samplePixel[2]).toBeNear(127, 5);
         expect(samplePixel[3]).toBe(255);
     });
 
