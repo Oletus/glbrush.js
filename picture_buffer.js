@@ -245,13 +245,9 @@ PictureBuffer.prototype.popClip = function() {
         return;
     }
     this.clipStack.pop();
-    if (this.clipStack.length === 0) {
-        this.currentClipRect.set(0, this.width(), 0, this.height());
-    } else {
-        this.currentClipRect.set(0, this.width(), 0, this.height());
-        for (var i = 0; i < this.clipStack.length; ++i) {
-            this.currentClipRect.intersectRectRoundedOut(this.clipStack[i]);
-        }
+    this.currentClipRect.set(0, this.width(), 0, this.height());
+    for (var i = 0; i < this.clipStack.length; ++i) {
+        this.currentClipRect.intersectRectRoundedOut(this.clipStack[i]);
     }
 };
 
