@@ -29,7 +29,7 @@ var Picture = function(id, boundsRect, bitmapScale, mode,
     this.buffers = [];
     this.currentEventAttachment = currentEventAttachment;
     this.currentEvent = null;
-    this.currentEventMode = BrushEvent.Mode.normal;
+    this.currentEventMode = PictureEvent.Mode.normal;
 
     this.boundsRect = boundsRect;
     this.bitmapScale = bitmapScale;
@@ -141,9 +141,9 @@ Picture.prototype.updateCurrentEventMode = function() {
     if (this.currentEvent !== null && this.currentEventAttachment >= 0) {
         // TODO: assert(this.currentEventAttachment < this.buffers.length)
         this.currentEventMode = this.currentEvent.mode;
-        if (this.currentEventMode === BrushEvent.Mode.erase &&
+        if (this.currentEventMode === PictureEvent.Mode.erase &&
             !this.buffers[this.currentEventAttachment].hasAlpha) {
-            this.currentEventMode = BrushEvent.Mode.normal;
+            this.currentEventMode = PictureEvent.Mode.normal;
         }
     }
 };
@@ -320,8 +320,8 @@ Picture.prototype.serialize = function() {
 };
 
 /**
- * Set the session with the given sid active for purposes of createBrushEvent
- * and undoLatest.
+ * Set the session with the given sid active for purposes of createBrushEvent,
+ * createGradientEvent, and undoLatest.
  * @param {number} sid The session id to activate. Must be a positive integer.
  */
 Picture.prototype.setActiveSession = function(sid) {
@@ -346,13 +346,30 @@ Picture.prototype.setActiveSession = function(sid) {
  * stroke to the target buffer. Range 0 to 1.
  * @param {number} radius The stroke radius in pixels.
  * @param {number} softness Value controlling the softness. Range 0 to 1.
- * @param {BrushEvent.Mode} mode Blending mode to use.
+ * @param {PictureEvent.Mode} mode Blending mode to use.
  * @return {BrushEvent} The created brush event.
  */
 Picture.prototype.createBrushEvent = function(color, flow, opacity, radius,
                                               softness, mode) {
     var event = new BrushEvent(this.activeSid, this.activeSessionEventId, false,
                                color, flow, opacity, radius, softness, mode);
+    this.activeSessionEventId++;
+    return event;
+};
+
+/**
+ * Create a gradient event using the current active session. The event is marked
+ * as not undone.
+ * @param {Uint8Array|Array.<number>} color The RGB color of the gradient.
+ * Channel values are between 0-255.
+ * @param {number} opacity Alpha value controlling blending the rasterizer
+ * stroke to the target buffer. Range 0 to 1.
+ * @param {PictureEvent.Mode} mode Blending mode to use.
+ * @return {GradientEvent} The created gradient event.
+ */
+Picture.prototype.createGradientEvent = function(color, opacity, mode) {
+    var event = new GradientEvent(this.activeSid, this.activeSessionEventId,
+                                  false, color, opacity, mode);
     this.activeSessionEventId++;
     return event;
 };
@@ -646,7 +663,7 @@ Picture.prototype.setCurrentEvent = function(cEvent) {
     this.currentEvent = cEvent;
     if (this.currentEvent) {
         this.currentEventRasterizer.resetClip();
-        this.currentEvent.updateTo(this.currentEventRasterizer);
+        this.currentEvent.drawTo(this.currentEventRasterizer);
     }
     this.updateCurrentEventMode();
 };
@@ -800,7 +817,7 @@ Picture.prototype.animate = function(simultaneousStrokes, speed,
                     var untilPos = (animationPosForStroke % 1.0) +
                                    that.animationSpeed;
                     if (untilPos > 1.0) {
-                        event.updateTo(that.animationRasterizers[i]);
+                        event.drawTo(that.animationRasterizers[i]);
                         that.animationBuffers[bufferIndex].pushEvent(event,
                             that.animationRasterizers[i]);
                         that.animationEventIndices[i] =
@@ -810,8 +827,8 @@ Picture.prototype.animate = function(simultaneousStrokes, speed,
                     } else {
                         var untilCoord = event.coords.length * untilPos;
                         untilCoord = Math.ceil(untilCoord / 3) * 3;
-                        event.updateTo(that.animationRasterizers[i],
-                                       untilCoord);
+                        event.drawTo(that.animationRasterizers[i],
+                                     untilCoord);
                     }
                 }
             } else {

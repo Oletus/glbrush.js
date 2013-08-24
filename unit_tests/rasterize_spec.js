@@ -98,12 +98,49 @@ describe('Rasterizing system', function() {
             expect(testRasterizer.clipRect).toEqual(clipRect);
         });
     });
-
-    describe('Rasterizer', function() {
+    
+    var commonRasterizerTests = function(createRasterizer) {
         it('initializes', function() {
-            var rasterizer = new Rasterizer(123, 456);
+            var rasterizer = createRasterizer();
             testBaseRasterizerProperties(rasterizer, 123, 456);
         });
+
+        it('passes the sanity test', function() {
+            var rasterizer = createRasterizer();
+            expect(rasterizer.checkSanity()).toBe(true);
+        });
+
+        it('draws a linear gradient', function() {
+            var rasterizer = createRasterizer();
+            var coords0 = new Vec2(0, 0);
+            var coords1 = new Vec2(rasterizer.width, rasterizer.height);
+            rasterizer.linearGradient(coords1, coords0);
+            for (var i = 0.1; i < 1.0; i += 0.1) { 
+                var samplePoint = new Vec2(rasterizer.width, rasterizer.height);
+                samplePoint.scale(i);
+                expect(rasterizer.getPixel(samplePoint)).toBeCloseTo(i, 1);
+            }
+        });
+
+        it('draws a vertical gradient', function() {
+            var rasterizer = createRasterizer();
+            var coords0 = new Vec2(0, 0);
+            var coords1 = new Vec2(0, rasterizer.height);
+            rasterizer.linearGradient(coords1, coords0);
+            for (var i = 0.1; i < 1.0; i += 0.1) { 
+                var samplePoint = new Vec2(0, rasterizer.height);
+                samplePoint.scale(i);
+                expect(rasterizer.getPixel(samplePoint)).toBeCloseTo(i, 1);
+            }
+        });
+    };
+
+    describe('Rasterizer', function() {
+        var createRasterizer = function() {
+            return new Rasterizer(123, 456);
+        };
+
+        commonRasterizerTests(createRasterizer);
 
         it('can draw a line', function() {
             var rasterizer = new Rasterizer(123, 456);
@@ -115,11 +152,6 @@ describe('Rasterizing system', function() {
             var clipRect = new Rect(10, 20, 30, 40);
             rasterizer.setClip(clipRect);
             expect(rasterizer.clipRect).toEqual(clipRect);
-        });
-
-        it('passes the sanity test', function() {
-            var rasterizer = new Rasterizer(123, 456);
-            expect(rasterizer.checkSanity()).toBe(true);
         });
 
         it('does not overflow when drawing', function() {
@@ -137,50 +169,32 @@ describe('Rasterizing system', function() {
     });
 
     describe('GLDoubleBufferedRasterizer', function() {
-        it('initializes', function() {
+        var createRasterizer = function() {
             var gl = initTestGl();
             var glManager = glStateManager(gl);
-            var rasterizer = new GLDoubleBufferedRasterizer(gl, glManager, 123, 456);
-            testBaseRasterizerProperties(rasterizer, 123, 456);
-        });
-
-        it('passes the sanity test', function() {
-            var gl = initTestGl();
-            var glManager = glStateManager(gl);
-            var rasterizer = new GLDoubleBufferedRasterizer(gl, glManager, 123, 456);
-            expect(rasterizer.checkSanity()).toBe(true);
-        });
+            return new GLDoubleBufferedRasterizer(gl, glManager, 123, 456);
+        };
+        
+        commonRasterizerTests(createRasterizer);
     });
 
     describe('GLFloatRasterizer', function() {
-        it('initializes', function() {
+        var createRasterizer = function() {
             var gl = initTestGl();
             var glManager = glStateManager(gl);
-            var rasterizer = new GLFloatRasterizer(gl, glManager, 123, 456);
-            testBaseRasterizerProperties(rasterizer, 123, 456);
-        });
+            return new GLFloatRasterizer(gl, glManager, 123, 456);
+        };
 
-        it('passes the sanity test', function() {
-            var gl = initTestGl();
-            var glManager = glStateManager(gl);
-            var rasterizer = new GLFloatRasterizer(gl, glManager, 123, 456);
-            expect(rasterizer.checkSanity()).toBe(true);
-        });
+        commonRasterizerTests(createRasterizer);
     });
 
     describe('GLFloatTexDataRasterizer', function() {
-        it('initializes', function() {
+        var createRasterizer = function() {
             var gl = initTestGl();
             var glManager = glStateManager(gl);
-            var rasterizer = new GLFloatTexDataRasterizer(gl, glManager, 123, 456);
-            testBaseRasterizerProperties(rasterizer, 123, 456);
-        });
+            return new GLFloatTexDataRasterizer(gl, glManager, 123, 456);
+        };
 
-        it('passes the sanity test', function() {
-            var gl = initTestGl();
-            var glManager = glStateManager(gl);
-            var rasterizer = new GLFloatTexDataRasterizer(gl, glManager, 123, 456);
-            expect(rasterizer.checkSanity()).toBe(true);
-        });
+        commonRasterizerTests(createRasterizer);
     });
 });

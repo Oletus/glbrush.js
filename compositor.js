@@ -55,7 +55,7 @@ CanvasCompositor.prototype.pushBuffer = function(buffer) {
  * @param {Rasterizer} rasterizer Rasterizer to merge to the last pushed buffer.
  * @param {Uint8Array|Array.<number>} color Color to color the rasterizer with.
  * @param {number} opacity Opacity to use for blending the rasterizer.
- * @param {BrushEvent.Mode} mode Blending mode to use.
+ * @param {PictureEvent.Mode} mode Blending mode to use.
  * @param {Rect} boundingBox Bounding box for the rasterizer.
  */
 CanvasCompositor.prototype.pushRasterizer = function(rasterizer, color, opacity,
@@ -174,7 +174,7 @@ GLCompositor.prototype.pushBufferTex = function(tex, opacity, isOpaque) {
  * buffer.
  * @param {Uint8Array|Array.<number>} color Color to color the rasterizer with.
  * @param {number} opacity Opacity to use for blending the rasterizer.
- * @param {BrushEvent.Mode} mode Blending mode to use.
+ * @param {PictureEvent.Mode} mode Blending mode to use.
  * @param {Rect} boundingBox Bounding box for the rasterizer.
  */
 GLCompositor.prototype.pushRasterizer = function(rasterizer, color, opacity,

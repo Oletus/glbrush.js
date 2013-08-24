@@ -3,7 +3,7 @@
  */
 
 /**
- * Draw state for a brush event. Used to resume updateTo() from a point along
+ * Draw state for a brush event. Used to resume drawTo() from a point along
  * the brush stroke.
  * @constructor
  * @param {number} coordsInd Index in the coords array. Must be an integer.
@@ -15,6 +15,16 @@ var BrushEventState = function(coordsInd, direction) {
         coordsInd = 0;
     this.coordsInd = coordsInd;
     this.direction = direction;
+};
+
+/**
+ * Draw state for a gradient event. Used to determine whether a gradient is
+ * already drawn in a rasterizer.
+ * @constructor
+ */
+var GradientEventState = function() {
+    this.coords0 = new Vec2(0, 0);
+    this.coords1 = new Vec2(0, 0);
 };
 
 /**
@@ -50,10 +60,22 @@ PictureEvent.parse = function(arr, i) {
     var undone = (parseInt(arr[i++]) !== 0);
     if (eventType === 'brush') {
         return BrushEvent.parse(arr, i, sid, sessionEventId, undone);
+    } else if (eventType === 'gradient') {
+        return GradientEvent.parse(arr, i, sid, sessionEventId, undone);
     } else {
         console.log('Unexpected picture event type ' + eventType);
         return null;
     }
+};
+
+/**
+ * @enum {number}
+ */
+PictureEvent.Mode = {
+    erase: 0,
+    normal: 1,
+    multiply: 2,
+    screen: 3
 };
 
 /**
@@ -74,7 +96,7 @@ PictureEvent.parse = function(arr, i) {
  * stroke to the target buffer. Range 0 to 1.
  * @param {number} radius The stroke radius in pixels.
  * @param {number} softness Value controlling the softness. Range 0 to 1.
- * @param {BrushEvent.Mode} mode Blending mode to use.
+ * @param {PictureEvent.Mode} mode Blending mode to use.
  */
 var BrushEvent = function(sid, sessionEventId, undone, color, flow, opacity,
                           radius, softness, mode) {
@@ -94,16 +116,6 @@ var BrushEvent = function(sid, sessionEventId, undone, color, flow, opacity,
 };
 
 BrushEvent.prototype = new PictureEvent('brush');
-
-/**
- * @enum {number}
- */
-BrushEvent.Mode = {
-    erase: 0,
-    normal: 1,
-    multiply: 2,
-    screen: 3
-};
 
 /**
  * @const
@@ -157,8 +169,8 @@ BrushEvent.parse = function(arr, i, sid, sessionEventId, undone) {
     var radius = parseFloat(arr[i++]);
     var softness = parseFloat(arr[i++]);
     var mode = parseInt(arr[i++]);
-    pictureEvent = new BrushEvent(sid, sessionEventId, undone, color, flow,
-                                  opacity, radius, softness, mode);
+    var pictureEvent = new BrushEvent(sid, sessionEventId, undone, color, flow,
+                                      opacity, radius, softness, mode);
     while (i <= arr.length - BrushEvent.coordsStride) {
         var x = parseFloat(arr[i++]);
         var y = parseFloat(arr[i++]);
@@ -232,10 +244,10 @@ BrushEvent.lineSegmentLength = 5.0;
 
 /**
  * Draw the brush event to the given rasterizer's bitmap.
- * @param {Object} rasterizer The rasterizer to use.
+ * @param {BaseRasterizer} rasterizer The rasterizer to use.
  * @param {number} untilCoord Maximum coordinate index to draw + 1.
  */
-BrushEvent.prototype.updateTo = function(rasterizer, untilCoord) {
+BrushEvent.prototype.drawTo = function(rasterizer, untilCoord) {
     var drawState = rasterizer.getDrawEventState(this, BrushEventState);
     if (untilCoord === undefined) {
         untilCoord = this.coords.length;
@@ -350,4 +362,125 @@ BrushEvent.prototype.updateTo = function(rasterizer, untilCoord) {
 BrushEvent.prototype.hasCompleteBoundingBox = function() {
     return this.boundingBoxUpTo === this.coords.length -
                                     BrushEvent.coordsStride;
+};
+
+/**
+ * A PictureEvent representing a gradient.
+ * @constructor
+ * @param {number} sid Session identifier. Must be an integer.
+ * @param {number} sessionEventId An event/session specific identifier. The idea
+ * is that the sid/sessionEventId pair is unique for this event, and that newer
+ * events will have greater sessionEventIds. Must be an integer.
+ * @param {boolean} undone Whether this event is undone.
+ * @param {Uint8Array|Array.<number>} color The RGB color of the gradient.
+ * Channel values are between 0-255.
+ * @param {number} opacity Alpha value controlling blending the rasterizer
+ * stroke to the target buffer. Range 0 to 1.
+ * @param {PictureEvent.Mode} mode Blending mode to use.
+ */
+var GradientEvent = function(sid, sessionEventId, undone, color, opacity,
+                             mode) {
+    // TODO: assert(color.length == 3);
+    this.undone = undone;
+    this.sid = sid;
+    this.sessionEventId = sessionEventId;
+    this.color = color;
+    this.opacity = opacity;
+    this.coords0 = new Vec2(0, 0);
+    this.coords1 = new Vec2(1, 1);
+    // TODO: Compute a tighter bounding box.
+    this.boundingBox = new Rect(-1000000, 1000000, -1000000, 1000000);
+    this.mode = mode;
+};
+
+GradientEvent.prototype = new PictureEvent('gradient');
+
+/**
+ * Parse a GradientEvent from a tokenized serialization.
+ * @param {Array.<string>} arr Array containing the tokens, split at spaces from
+ * the original serialization.
+ * @param {number} i Index of the first token to deserialize.
+ * @param {number} sid Session identifier. Must be an integer.
+ * @param {number} sessionEventId An event/session specific identifier. The idea
+ * is that the sid/sessionEventId pair is unique for this event. Must be an
+ * integer.
+ * @param {boolean} undone Whether this event is undone.
+ * @return {BrushEvent} The parsed event or null.
+ */
+GradientEvent.parse = function(arr, i, sid, sessionEventId, undone) {
+    var color = [];
+    color[0] = parseInt(arr[i++]);
+    color[1] = parseInt(arr[i++]);
+    color[2] = parseInt(arr[i++]);
+    var opacity = parseFloat(arr[i++]);
+    var mode = parseInt(arr[i++]);
+    var pictureEvent = new GradientEvent(sid, sessionEventId, undone, color,
+                                         opacity, mode);
+    pictureEvent.coords0.x = parseFloat(arr[i++]);
+    pictureEvent.coords0.y = parseFloat(arr[i++]);
+    pictureEvent.coords1.x = parseFloat(arr[i++]);
+    pictureEvent.coords1.y = parseFloat(arr[i++]);
+    return pictureEvent;
+};
+
+/**
+ * @param {number} scale Scale to multiply serialized coordinates with.
+ * @return {string} A serialization of the event.
+ */
+GradientEvent.prototype.serialize = function(scale) {
+    var eventMessage = this.serializePictureEvent();
+    eventMessage += ' ' + colorUtil.serializeRGB(this.color);
+    eventMessage += ' ' + this.opacity;
+    eventMessage += ' ' + this.mode;
+    var i = 0;
+    eventMessage += ' ' + this.coords0.x * scale;
+    eventMessage += ' ' + this.coords0.y * scale;
+    eventMessage += ' ' + this.coords1.x * scale;
+    eventMessage += ' ' + this.coords1.y * scale;
+    return eventMessage;
+};
+
+/**
+ * Scale this event. This will change the coordinates of the stroke. Note that
+ * the event is not cleared from any rasterizers, clear any rasterizers that
+ * have this event manually before calling this function.
+ * @param {number} scale Scaling factor. Must be larger than 0.
+ */
+GradientEvent.prototype.scale = function(scale) {
+    //TODO: assert(scale > 0)
+    this.coords0.x *= scale;
+    this.coords0.y *= scale;
+    this.coords1.x *= scale;
+    this.coords1.y *= scale;
+};
+
+/**
+ * @return {boolean} Is the bounding box of this event up to date?
+ */
+GradientEvent.prototype.hasCompleteBoundingBox = function() {
+    return true;
+};
+
+/** @inheritDoc */
+GradientEvent.prototype.boundsIntersectRect =
+    BrushEvent.prototype.boundsIntersectRect;
+
+/**
+ * Draw the GradientEvent to the given rasterizer's bitmap.
+ * @param {BaseRasterizer} rasterizer The rasterizer to use.
+ */
+GradientEvent.prototype.drawTo = function(rasterizer) {
+    var drawState = rasterizer.getDrawEventState(this, GradientEventState);
+    if (drawState.coords0.x === this.coords0.x &&
+        drawState.coords0.y === this.coords0.y &&
+        drawState.coords1.x === this.coords1.x &&
+        drawState.coords1.y === this.coords1.y) {
+        return;
+    }
+    drawState.coords0.x = this.coords0.x;
+    drawState.coords0.y = this.coords0.y;
+    drawState.coords1.x = this.coords1.x;
+    drawState.coords1.y = this.coords1.y;
+    rasterizer.clear();
+    rasterizer.linearGradient(this.coords1, this.coords0);
 };

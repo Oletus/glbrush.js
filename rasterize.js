@@ -6,7 +6,8 @@
  * A base object for a rasterizer that can blend together monochrome circles. Do
  * not instance this directly.
  * Inheriting objects are expected to implement fillCircle(x, y, radius),
- * getPixel(coords), clear(), and if need be, flush() and free().
+ * getPixel(coords), clear(), gradient(coords1, coords0) and if need be, flush()
+ * and free().
  * @constructor
  */
 BaseRasterizer = function() {};
@@ -178,6 +179,7 @@ BaseRasterizer.prototype.checkSanity = function() {
     this.beginLines(false, 1.0);
     this.lineTo(1.5, 1.5, 2.0);
     this.lineTo(4.5, 4.5, 2.0);
+    this.flush();
     for (i = 1; i <= 4; ++i) {
         pix = this.getPixel(new Vec2(i, i));
         if (this.getPixel(new Vec2(i, i)) < 0.995) {
@@ -189,6 +191,7 @@ BaseRasterizer.prototype.checkSanity = function() {
     this.beginLines(false, 0.5);
     this.lineTo(3.5, 3.5, 2.0);
     this.lineTo(13.5, 13.5, 2.0);
+    this.flush();
     var lastPix = -1.0;
     for (i = 3; i <= 9; ++i) {
         pix = this.getPixel(new Vec2(i, i));
@@ -527,6 +530,84 @@ Rasterizer.prototype.fillSoftCircleBlending = function(boundsRect, centerX,
     }
 };
 
+/**
+ * Draw a linear gradient from coords1 to coords0. The pixel at coords1 will be
+ * set to 1.0, and the pixel at coords0 will be set to 0.0. If the coordinates
+ * are the same, does nothing.
+ * @param {Vec2} coords1 Coordinates for the 1.0 end of the gradient.
+ * @param {Vec2} coords0 Coordinates for the 0.0 end of the gradient.
+ */
+Rasterizer.prototype.linearGradient = function(coords1, coords0) {
+    if (coords1.x === coords0.x) {
+        if (coords1.y === coords0.y) {
+            return;
+        }
+        // Every horizontal line will be of one color
+        var top = Math.min(coords1.y, coords0.y);
+        var bottom = Math.max(coords1.y, coords0.y);
+        var topFill = (coords0.y < coords1.y) ? 0.0 : 1.0;
+        var bottomFill = 1.0 - topFill;
+        var y = 0;
+        var ind = 0;
+        var right = 0;
+        while (y + 0.5 <= top && y < this.height) {
+            right += this.width;
+            while (ind < right) {
+                this.data[ind] = topFill;
+                ++ind;
+            }
+            ++y;
+        }
+        while (y + 0.5 < bottom && y < this.height) {
+            right += this.width;
+            // Take the gradient color at the pixel center.
+            // TODO: Integrate coverage along y instead to anti-alias this.
+            // TODO: assert(y + 0.5 > top && y + 0.5 < bottom);
+            var rowFill = (coords0.y < coords1.y ?
+                           (y + 0.5 - top) : (bottom - y - 0.5)) /
+                          (bottom - top);
+            while (ind < right) {
+                this.data[ind] = rowFill;
+                ++ind;
+            }
+            ++y;
+        }
+        while (y < this.height) {
+            right += this.width;
+            while (ind < right) {
+                this.data[ind] = bottomFill;
+                ++ind;
+            }
+            ++y;
+        }
+        return;
+    } else {
+        var lineStartCoords = new Vec2(0, 0);
+        var lineEndCoords = new Vec2(0, 0);
+        for (var y = 0; y < this.height; ++y) {
+            // TODO: Again, integrating coverage over the pixel would be nice.
+            lineStartCoords.x = 0.5;
+            lineStartCoords.y = y + 0.5;
+            lineEndCoords.x = this.width - 0.5;
+            lineEndCoords.y = y + 0.5;
+            lineStartCoords.projectToLine(coords0, coords1);
+            lineEndCoords.projectToLine(coords0, coords1);
+            var lineStartValue = (lineStartCoords.x - coords0.x) /
+                                 (coords1.x - coords0.x);
+            var lineEndValue = (lineEndCoords.x - coords0.x) /
+                               (coords1.x - coords0.x);
+            var ind = y * this.width;
+            for (var x = 0; x < this.width; ++x) {
+                var mult = (x / this.width);
+                var unclamped = mult * lineEndValue +
+                                (1.0 - mult) * lineStartValue;
+                this.data[ind] = Math.max(0.0, Math.min(1.0, unclamped));
+                ++ind;
+            }
+        }
+    }
+};
+
 
 /**
  * 'redGreen' uses red and green channels of the UINT8 texture to store the high
@@ -563,6 +644,7 @@ var GLDoubleBufferedRasterizer = function(gl, glManager, width, height) {
 
     if (!GLDoubleBufferedRasterizer.nFillShader) {
         // TODO: assert(!GLDoubleBufferedRasterizer.nSoftShader)
+        // assert(!GLDoubleBufferedRasterizer.linearGradientShader)
         GLDoubleBufferedRasterizer.nFillShader = [];
         GLDoubleBufferedRasterizer.nSoftShader = [];
         for (var i = 1; i <= GLDoubleBufferedRasterizer.maxCircles; ++i) {
@@ -577,10 +659,16 @@ var GLDoubleBufferedRasterizer = function(gl, glManager, width, height) {
                                     RasterizeShader.ParameterMode.inUniforms,
                                     true));
         }
+        GLDoubleBufferedRasterizer.linearGradientShader =
+            new GradientShader(GLRasterizerFormat.redGreen, false);
+        GLDoubleBufferedRasterizer.verticalGradientShader =
+            new GradientShader(GLRasterizerFormat.redGreen, true);
     }
 
     this.generateShaderPrograms(GLDoubleBufferedRasterizer.nFillShader,
-                                GLDoubleBufferedRasterizer.nSoftShader);
+                                GLDoubleBufferedRasterizer.nSoftShader,
+                                GLDoubleBufferedRasterizer.linearGradientShader,
+                             GLDoubleBufferedRasterizer.verticalGradientShader);
 
     this.convUniformParameters = new blitShader.ConversionUniformParameters();
     this.conversionProgram = this.glManager.shaderProgram(
@@ -641,10 +729,13 @@ GLDoubleBufferedRasterizer.prototype.initGLRasterizer = function(gl, glManager,
  * Generate shader programs for a WebGL-based rasterizer.
  * @param {Array.<RasterizeShader>} nFillShader Filled circle shaders.
  * @param {Array.<RasterizeShader>} nSoftShader Soft circle shaders.
+ * @param {GradientShader} linearGradientShader Linear non-vertical gradient
+ * shader.
+ * @param {GradientShader} verticalGradientShader Vertical gradient shader.
  * @protected
  */
 GLDoubleBufferedRasterizer.prototype.generateShaderPrograms = function(
-        nFillShader, nSoftShader) {
+       nFillShader, nSoftShader, linearGradientShader, verticalGradientShader) {
     this.nFillCircleProgram = [];
     this.nSoftCircleProgram = [];
     this.uniformParameters = [];
@@ -659,6 +750,11 @@ GLDoubleBufferedRasterizer.prototype.generateShaderPrograms = function(
         this.uniformParameters.push(
             nFillShader[i].uniformParameters(this.width, this.height));
     }
+    this.linearGradientProgram = linearGradientShader.programInstance(this.gl);
+    this.verticalGradientProgram =
+        verticalGradientShader.programInstance(this.gl);
+    this.gradientUniformParameters =
+        linearGradientShader.uniformParameters(this.width, this.height);
 };
 
 /**
@@ -700,11 +796,11 @@ GLDoubleBufferedRasterizer.prototype.getTex = function() {
  * @param {number} opacity Opacity to use when drawing the rasterization result.
  * Opacity for each individual pixel is its rasterized opacity times this
  * opacity value.
- * @param {BrushEvent.Mode} mode Blending mode to use for drawing.
+ * @param {PictureEvent.Mode} mode Blending mode to use for drawing.
  */
 GLDoubleBufferedRasterizer.prototype.drawWithColor = function(color, opacity,
                                                               mode) {
-    if (mode === BrushEvent.Mode.erase) {
+    if (mode === PictureEvent.Mode.erase) {
         this.gl.blendFunc(this.gl.ZERO, this.gl.ONE_MINUS_SRC_ALPHA);
     }
     this.convUniformParameters.uSrcTex = this.getTex();
@@ -714,7 +810,7 @@ GLDoubleBufferedRasterizer.prototype.drawWithColor = function(color, opacity,
     this.convUniformParameters.uColor[3] = opacity;
     this.glManager.drawFullscreenQuad(this.conversionProgram,
                                       this.convUniformParameters);
-    if (mode === BrushEvent.Mode.erase) {
+    if (mode === PictureEvent.Mode.erase) {
         this.gl.blendFunc(this.gl.ONE, this.gl.ONE_MINUS_SRC_ALPHA);
     }
 };
@@ -799,8 +895,10 @@ GLDoubleBufferedRasterizer.prototype.getDrawRect = function(invalRect) {
  */
 GLDoubleBufferedRasterizer.prototype.preDraw = function(uniformParameters) {
     this.glManager.useFboTex(this.getTargetTex());
-    uniformParameters.uFlowAlpha = this.flowAlpha;
-    uniformParameters.uSrcTex = this.getTex();
+    if (uniformParameters !== null) {
+        uniformParameters.uFlowAlpha = this.flowAlpha;
+        uniformParameters.uSrcTex = this.getTex();
+    }
 };
 
 /**
@@ -874,12 +972,45 @@ GLDoubleBufferedRasterizer.prototype.flush = function() {
 };
 
 /**
+ * Draw a linear gradient from coords1 to coords0. The pixel at coords1 will be
+ * set to 1.0, and the pixel at coords0 will be set to 0.0. If the coordinates
+ * are the same, does nothing.
+ * @param {Vec2} coords1 Coordinates for the 1.0 end of the gradient.
+ * @param {Vec2} coords0 Coordinates for the 0.0 end of the gradient.
+ */
+GLDoubleBufferedRasterizer.prototype.linearGradient = function(coords1,
+                                                               coords0) {
+    if (coords1.x === coords0.x && coords1.y === coords0.y) {
+        return;
+    }
+    this.preDraw(null);
+    var drawRect = new Rect(0, this.width, 0, this.height);
+    drawRect.intersectRectRoundedOut(this.clipRect);
+    glUtils.updateClip(this.gl, drawRect, this.height);
+    this.gradientUniformParameters['uCoords0'][0] = coords0.x /
+                                                    this.width * 2.0 - 1.0;
+    this.gradientUniformParameters['uCoords0'][1] = coords0.y /
+                                                    this.height * (-2.0) + 1.0;
+    this.gradientUniformParameters['uCoords1'][0] = coords1.x /
+                                                    this.width * 2.0 - 1.0;
+    this.gradientUniformParameters['uCoords1'][1] = coords1.y /
+                                                    this.height * (-2.0) + 1.0;
+    if (coords0.x === coords1.x) {
+        this.glManager.drawFullscreenQuad(this.verticalGradientProgram,
+                                          this.gradientUniformParameters);
+    } else {
+        this.glManager.drawFullscreenQuad(this.linearGradientProgram,
+                                          this.gradientUniformParameters);
+    }
+    this.postDraw(drawRect);
+};
+
+/**
  * Return the pixel at the given coordinates.
  * @param {Vec2} coords The coordinates to query with.
  * @return {number} The pixel value, in the range 0-1.
  */
 GLDoubleBufferedRasterizer.prototype.getPixel = function(coords) {
-    this.flush();
     this.glManager.useFbo(null);
     this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
     var left = Math.floor(coords.x);
@@ -928,8 +1059,18 @@ var GLFloatRasterizer = function(gl, glManager, width, height) {
                                     true));
         }
     }
+    if (!GLFloatRasterizer.linearGradientShader) {
+        // TODO: assert(!GLFloatRasterizer.verticalGradientShader);
+        GLFloatRasterizer.linearGradientShader =
+            new GradientShader(GLRasterizerFormat.alpha, false);
+        GLFloatRasterizer.verticalGradientShader =
+            new GradientShader(GLRasterizerFormat.alpha, true);
+    }
+
     this.generateShaderPrograms(GLFloatRasterizer.nFillShader,
-                                GLFloatRasterizer.nSoftShader);
+                                GLFloatRasterizer.nSoftShader,
+                                GLFloatRasterizer.linearGradientShader,
+                                GLFloatRasterizer.verticalGradientShader);
 
     this.convUniformParameters = new blitShader.ConversionUniformParameters();
     this.conversionProgram = this.glManager.shaderProgram(
@@ -1001,7 +1142,9 @@ GLFloatRasterizer.prototype.getDrawRect = function(invalRect) {
  */
 GLFloatRasterizer.prototype.preDraw = function(uniformParameters) {
     this.glManager.useFboTex(this.tex);
-    uniformParameters.uFlowAlpha = this.flowAlpha;
+    if (uniformParameters !== null) {
+        uniformParameters.uFlowAlpha = this.flowAlpha;
+    }
 };
 
 /**
@@ -1036,6 +1179,10 @@ GLFloatRasterizer.prototype.fillCircle =
 
 /** @inheritDoc */
 GLFloatRasterizer.prototype.flush = GLDoubleBufferedRasterizer.prototype.flush;
+
+/** @inheritDoc */
+GLFloatRasterizer.prototype.linearGradient =
+    GLDoubleBufferedRasterizer.prototype.linearGradient;
 
 /** @inheritDoc */
 GLFloatRasterizer.prototype.getPixel =
@@ -1076,6 +1223,13 @@ var GLFloatTexDataRasterizer = function(gl, glManager, width, height) {
                                 GLFloatTexDataRasterizer.maxCircles, true,
                                 RasterizeShader.ParameterMode.inTex, false);
     }
+    if (!GLFloatRasterizer.linearGradientShader) {
+        // TODO: assert(!GLFloatRasterizer.verticalGradientShader);
+        GLFloatRasterizer.linearGradientShader =
+            new GradientShader(GLRasterizerFormat.alpha, false);
+        GLFloatRasterizer.verticalGradientShader =
+            new GradientShader(GLRasterizerFormat.alpha, true);
+    }
     this.fillCircleProgram =
         GLFloatTexDataRasterizer.fillShader.programInstance(this.gl);
     this.softCircleProgram =
@@ -1084,6 +1238,14 @@ var GLFloatTexDataRasterizer = function(gl, glManager, width, height) {
     this.uniformParameters =
         GLFloatTexDataRasterizer.fillShader.uniformParameters(width, height);
     this.uniformParameters.uCircleParameters = this.parameterTex;
+
+    this.linearGradientProgram =
+        GLFloatRasterizer.linearGradientShader.programInstance(this.gl);
+    this.verticalGradientProgram =
+        GLFloatRasterizer.verticalGradientShader.programInstance(this.gl);
+    this.gradientUniformParameters =
+        GLFloatRasterizer.linearGradientShader.uniformParameters(this.width,
+                                                                 this.height);
 
     this.convUniformParameters = new blitShader.ConversionUniformParameters();
     this.conversionProgram =
@@ -1117,6 +1279,18 @@ GLFloatTexDataRasterizer.prototype.clear = GLFloatRasterizer.prototype.clear;
 /** @inheritDoc */
 GLFloatTexDataRasterizer.prototype.fillCircle =
     GLFloatRasterizer.prototype.fillCircle;
+
+/** @inheritDoc */
+GLFloatTexDataRasterizer.prototype.preDraw =
+    GLFloatRasterizer.prototype.preDraw;
+
+/** @inheritDoc */
+GLFloatTexDataRasterizer.prototype.postDraw =
+    GLFloatRasterizer.prototype.postDraw;
+
+/** @inheritDoc */
+GLFloatTexDataRasterizer.prototype.linearGradient =
+    GLFloatRasterizer.prototype.linearGradient;
 
 /**
  * Flush all drawing commands that have been given to the bitmap.

@@ -403,7 +403,7 @@ RasterizeShader.prototype.vertexInnerLoopSource = function(index, arrayIndex) {
  * @return {string} Vertex shader source.
  */
 RasterizeShader.prototype.vertexSource = function() {
-    var src = ['precision highp float;'];
+    var src = ['precision highp float;']; // TODO: This probably isn't necessary
     src.push('attribute vec2 aVertexPosition; ' +
              '// expecting a vertex array with corners at ' +
              '-1 and 1 x and y coordinates');

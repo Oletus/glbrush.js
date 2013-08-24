@@ -96,7 +96,7 @@ PictureBuffer.prototype.playbackStartingFrom = function(eventIndex,
 PictureBuffer.prototype.applyEvent = function(event, rasterizer) {
     if (event.boundingBox === null) {
         rasterizer.setClip(this.getCurrentClipRect());
-        event.updateTo(rasterizer);
+        event.drawTo(rasterizer);
         this.pushClipRect(event.boundingBox);
         if (this.getCurrentClipRect().isEmpty()) {
             this.popClip();
@@ -112,7 +112,7 @@ PictureBuffer.prototype.applyEvent = function(event, rasterizer) {
             console.log('Event being applied did not have bounding box!');
         }
         rasterizer.setClip(this.getCurrentClipRect());
-        event.updateTo(rasterizer);
+        event.drawTo(rasterizer);
     }
     this.drawRasterizerWithColor(rasterizer, event.color, event.opacity,
                                  event.mode);
@@ -143,7 +143,7 @@ PictureBuffer.prototype.insertEvent = function(event, rasterizer) {
         this.pushEvent(event, rasterizer);
     } else {
         this.events.splice(this.insertionPoint, 0, event);
-        event.updateTo(rasterizer); // Need to update the bounding box.
+        event.drawTo(rasterizer); // Need to update the bounding box.
         if (!event.undone) {
             this.playbackAfterChange(this.insertionPoint, rasterizer);
         }
@@ -204,7 +204,7 @@ PictureBuffer.prototype.blamePixel = function(coords) {
                 console.log('Event in blame didn\'t have bounding box!');
             } else if (this.events[i].boundingBox.containsRoundedOut(coords)) {
                 this.blameRasterizer.clear();
-                this.events[i].updateTo(this.blameRasterizer);
+                this.events[i].drawTo(this.blameRasterizer);
                 if (this.blameRasterizer.getPixel(coords) !== 0) {
                     var blameAlpha = this.blameRasterizer.getPixel(coords) *
                                      this.events[i].opacity;
@@ -576,7 +576,7 @@ CanvasBuffer.prototype.getPixelRGBA = function(coords) {
  * @param {number} opacity Opacity to use when drawing the rasterization result.
  * Opacity for each individual pixel is its rasterized opacity times this
  * opacity value.
- * @param {BrushEvent.Mode} mode Blending mode to use for drawing.
+ * @param {PictureEvent.Mode} mode Blending mode to use for drawing.
  * @protected
  */
 CanvasBuffer.prototype.drawRasterizerWithColor = function(raster, color,
@@ -604,7 +604,7 @@ CanvasBuffer.prototype.drawRasterizerWithColor = function(raster, color,
  * @param {number} opacity Opacity to use when drawing the rasterization result.
  * Opacity for each individual pixel is its rasterized opacity times this
  * opacity value.
- * @param {BrushEvent.Mode} mode Blending mode to use for drawing.
+ * @param {PictureEvent.Mode} mode Blending mode to use for drawing.
  */
 CanvasBuffer.drawRasterizer = function(dataCtx, targetCtx, raster, clipRect,
                                        opaque, color, opacity, mode) {
@@ -616,17 +616,18 @@ CanvasBuffer.drawRasterizer = function(dataCtx, targetCtx, raster, clipRect,
     // br.y + br.h <= this.height);
     var targetData = dataCtx.getImageData(br.x, br.y, br.w, br.h);
     if (opaque &&
-        (mode === BrushEvent.Mode.normal || mode === BrushEvent.Mode.erase)) {
+        (mode === PictureEvent.Mode.normal ||
+         mode === PictureEvent.Mode.erase)) {
         raster.drawWithColorToOpaque(targetData, color, opacity,
                                      br.x, br.y, br.w, br.h);
-    } else if (mode === BrushEvent.Mode.normal) {
+    } else if (mode === PictureEvent.Mode.normal) {
         raster.drawWithColor(targetData, color, opacity,
                              br.x, br.y, br.w, br.h);
-    } else if (mode === BrushEvent.Mode.erase) {
+    } else if (mode === PictureEvent.Mode.erase) {
         raster.erase(targetData, opacity, br.x, br.y, br.w, br.h);
-    } else if (mode === BrushEvent.Mode.multiply) {
+    } else if (mode === PictureEvent.Mode.multiply) {
         raster.multiply(targetData, color, opacity, br.x, br.y, br.w, br.h);
-    } else if (mode === BrushEvent.Mode.screen) {
+    } else if (mode === PictureEvent.Mode.screen) {
         raster.screen(targetData, color, opacity, br.x, br.y, br.w, br.h);
     }
     targetCtx.putImageData(targetData, br.x, br.y);
@@ -737,13 +738,13 @@ GLBuffer.prototype.updateClip = function() {
  * @param {number} opacity Opacity to use when drawing the rasterization result.
  * Opacity for each individual pixel is its rasterized opacity times this
  * opacity value.
- * @param {BrushEvent.Mode} mode Blending mode to use for drawing.
+ * @param {PictureEvent.Mode} mode Blending mode to use for drawing.
  * @protected
  */
 GLBuffer.prototype.drawRasterizerWithColor = function(raster, color, opacity,
                                                       mode) {
     this.updateClip();
-    if (mode === BrushEvent.Mode.normal || mode === BrushEvent.Mode.erase) {
+    if (mode === PictureEvent.Mode.normal || mode === PictureEvent.Mode.erase) {
         this.glManager.useFboTex(this.tex);
         raster.drawWithColor(color, opacity, mode);
     } else {

@@ -53,7 +53,7 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         var rasterizer = createRasterizer(params);
         var brushEvent = fillingBrushEvent(params.width, params.height,
                                            [0, 0, 0], 1.0,
-                                           BrushEvent.Mode.erase);
+                                           PictureEvent.Mode.erase);
         buffer.pushEvent(brushEvent, rasterizer);
         var samplePixel = buffer.getPixelRGBA(new Vec2(0, 0));
         expect(samplePixel[0]).toBe(0);
@@ -69,7 +69,7 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         var flow = 0.5;
         var brushEvent = fillingBrushEvent(params.width, params.height,
                                            [0.2 * 255, 0.4 * 255, 0.8 * 255],
-                                           opacity, BrushEvent.Mode.normal,
+                                           opacity, PictureEvent.Mode.normal,
                                            flow);
         buffer.pushEvent(brushEvent, rasterizer);
         var samplePixel = buffer.getPixelRGBA(new Vec2(params.width * 0.5,
@@ -88,7 +88,7 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         var opacity = 0.5;
         var brushEvent = fillingBrushEvent(params.width, params.height,
                                            [0.2 * 255, 0.4 * 255, 0.8 * 255],
-                                           opacity, BrushEvent.Mode.multiply);
+                                           opacity, PictureEvent.Mode.multiply);
         buffer.pushEvent(brushEvent, rasterizer);
         var samplePixel = buffer.getPixelRGBA(new Vec2(0, 0));
         expect(samplePixel[0]).toBeCloseTo(params.clearColor[0] * (0.2 + (1.0 - 0.2) * opacity), -1.0);
@@ -105,7 +105,7 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         var opacity = 0.5;
         var brushEvent = fillingBrushEvent(params.width, params.height,
                                            [0.2 * 255, 0.4 * 255, 0.8 * 255],
-                                           opacity, BrushEvent.Mode.screen);
+                                           opacity, PictureEvent.Mode.screen);
         buffer.pushEvent(brushEvent, rasterizer);
         var samplePixel = buffer.getPixelRGBA(new Vec2(0, 0));
         expect(samplePixel[0]).toBeCloseTo((255 - (255 - params.clearColor[0]) * (1.0 - 0.2)) * opacity + (1.0 - opacity) * params.clearColor[0], -1.0);

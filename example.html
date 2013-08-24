@@ -56,7 +56,8 @@ loadApp = function() {
         var green = 33;
         var blue = 42;
         currentEvent = picture.createBrushEvent([red, green, blue], 0.8, 1.0,
-                                                20, 1, BrushEvent.Mode.normal);
+                                                20, 1,
+                                                PictureEvent.Mode.normal);
     };
     drawArea.onmouseup = function(e) {
         if (currentEvent !== null) {

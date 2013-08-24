@@ -3,16 +3,26 @@
  */
 
 describe('PictureEvent', function() {
-    it('initializes as BrushEvent', function() {
-        var brushEvent = testBrushEvent();
-        expectTestBrushEvent(brushEvent);
+    var commonEventTests = function(creator, tester) {
+        it('initializes', function() {
+            var event = creator();
+            tester(event);
+        });
+
+        it('is the same after serialization and parsing', function() {
+            var event = creator();
+            var serialization = event.serialize(1.0);
+            var splitSerialization = serialization.split(' ');
+            var parsedEvent = PictureEvent.parse(splitSerialization, 0);
+            tester(parsedEvent);
+        });
+    };
+
+    describe('BrushEvent', function() {
+        commonEventTests(testBrushEvent, expectTestBrushEvent);
     });
 
-    it('is the same after a round of serialization and parsing', function() {
-        var brushEvent = testBrushEvent();
-        var serialization = brushEvent.serialize(1.0);
-        var splitSerialization = serialization.split(' ');
-        var parsedEvent = PictureEvent.parse(splitSerialization, 0);
-        expectTestBrushEvent(parsedEvent);
+    describe('GradientEvent', function() {
+        commonEventTests(testGradientEvent, expectTestGradientEvent);
     });
 });

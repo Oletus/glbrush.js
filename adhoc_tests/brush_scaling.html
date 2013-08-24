@@ -6,6 +6,7 @@
 <script type="text/javascript" src="../utilgl.js"></script>
 <script type="text/javascript" src="../blit_shader.js"></script>
 <script type="text/javascript" src="../rasterize_shader.js"></script>
+<script type="text/javascript" src="../gradient_shader.js"></script>
 <script type="text/javascript" src="../compositing_shader.js"></script>
 <script type="text/javascript" src="../compositor.js"></script>
 <script type="text/javascript" src="../picture_event.js"></script>
@@ -30,7 +31,7 @@ var runTest = function() {
     var opacity = 1.0;
     var radius = 30;
     var softness = 1.0;
-    var mode = BrushEvent.Mode.normal;
+    var mode = PictureEvent.Mode.normal;
     var event = testPic.createBrushEvent(color, flow, opacity, radius, softness,
                                          mode);
     for (var j = 0; j < 101; ++j) {
@@ -64,6 +65,13 @@ var runTest = function() {
         event.pushCoordTriplet(x, y, (x * 1.2) / w);
     }
     testPic.pushEvent(0, event);
+    
+    event = testPic.createGradientEvent(color, opacity, mode);
+    event.coords0.y = 50;
+    event.coords0.x = 50;
+    event.coords1.y = 10;
+    event.coords1.x = 22;
+    testPic.pushEvent(0, event);
 
     var drawFrame = function() {
         if (testPics.length <= t) {
@@ -74,7 +82,7 @@ var runTest = function() {
         t = (t + 1) % 6;
         var parent = document.getElementById('parent');
         parent.innerHTML = '';
-        picElement = testPic.pictureElement();
+        var picElement = testPic.pictureElement();
         picElement.style.width = '100%';
         picElement.style.height = '100%';
         parent.appendChild(picElement);

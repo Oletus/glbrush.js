@@ -73,19 +73,19 @@ compositingShader.getFragmentSource = function(layers) {
             // Unpremultiplied color
             src.push('  vec4 layer' + i + 'Color = vec4(uColor' + i + '.xyz,' +
             'layer' + i + 'Alpha * uColor' + i + '.w);');
-            if (layers[i].mode === BrushEvent.Mode.normal) {
+            if (layers[i].mode === PictureEvent.Mode.normal) {
                 // premultiply
                 src.push('  layer' + i + 'Color = vec4(layer' + i +
                          'Color.xyz * layer' + i + 'Color.w, layer' + i +
                          'Color.w);');
                 blendingSource(bufferColor, 'layer' + i + 'Color');
-            } else if (layers[i].mode === BrushEvent.Mode.erase) {
+            } else if (layers[i].mode === PictureEvent.Mode.erase) {
                 src.push('  ' + bufferColor + ' = ' + bufferColor +
                          ' * (1.0 - layer' + i + 'Color.w);');
             } else {
-                if (layers[i].mode === BrushEvent.Mode.multiply) {
+                if (layers[i].mode === PictureEvent.Mode.multiply) {
                     blendEq('dstColor * (1.0 + srcAlpha * (srcColor - 1.0))');
-                } else if (layers[i].mode === BrushEvent.Mode.screen) {
+                } else if (layers[i].mode === PictureEvent.Mode.screen) {
                     blendEq('srcAlpha * ' +
                             '(1.0 - (1.0 - srcColor) * (1.0 - dstColor)) + ' +
                             '(1.0 - srcAlpha) * dstColor');

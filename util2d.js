@@ -270,9 +270,8 @@ Vec2.prototype.projectToLine = function(lineA, lineB) {
     // perpVector's dot product with a vector that goes from line to this Vec2
     var perpProjLength = perpVector.y *
                          (this.y - (lineSlope * this.x + lineYAtZero));
-    perpVector.scale(perpProjLength);
-    this.x -= perpVector.x;
-    this.y -= perpVector.y;
+    this.x -= perpVector.x * perpProjLength;
+    this.y -= perpVector.y * perpProjLength;
 };
 
 /**

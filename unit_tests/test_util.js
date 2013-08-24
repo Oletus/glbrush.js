@@ -12,7 +12,7 @@ function testRGB() {
 
 function testBrushEvent() {
     return new BrushEvent(0, 1, false, testRGB(), 0.78, 0.9, 25, 1.0,
-                          BrushEvent.Mode.normal);
+                          PictureEvent.Mode.normal);
 }
 
 function fillingBrushEvent(widthToFill, heightToFill, color, opacity, mode,
@@ -21,7 +21,7 @@ function fillingBrushEvent(widthToFill, heightToFill, color, opacity, mode,
         color = [0, 0, 0];
     }
     if (mode === undefined) {
-        mode = BrushEvent.Mode.normal;
+        mode = PictureEvent.Mode.normal;
     }
     if (flow === undefined) {
         flow = 1.0;
@@ -44,7 +44,21 @@ function expectTestBrushEvent(brushEvent) {
     expect(brushEvent.radius).toBe(25);
     expect(brushEvent.soft).toBe(true);
     expect(brushEvent.coords.length).toBe(0);
-    expect(brushEvent.mode).toBe(BrushEvent.Mode.normal);
+    expect(brushEvent.mode).toBe(PictureEvent.Mode.normal);
+}
+
+function testGradientEvent() {
+    return new GradientEvent(0, 1, false, testRGB(), 0.78,
+                             PictureEvent.Mode.normal);
+}
+
+function expectTestGradientEvent(gradientEvent) {
+    expect(gradientEvent.sid).toBe(0);
+    expect(gradientEvent.sessionEventId).toBe(1);
+    expect(gradientEvent.undone).toBe(false);
+    expect(gradientEvent.color).toEqual(testRGB());
+    expect(gradientEvent.opacity).toBe(0.78);
+    expect(gradientEvent.mode).toBe(PictureEvent.Mode.normal);
 }
 
 /**
