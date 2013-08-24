@@ -6,7 +6,9 @@ Rendering library for web-based painting applications. Includes WebGL and softwa
 Supported features so far include:
 
 * Soft and hard-edged circular airbrush with opacity, flow and dynamic size control.
+* Linear gradients.
 * Unlimited undo, and operations can be undone out of sequence.
+* Four blending modes for operations: normal, multiply, screen, and erase.
 * Alpha blended layers.
 * Replay animation.
 * Rasterization is done internally with at least 16 bits of precision, resulting in much better quality soft brush rendering than what is achievable with 2D canvas.
