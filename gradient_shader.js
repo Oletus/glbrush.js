@@ -38,10 +38,14 @@ GradientShader.prototype.uniforms = function(width, height) {
     var us = [];
     us.push({name: 'uCoords0', type: 'vec2', shortType: '2fv',
              inFragment: false, inVertex: true, defaultValue: [0, 0],
-             comment: 'in gl viewport space'});
+             comment: 'in absolute pixels'});
     us.push({name: 'uCoords1', type: 'vec2', shortType: '2fv',
              inFragment: false, inVertex: true, defaultValue: [width, height],
-             comment: 'in gl viewport space'});
+             comment: 'in absolute pixels, y increases towards the top'});
+    us.push({name: 'uPixels', type: 'vec2', shortType: '2fv',
+             inFragment: false, inVertex: true,
+             defaultValue: [width * 0.5, height * 0.5],
+             comment: 'half of the dimensions in absolute pixels'});
     return us;
 };
 
@@ -71,10 +75,11 @@ GradientShader.prototype.vertexSource = function() {
     src.push.apply(src, this.vertexUniformSource());
     src.push('void main(void) {');
     if (this.vertical) {
-        src.push('  vGradientValue = (aVertexPosition.y - uCoords0.y) / ' +
-                 '(uCoords1.y - uCoords0.y);');
+        src.push('  vGradientValue = ((aVertexPosition.y + 1.0) * ' +
+                 'uPixels.y - uCoords0.y) / (uCoords1.y - uCoords0.y);');
     } else {
-        src.push('  vec2 projected = aVertexPosition;');
+        src.push('  vec2 projected = (aVertexPosition + vec2(1.0, 1.0)) * ' +
+                 'uPixels;');
         src.push('  float lineSlope = (uCoords1.y - uCoords0.y) / ' +
                  '(uCoords1.x - uCoords0.x);');
         src.push('  float lineYAtZero = uCoords0.y - lineSlope * uCoords0.x;');

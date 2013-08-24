@@ -987,14 +987,10 @@ GLDoubleBufferedRasterizer.prototype.linearGradient = function(coords1,
     var drawRect = new Rect(0, this.width, 0, this.height);
     drawRect.intersectRectRoundedOut(this.clipRect);
     glUtils.updateClip(this.gl, drawRect, this.height);
-    this.gradientUniformParameters['uCoords0'][0] = coords0.x /
-                                                    this.width * 2.0 - 1.0;
-    this.gradientUniformParameters['uCoords0'][1] = coords0.y /
-                                                    this.height * (-2.0) + 1.0;
-    this.gradientUniformParameters['uCoords1'][0] = coords1.x /
-                                                    this.width * 2.0 - 1.0;
-    this.gradientUniformParameters['uCoords1'][1] = coords1.y /
-                                                    this.height * (-2.0) + 1.0;
+    this.gradientUniformParameters['uCoords0'][0] = coords0.x;
+    this.gradientUniformParameters['uCoords0'][1] = this.height - coords0.y;
+    this.gradientUniformParameters['uCoords1'][0] = coords1.x;
+    this.gradientUniformParameters['uCoords1'][1] = this.height - coords1.y;
     if (coords0.x === coords1.x) {
         this.glManager.drawFullscreenQuad(this.verticalGradientProgram,
                                           this.gradientUniformParameters);
