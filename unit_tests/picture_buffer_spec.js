@@ -28,7 +28,30 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         buffer.clear();
         expectBufferCorrect(buffer, rasterizer, 0);
     });
-    
+
+    it('clamps a pushed clip rect', function() {
+        var buffer = createBuffer(params);
+        buffer.pushClipRect(new Rect(-100, buffer.width() + 100,
+                                     -100, buffer.height() + 100));
+        var currentClip = buffer.getCurrentClipRect();
+        expect(currentClip.left).toBe(0);
+        expect(currentClip.top).toBe(0);
+        expect(currentClip.right).toBe(buffer.width());
+        expect(currentClip.bottom).toBe(buffer.height());
+    });
+
+    it('clamps the clip rect after popping', function() {
+        var buffer = createBuffer(params);
+        buffer.pushClipRect(new Rect(-100, 45, -100, 56));
+        buffer.pushClipRect(new Rect(0, 20, 0, 20));
+        buffer.popClip();
+        var currentClip = buffer.getCurrentClipRect();
+        expect(currentClip.left).toBe(0);
+        expect(currentClip.top).toBe(0);
+        expect(currentClip.right).toBe(45);
+        expect(currentClip.bottom).toBe(56);
+    });
+
     it('gives the color of one pixel', function() {
         var buffer = createBuffer(params);
         var samplePixel = buffer.getPixelRGBA(new Vec2(0, 0));
