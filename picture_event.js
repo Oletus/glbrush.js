@@ -271,7 +271,7 @@ BrushEvent.prototype.drawTo = function(rasterizer, untilCoord) {
     if (i === 0) {
         var nBlends = Math.ceil(this.radius * 2);
         var alpha = colorUtil.alphaForNBlends(this.flow, nBlends);
-        rasterizer.beginLines(this.soft, alpha);
+        rasterizer.beginCircleLines(this.soft, alpha);
     }
 
     var r = this.radius;
@@ -329,7 +329,7 @@ BrushEvent.prototype.drawTo = function(rasterizer, untilCoord) {
                  y2 * Math.pow(t, 2);
             pd = p1 + (p2 - p1) * t;
             rd = r * pd;
-            rasterizer.lineTo(xd, yd, rd);
+            rasterizer.circleLineTo(xd, yd, rd);
             if (this.boundingBoxUpTo < i - BrushEvent.coordsStride) {
                 this.boundingBox.unionCircle(xd, yd, Math.max(rd, 1.0) + 1.0);
             }
@@ -349,7 +349,7 @@ BrushEvent.prototype.drawTo = function(rasterizer, untilCoord) {
         p1 = p2;
         drawState.coordsInd = i - BrushEvent.coordsStride;
     }
-    rasterizer.flush();
+    rasterizer.flushCircles();
     drawState.direction = prevDirection;
     if (this.boundingBoxUpTo < drawState.coordsInd) {
         this.boundingBoxUpTo = drawState.coordsInd;

@@ -28,11 +28,11 @@ describe('Rasterizing system', function() {
         if (testFillCircleCalls === undefined) {
             testFillCircleCalls = false;
         }
-        testRasterizer.beginLines(true, 0.1);
+        testRasterizer.beginCircleLines(true, 0.1);
         expect(testRasterizer.soft).toBe(true);
         expect(testRasterizer.flowAlpha).toBe(0.1);
         expect(testRasterizer.t).toBe(0);
-        testRasterizer.lineTo(0, 0, 1);
+        testRasterizer.circleLineTo(0, 0, 1);
         expect(testRasterizer.prevX).toBe(0);
         expect(testRasterizer.prevY).toBe(0);
         expect(testRasterizer.prevR).toBe(1);
@@ -41,7 +41,7 @@ describe('Rasterizing system', function() {
             expect(testRasterizer.fillCircleCalls.length).toBe(0);
         }
         
-        testRasterizer.lineTo(0, 0.5, 4);
+        testRasterizer.circleLineTo(0, 0.5, 4);
         expect(testRasterizer.prevX).toBe(0);
         expect(testRasterizer.prevY).toBe(0.5);
         expect(testRasterizer.prevR).toBe(4);
@@ -53,7 +53,7 @@ describe('Rasterizing system', function() {
             expect(testRasterizer.fillCircleCalls[0].radius).toBe(1);
         }
         
-        testRasterizer.lineTo(2, 0.5, 5);
+        testRasterizer.circleLineTo(2, 0.5, 5);
         expect(testRasterizer.prevX).toBe(2);
         expect(testRasterizer.prevY).toBe(0.5);
         expect(testRasterizer.prevR).toBe(5);
@@ -179,9 +179,9 @@ describe('Rasterizing system', function() {
             var rasterizer = new Rasterizer(123, 456);
             var clipRect = new Rect(-100, 223, -100, 556);
             rasterizer.setClip(clipRect);
-            rasterizer.beginLines(true, 0.1);
-            rasterizer.lineTo(123, 0, 1);
-            rasterizer.lineTo(123, 100, 1);
+            rasterizer.beginCircleLines(true, 0.1);
+            rasterizer.circleLineTo(123, 0, 1);
+            rasterizer.circleLineTo(123, 100, 1);
             var coords = new Vec2(0, 1);
             expect(rasterizer.getPixel(coords)).toBe(0);
             coords.x = 122;

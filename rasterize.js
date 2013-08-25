@@ -3,11 +3,11 @@
  */
 
 /**
- * A base object for a rasterizer that can blend together monochrome circles. Do
- * not instance this directly.
+ * A base object for a rasterizer that can blend together monochrome circles and
+ * draw gradients. Do not instance this directly.
  * Inheriting objects are expected to implement fillCircle(x, y, radius),
- * getPixel(coords), clear(), gradient(coords1, coords0) and if need be, flush()
- * and free().
+ * getPixel(coords), clear(), linearGradient(coords1, coords0) and if need be,
+ * flushCircles() and free().
  * @constructor
  */
 BaseRasterizer = function() {};
@@ -78,12 +78,12 @@ BaseRasterizer.prototype.getDrawEventState = function(event, stateConstructor) {
 };
 
 /**
- * Initialize drawing lines with the given parameters.
+ * Initialize drawing circle lines with the given parameters.
  * @param {boolean} soft Use soft edged circles.
  * @param {number} flowAlpha The alpha value to use to rasterize individual
  * circles.
  */
-BaseRasterizer.prototype.beginLines = function(soft, flowAlpha) {
+BaseRasterizer.prototype.beginCircleLines = function(soft, flowAlpha) {
     this.soft = soft;
     this.minRadius = this.soft ? 1.0 : 0.5;
     this.flowAlpha = flowAlpha;
@@ -105,7 +105,7 @@ BaseRasterizer.prototype.beginLines = function(soft, flowAlpha) {
  * end of the line.
  * @param {number} radius The radius at the end of the line.
  */
-BaseRasterizer.prototype.lineTo = function(centerX, centerY, radius) {
+BaseRasterizer.prototype.circleLineTo = function(centerX, centerY, radius) {
     if (this.prevX !== null) {
         var diff = new Vec2(centerX - this.prevX, centerY - this.prevY);
         var d = diff.length();
@@ -156,9 +156,9 @@ BaseRasterizer.prototype.drawAlpha = function(radius) {
 };
 
 /**
- * Flush all drawing commands that have been given to the bitmap.
+ * Flush all circle drawing commands that have been given to the bitmap.
  */
-BaseRasterizer.prototype.flush = function() {
+BaseRasterizer.prototype.flushCircles = function() {
 };
 
 /**
@@ -177,10 +177,10 @@ BaseRasterizer.prototype.checkSanity = function() {
     this.drawEvent = null;
     this.resetClip();
     this.clear();
-    this.beginLines(false, 1.0);
-    this.lineTo(1.5, 1.5, 2.0);
-    this.lineTo(4.5, 4.5, 2.0);
-    this.flush();
+    this.beginCircleLines(false, 1.0);
+    this.circleLineTo(1.5, 1.5, 2.0);
+    this.circleLineTo(4.5, 4.5, 2.0);
+    this.flushCircles();
     for (i = 1; i <= 4; ++i) {
         pix = this.getPixel(new Vec2(i, i));
         if (this.getPixel(new Vec2(i, i)) < 0.995) {
@@ -189,10 +189,10 @@ BaseRasterizer.prototype.checkSanity = function() {
         }
     }
     this.clear();
-    this.beginLines(false, 0.5);
-    this.lineTo(3.5, 3.5, 2.0);
-    this.lineTo(13.5, 13.5, 2.0);
-    this.flush();
+    this.beginCircleLines(false, 0.5);
+    this.circleLineTo(3.5, 3.5, 2.0);
+    this.circleLineTo(13.5, 13.5, 2.0);
+    this.flushCircles();
     var lastPix = -1.0;
     for (i = 3; i <= 9; ++i) {
         pix = this.getPixel(new Vec2(i, i));
@@ -439,8 +439,8 @@ Rasterizer.prototype.getPixel = function(coords) {
 
 /**
  * Fill a circle to the rasterizer's bitmap at the given coordinates. Uses the
- * soft and flowAlpha values set using beginLines, and clips the circle to the
- * current clipping rectangle.
+ * soft and flowAlpha values set using beginCircleLines, and clips the circle to
+ * the current clipping rectangle.
  * @param {number} centerX The x coordinate of the center of the circle.
  * @param {number} centerY The y coordinate of the center of the circle.
  * @param {number} radius The radius of the circle.
@@ -927,10 +927,10 @@ GLDoubleBufferedRasterizer.prototype.postDraw = function(invalRect) {
 
 /**
  * Fill a circle to the rasterizer's bitmap at the given coordinates. Uses the
- * soft and flowAlpha values set using beginLines, and clips the circle to the
- * current clipping rectangle. The circle is added to the queue, which is
+ * soft and flowAlpha values set using beginCircleLines, and clips the circle to
+ * the current clipping rectangle. The circle is added to the queue, which is
  * automatically flushed when it's full. Flushing manually should be done at the
- * end of drawing.
+ * end of drawing circles.
  * @param {number} centerX The x coordinate of the center of the circle.
  * @param {number} centerY The y coordinate of the center of the circle.
  * @param {number} radius The radius of the circle.
@@ -945,14 +945,14 @@ GLDoubleBufferedRasterizer.prototype.fillCircle = function(centerX, centerY,
     this.circleInd++;
     if (this.circleInd >= this.maxCircles) {
         // TODO: assert(this.circleInd === this.maxCircles);
-        this.flush();
+        this.flushCircles();
     }
 };
 
 /**
- * Flush all drawing commands that have been given to the bitmap.
+ * Flush all circle drawing commands that have been given to the bitmap.
  */
-GLDoubleBufferedRasterizer.prototype.flush = function() {
+GLDoubleBufferedRasterizer.prototype.flushCircles = function() {
     if (this.circleInd === 0) {
         return;
     }
@@ -1152,7 +1152,8 @@ GLFloatRasterizer.prototype.preDraw = function(uniformParameters) {
 };
 
 /**
- * Post-draw callback required for using GLDoubleBufferedRasterizer's flush.
+ * Post-draw callback required for using GLDoubleBufferedRasterizer's
+ * flushCircles.
  * @param {Rect} invalRect The area that has been changed in the target texture.
  * @protected
  */
@@ -1182,7 +1183,8 @@ GLFloatRasterizer.prototype.fillCircle =
     GLDoubleBufferedRasterizer.prototype.fillCircle;
 
 /** @inheritDoc */
-GLFloatRasterizer.prototype.flush = GLDoubleBufferedRasterizer.prototype.flush;
+GLFloatRasterizer.prototype.flushCircles =
+    GLDoubleBufferedRasterizer.prototype.flushCircles;
 
 /** @inheritDoc */
 GLFloatRasterizer.prototype.linearGradient =
@@ -1297,9 +1299,9 @@ GLFloatTexDataRasterizer.prototype.linearGradient =
     GLFloatRasterizer.prototype.linearGradient;
 
 /**
- * Flush all drawing commands that have been given to the bitmap.
+ * Flush all circle drawing commands that have been given to the bitmap.
  */
-GLFloatTexDataRasterizer.prototype.flush = function() {
+GLFloatTexDataRasterizer.prototype.flushCircles = function() {
     if (this.circleInd === 0) {
         return;
     }
