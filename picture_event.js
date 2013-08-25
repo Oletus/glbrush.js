@@ -69,6 +69,23 @@ PictureEvent.parse = function(arr, i) {
 };
 
 /**
+ * Determine whether this event's bounding box intersects with the given
+ * rectangle. Returns undefined if this event's bounding box is not up to date.
+ * @param {Rect} rect The rectangle to intersect with.
+ * @return {boolean} Does the event's axis-aligned bounding box intersect the
+ * given rectangle?
+ */
+PictureEvent.prototype.boundsIntersectRect = function(rect) {
+    var boundingBox = this.getBoundingBox(rect);
+    if (boundingBox === null) {
+        // TODO: use an assert instead
+        console.log('boundsIntersectRect from an event with no bounding box');
+        return undefined;
+    }
+    return boundingBox.intersectsRectRoundedOut(rect);
+};
+
+/**
  * @enum {number}
  */
 PictureEvent.Mode = {
@@ -222,22 +239,6 @@ BrushEvent.prototype.scale = function(scale) {
 };
 
 /**
- * Determine whether this event's bounding box intersects with the given
- * rectangle. Returns undefined if this event's bounding box is not up to date.
- * @param {Rect} rect The rectangle to intersect with.
- * @return {boolean} Does the event's axis-aligned bounding box intersect the
- * given rectangle?
- */
-BrushEvent.prototype.boundsIntersectRect = function(rect) {
-    if (this.boundingBox === null) {
-        // TODO: use an assert instead
-        console.log('boundsIntersectRect from an event with no bounding box');
-        return undefined;
-    }
-    return this.boundingBox.intersectsRectRoundedOut(rect);
-};
-
-/**
  * @const
  */
 BrushEvent.lineSegmentLength = 5.0;
@@ -356,12 +357,19 @@ BrushEvent.prototype.drawTo = function(rasterizer, untilCoord) {
 };
 
 /**
- * @return {boolean} Does the bounding box of this event contain all of the
- * segments along the complete brush stroke?
+ * @param {Rect} clipRect Canvas bounds that can be used to intersect the
+ * bounding box against, though this is not mandatory.
+ * @return {Rect} The event's bounding box, or null if it hasn't yet been
+ * generated. Events are allowed to defer bounding box calculation to drawTo().
+ * This function is not allowed to change its earlier return values as a side
+ * effect.
  */
-BrushEvent.prototype.hasCompleteBoundingBox = function() {
-    return this.boundingBoxUpTo === this.coords.length -
-                                    BrushEvent.coordsStride;
+BrushEvent.prototype.getBoundingBox = function(clipRect) {
+    if (this.boundingBoxUpTo === this.coords.length - BrushEvent.coordsStride) {
+        return this.boundingBox;
+    } else {
+        return null;
+    }
 };
 
 /**
@@ -388,8 +396,6 @@ var GradientEvent = function(sid, sessionEventId, undone, color, opacity,
     this.opacity = opacity;
     this.coords0 = new Vec2(0, 0);
     this.coords1 = new Vec2(1, 1);
-    // TODO: Compute a tighter bounding box.
-    this.boundingBox = new Rect(-1000000, 1000000, -1000000, 1000000);
     this.mode = mode;
 };
 
@@ -455,15 +461,69 @@ GradientEvent.prototype.scale = function(scale) {
 };
 
 /**
- * @return {boolean} Is the bounding box of this event up to date?
+ * @param {Rect} clipRect Canvas bounds that can be used to intersect the
+ * bounding box against, though this is not mandatory.
+ * @return {Rect} The event's bounding box, or null if it hasn't yet been
+ * generated. Events are allowed to defer bounding box calculation to drawTo().
+ * This function is not allowed to change its earlier return values as a side
+ * effect.
  */
-GradientEvent.prototype.hasCompleteBoundingBox = function() {
-    return true;
+GradientEvent.prototype.getBoundingBox = function(clipRect) {
+    var boundingBox = new Rect(clipRect.left, clipRect.right,
+                               clipRect.top, clipRect.bottom);
+    if (this.coords0.y === this.coords1.y) {
+        if (this.coords1.x > this.coords0.x) {
+            boundingBox.limitLeft(this.coords0.x - 1);
+        } else if (this.coords1.x < this.coords0.x) {
+            boundingBox.limitRight(this.coords0.x + 1);
+        } else {
+            boundingBox.makeEmpty();
+        }
+    } else {
+        // y = slope * x + b
+        var normalSlope = -1.0 / this.coords0.slope(this.coords1);
+        var normalB = this.coords0.y - normalSlope * this.coords0.x;
+        if (normalSlope === 0.0) {
+            if (this.coords0.y < this.coords1.y) {
+                boundingBox.limitTop(this.coords0.y - 1);
+            } else {
+                boundingBox.limitBottom(this.coords0.y + 1);
+            }
+        } else if (normalSlope < 0 && this.coords1.y < this.coords0.y) {
+            // the covered area is in the top left corner
+            // intersection with left edge
+            boundingBox.limitBottom(normalSlope * boundingBox.left +
+                                    normalB + 1);
+            // intersection with top edge
+            boundingBox.limitRight((boundingBox.top - normalB) /
+                                   normalSlope + 1);
+        } else if (normalSlope > 0 && this.coords1.y < this.coords0.y) {
+            // the covered area is in the top right corner
+            // intersection with right edge
+            boundingBox.limitBottom(normalSlope * boundingBox.right +
+                                    normalB + 1);
+            // intersection with top edge
+            boundingBox.limitLeft((boundingBox.top - normalB) /
+                                  normalSlope - 1);
+        } else if (normalSlope < 0 && this.coords1.y > this.coords0.y) {
+            // the covered area is in the bottom right corner
+            // intersection with right edge
+            boundingBox.limitTop(normalSlope * boundingBox.right + normalB - 1);
+            // intersection with bottom edge
+            boundingBox.limitLeft((boundingBox.bottom - normalB) /
+                                  normalSlope - 1);
+        } else {
+            // TODO: assert(normalSlope > 0 && this.coords1.y > this.coords0.y);
+            // the covered area is in the bottom left corner
+            // intersection with left edge
+            boundingBox.limitTop(normalSlope * boundingBox.left + normalB - 1);
+            // intersection with bottom edge
+            boundingBox.limitRight((boundingBox.bottom - normalB) /
+                                   normalSlope + 1);
+        }
+    }
+    return boundingBox;
 };
-
-/** @inheritDoc */
-GradientEvent.prototype.boundsIntersectRect =
-    BrushEvent.prototype.boundsIntersectRect;
 
 /**
  * Draw the GradientEvent to the given rasterizer's bitmap.
@@ -481,6 +541,7 @@ GradientEvent.prototype.drawTo = function(rasterizer) {
     drawState.coords0.y = this.coords0.y;
     drawState.coords1.x = this.coords1.x;
     drawState.coords1.y = this.coords1.y;
+    // TODO: This is not optimal, as the rasterizer can already be cleared.
     rasterizer.clear();
     rasterizer.linearGradient(this.coords1, this.coords0);
 };

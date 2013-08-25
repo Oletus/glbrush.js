@@ -65,7 +65,8 @@ BaseRasterizer.prototype.getDrawEventState = function(event, stateConstructor) {
         if (this.drawEvent !== null) {
             var restoreClip = new Rect();
             restoreClip.setRect(this.clipRect);
-            this.setClip(this.drawEvent.boundingBox);
+            // TODO: This does not do a minimal clear in case of brush events
+            this.setClip(this.drawEvent.getBoundingBox(this.drawEventClipRect));
             this.clear();
             this.setClip(restoreClip);
         }
@@ -538,6 +539,7 @@ Rasterizer.prototype.fillSoftCircleBlending = function(boundsRect, centerX,
  * @param {Vec2} coords0 Coordinates for the 0.0 end of the gradient.
  */
 Rasterizer.prototype.linearGradient = function(coords1, coords0) {
+    var br = this.clipRect.getXYWH();
     if (coords1.x === coords0.x) {
         if (coords1.y === coords0.y) {
             return;
@@ -547,22 +549,24 @@ Rasterizer.prototype.linearGradient = function(coords1, coords0) {
         var bottom = Math.max(coords1.y, coords0.y);
         var topFill = (coords0.y < coords1.y) ? 0.0 : 1.0;
         var bottomFill = 1.0 - topFill;
-        var y = 0;
-        var ind = 0;
-        var right = 0;
-        while (y + 0.5 <= top && y < this.height) {
-            right += this.width;
+        var y = br.y;
+        var ind = y * this.width + br.x;
+        var right = ind + br.w;
+        while (y + 0.5 <= top && y < br.y + br.h) {
+            ind = y * this.width + br.x;
+            right = ind + br.w;
             while (ind < right) {
                 this.data[ind] = topFill;
                 ++ind;
             }
             ++y;
         }
-        while (y + 0.5 < bottom && y < this.height) {
-            right += this.width;
+        while (y + 0.5 < bottom && y < br.y + br.h) {
             // Take the gradient color at the pixel center.
             // TODO: Integrate coverage along y instead to anti-alias this.
             // TODO: assert(y + 0.5 > top && y + 0.5 < bottom);
+            ind = y * this.width + br.x;
+            right = ind + br.w;
             var rowFill = (coords0.y < coords1.y ?
                            (y + 0.5 - top) : (bottom - y - 0.5)) /
                           (bottom - top);
@@ -572,8 +576,9 @@ Rasterizer.prototype.linearGradient = function(coords1, coords0) {
             }
             ++y;
         }
-        while (y < this.height) {
-            right += this.width;
+        while (y < br.y + br.h) {
+            ind = y * this.width + br.x;
+            right = ind + br.w;
             while (ind < right) {
                 this.data[ind] = bottomFill;
                 ++ind;
@@ -584,7 +589,7 @@ Rasterizer.prototype.linearGradient = function(coords1, coords0) {
     } else {
         var lineStartCoords = new Vec2(0, 0);
         var lineEndCoords = new Vec2(0, 0);
-        for (var y = 0; y < this.height; ++y) {
+        for (var y = br.y; y < br.y + br.h; ++y) {
             // TODO: Again, integrating coverage over the pixel would be nice.
             lineStartCoords.x = 0.5;
             lineStartCoords.y = y + 0.5;
@@ -596,13 +601,16 @@ Rasterizer.prototype.linearGradient = function(coords1, coords0) {
                                  (coords1.x - coords0.x);
             var lineEndValue = (lineEndCoords.x - coords0.x) /
                                (coords1.x - coords0.x);
-            var ind = y * this.width;
-            for (var x = 0; x < this.width; ++x) {
+            var x = br.x;
+            var ind = y * this.width + x;
+            var right = ind + br.w;
+            while (ind < right) {
                 var mult = (x / this.width);
                 var unclamped = mult * lineEndValue +
                                 (1.0 - mult) * lineStartValue;
                 this.data[ind] = Math.max(0.0, Math.min(1.0, unclamped));
                 ++ind;
+                ++x;
             }
         }
     }

@@ -43,6 +43,7 @@ PictureBuffer.prototype.initializePictureBuffer = function(id, width, height,
     }
     this.hasAlpha = hasAlpha;
 
+    this.boundsRect = new Rect(0, width, 0, height);
     this.clipStack = [];
     this.currentClipRect = new Rect(0, width, 0, height);
 
@@ -94,22 +95,22 @@ PictureBuffer.prototype.playbackStartingFrom = function(eventIndex,
  * @protected
  */
 PictureBuffer.prototype.applyEvent = function(event, rasterizer) {
-    if (event.boundingBox === null) {
+    var boundingBox = event.getBoundingBox(this.boundsRect);
+    if (boundingBox === null) {
         rasterizer.setClip(this.getCurrentClipRect());
         event.drawTo(rasterizer);
-        this.pushClipRect(event.boundingBox);
+        boundingBox = event.getBoundingBox(this.boundsRect);
+        // TODO: assert(boundingBox !== null);
+        this.pushClipRect(boundingBox);
         if (this.getCurrentClipRect().isEmpty()) {
             this.popClip();
             return;
         }
     } else {
-        this.pushClipRect(event.boundingBox);
+        this.pushClipRect(boundingBox);
         if (this.getCurrentClipRect().isEmpty()) {
             this.popClip();
             return;
-        }
-        if (!event.hasCompleteBoundingBox()) {
-            console.log('Event being applied did not have bounding box!');
         }
         rasterizer.setClip(this.getCurrentClipRect());
         event.drawTo(rasterizer);
@@ -174,7 +175,7 @@ PictureBuffer.prototype.replaceWithEvent = function(event, rasterizer) {
     if (this.events.length > 1) {
         this.clear();
     } else if (this.events.length === 1) {
-        this.pushClipRect(this.events[0].boundingBox);
+        this.pushClipRect(this.events[0].getBoundingBox(this.boundsRect));
         this.clear();
         this.popClip();
     }
@@ -200,9 +201,8 @@ PictureBuffer.prototype.blamePixel = function(coords) {
     var blame = [];
     while (i >= 0) {
         if (!this.events[i].undone) {
-            if (!this.events[i].hasCompleteBoundingBox()) {
-                console.log('Event in blame didn\'t have bounding box!');
-            } else if (this.events[i].boundingBox.containsRoundedOut(coords)) {
+            var boundingBox = this.events[i].getBoundingBox(coordsRect);
+            if (boundingBox.containsRoundedOut(coords)) {
                 this.blameRasterizer.clear();
                 this.events[i].drawTo(this.blameRasterizer);
                 if (this.blameRasterizer.getPixel(coords) !== 0) {
@@ -245,7 +245,7 @@ PictureBuffer.prototype.popClip = function() {
         return;
     }
     this.clipStack.pop();
-    this.currentClipRect.set(0, this.width(), 0, this.height());
+    this.currentClipRect.setRect(this.boundsRect);
     for (var i = 0; i < this.clipStack.length; ++i) {
         this.currentClipRect.intersectRectRoundedOut(this.clipStack[i]);
     }
@@ -419,7 +419,7 @@ PictureBuffer.prototype.undoEventIndex = function(eventIndex, rasterizer) {
  * bitmap.
  */
 PictureBuffer.prototype.playbackAfterChange = function(eventIndex, rasterizer) {
-    this.pushClipRect(this.events[eventIndex].boundingBox);
+    this.pushClipRect(this.events[eventIndex].getBoundingBox(this.boundsRect));
     this.invalidateUndoStatesFrom(eventIndex);
     var undoState = this.previousUndoState(eventIndex);
     this.applyState(undoState);
@@ -444,7 +444,8 @@ PictureBuffer.prototype.redoEventIndex = function(eventIndex, rasterizer) {
         // the event
         this.applyEvent(this.events[eventIndex], rasterizer);
     } else {
-        this.pushClipRect(this.events[eventIndex].boundingBox);
+        var bounds = this.events[eventIndex].getBoundingBox(this.boundsRect);
+        this.pushClipRect(bounds);
         this.clear();
         this.playbackAll(rasterizer);
         this.popClip();

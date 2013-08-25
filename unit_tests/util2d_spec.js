@@ -324,5 +324,45 @@ describe('util2d', function() {
             expect(rectA.top).toBe(3);
             expect(rectA.bottom).toBe(8);
         });
+        
+        it('clips from the top', function() {
+            var rectA = testRect();
+            rectA.limitTop(1);
+            expect(rectA.top).toBe(3);
+            rectA.limitTop(3.5);
+            expect(rectA.top).toBe(3.5);
+            rectA.limitTop(6);
+            expect(rectA.top).toBe(5);
+        });
+
+        it('clips from the bottom', function() {
+            var rectA = testRect();
+            rectA.limitBottom(6);
+            expect(rectA.bottom).toBe(5);
+            rectA.limitBottom(3.5);
+            expect(rectA.bottom).toBe(3.5);
+            rectA.limitBottom(1);
+            expect(rectA.bottom).toBe(3);
+        });
+        
+        it('clips from the left', function() {
+            var rectA = testRect();
+            rectA.limitLeft(0.5);
+            expect(rectA.left).toBe(1);
+            rectA.limitLeft(1.5);
+            expect(rectA.left).toBe(1.5);
+            rectA.limitLeft(3);
+            expect(rectA.left).toBe(2);
+        });
+
+        it('clips from the right', function() {
+            var rectA = testRect();
+            rectA.limitRight(3);
+            expect(rectA.right).toBe(2);
+            rectA.limitRight(1.5);
+            expect(rectA.right).toBe(1.5);
+            rectA.limitRight(0.5);
+            expect(rectA.right).toBe(1);
+        });
     });
 });

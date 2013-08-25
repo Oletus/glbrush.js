@@ -706,7 +706,7 @@ Picture.prototype.display = function() {
                                                    this.currentEvent.color,
                                                    this.currentEvent.opacity,
                                                    this.currentEventMode,
-                                                 this.currentEvent.boundingBox);
+                             this.currentEvent.getBoundingBox(this.bitmapRect));
                 } else {
                     // Even if there's no this.currentEvent at the moment, push
                     // so that the GLCompositor can avoid extra shader changes.
@@ -904,7 +904,8 @@ Picture.prototype.displayAnimation = function() {
                                 this.animationEventIndices[ri].index).event;
                 this.compositor.pushRasterizer(this.animationRasterizers[ri],
                                                event.color, event.opacity,
-                                               event.mode, event.boundingBox);
+                                               event.mode,
+                                         event.getBoundingBox(this.bitmapRect));
             }
         }
     }

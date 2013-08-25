@@ -449,6 +449,38 @@ Rect.prototype.intersectRect = function(rect) {
 };
 
 /**
+ * Clip the rectangle from the top.
+ * @param {number} top Coordinate to clip with.
+ */
+Rect.prototype.limitTop = function(top) {
+    this.top = Math.min(Math.max(top, this.top), this.bottom);
+};
+
+/**
+ * Clip the rectangle from the bottom.
+ * @param {number} bottom Coordinate to clip with.
+ */
+Rect.prototype.limitBottom = function(bottom) {
+    this.bottom = Math.min(Math.max(bottom, this.top), this.bottom);
+};
+
+/**
+ * Clip the rectangle from the left.
+ * @param {number} left Coordinate to clip with.
+ */
+Rect.prototype.limitLeft = function(left) {
+    this.left = Math.min(Math.max(left, this.left), this.right);
+};
+
+/**
+ * Clip the rectangle from the right.
+ * @param {number} right Coordinate to clip with.
+ */
+Rect.prototype.limitRight = function(right) {
+    this.right = Math.min(Math.max(right, this.left), this.right);
+};
+
+/**
  * Set this rectangle to the intersection of this this rectangle and the given
  * rectangle, first rounding out both rectangles to integer coordinates.
  * @param {Rect} rect Another rectangle.
