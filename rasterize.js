@@ -51,7 +51,8 @@ BaseRasterizer.prototype.resetClip = function() {
 /**
  * Get draw event state for the given event. The draw event state represents
  * what parts of the event have been rasterized to this rasterizer's bitmap.
- * Assumes that the intention is to rasterize the given event.
+ * Assumes that the intention is to rasterize the given event, and clears any
+ * previous events from the rasterizer.
  * @param {PictureEvent} event The event to be rasterized.
  * @param {function()} stateConstructor Constructor for creating a new draw
  * event state object unless the event already has been rasterized to this
@@ -59,7 +60,6 @@ BaseRasterizer.prototype.resetClip = function() {
  * @return {Object} Draw event state for the given event.
  */
 BaseRasterizer.prototype.getDrawEventState = function(event, stateConstructor) {
-    // TODO: This doesn't recognize the same event after serialization/parsing
     if (event !== this.drawEvent ||
         !this.drawEventClipRect.containsRect(this.clipRect)) {
         if (this.drawEvent !== null) {
