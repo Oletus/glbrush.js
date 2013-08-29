@@ -39,6 +39,16 @@ var doPictureTest = function(mode) {
         expect(samplePixel[2]).toBe(34);
         expect(samplePixel[3]).toBe(255);
     });
+    
+    it('finds a buffer according to id', function() {
+        var pic = testPicture();
+        var clearColor = [12, 23, 34, 45];
+        pic.addBuffer(1337, clearColor, true, false);
+        pic.addBuffer(123, clearColor, true, false);
+        pic.addBuffer(9001, clearColor, true, false);
+        expect(pic.findBufferIndex(pic.buffers, 123)).toBe(1);
+        expect(pic.findBuffer(123)).toBe(pic.buffers[1]);
+    });
 
     it('composits a current event in addition to buffers', function() {
         var pic = testPicture();
@@ -151,7 +161,7 @@ var doPictureTest = function(mode) {
                                         10, 0, PictureEvent.Mode.normal);
         brushEvent.pushCoordTriplet(0, 0, 1.0);
         brushEvent.pushCoordTriplet(pic.bitmapWidth(), pic.bitmapHeight(), 1.0);
-        pic.pushEvent(0, brushEvent);
+        pic.pushEvent(1337, brushEvent);
         var pic2 = Picture.resize(pic, 0.5);
         pic2 = Picture.resize(pic2, 0.5);
         expect(pic2.width()).toBe(pic.width());
@@ -207,7 +217,7 @@ var doPictureTest = function(mode) {
                                         10, 0, PictureEvent.Mode.normal);
         brushEvent.pushCoordTriplet(0, 0, 1.0);
         brushEvent.pushCoordTriplet(pic.bitmapWidth(), pic.bitmapHeight(), 1.0);
-        pic.pushEvent(0, brushEvent);
+        pic.pushEvent(1337, brushEvent);
         var undoneEvent = pic.undoLatest();
         expect(undoneEvent).toBe(brushEvent);
         var samplePixel = pic.getPixelRGBA(new Vec2(0, 0));
@@ -215,6 +225,22 @@ var doPictureTest = function(mode) {
         expect(samplePixel[1]).toBe(23);
         expect(samplePixel[2]).toBe(34);
         expect(samplePixel[3]).toBe(255);
+    });
+    
+    it('removes an event which is already undone', function() {
+        var pic = testPicture();
+        var clearColor = [12, 23, 34, 255];
+        pic.addBuffer(1337, clearColor, true, false);
+        var brushEvent = new BrushEvent(0, 0, false, [56, 67, 78], 1.0, 1.0,
+                                        10, 0, PictureEvent.Mode.normal);
+        brushEvent.pushCoordTriplet(0, 0, 1.0);
+        brushEvent.pushCoordTriplet(pic.bitmapWidth(), pic.bitmapHeight(), 1.0);
+        pic.pushEvent(1337, brushEvent);
+        var undoneEvent = pic.undoLatest();
+        expect(pic.buffers[0].events.length).toBe(1);
+        expect(undoneEvent).toBe(brushEvent);
+        expect(pic.removeEventSessionId(0, 0)).toBe(true);
+        expect(pic.buffers[0].events.length).toBe(0);
     });
 
     it('only undoes events from the current active session', function() {
@@ -225,7 +251,7 @@ var doPictureTest = function(mode) {
                                         10, 0, PictureEvent.Mode.normal);
         brushEvent.pushCoordTriplet(0, 0, 1.0);
         brushEvent.pushCoordTriplet(pic.bitmapWidth(), pic.bitmapHeight(), 1.0);
-        pic.pushEvent(0, brushEvent);
+        pic.pushEvent(1337, brushEvent);
         pic.setActiveSession(pic.activeSid + 1);
         var undoneEvent = pic.undoLatest();
         expect(undoneEvent).toBe(null);
@@ -234,6 +260,23 @@ var doPictureTest = function(mode) {
         expect(samplePixel[1]).toBe(67);
         expect(samplePixel[2]).toBe(78);
         expect(samplePixel[3]).toBe(255);
+    });
+
+    it('applies a parsed merge event', function() {
+        var pic = testPicture();
+        var clearColor = [12, 23, 34, 255];
+        pic.addBuffer(1337, clearColor, true, false);
+        pic.addBuffer(9001, clearColor, true, false);
+        var mergeEvent = pic.createMergeEvent(1, 0.7);
+        var realMergedBuffer = mergeEvent.mergedBuffer;
+        var serialization = mergeEvent.serialize(1.0);
+        var splitSerialization = serialization.split(' ');
+        mergeEvent = PictureEvent.parse(splitSerialization, 0);
+        expect(mergeEvent.mergedBuffer).not.toBe(realMergedBuffer);
+        expect(mergeEvent.mergedBuffer.isDummy).toBe(true);
+        pic.pushEvent(1337, mergeEvent);
+        expect(mergeEvent.mergedBuffer).toBe(realMergedBuffer);
+        expect(mergeEvent.mergedBuffer.isDummy).toBe(false);
     });
 };
  

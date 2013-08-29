@@ -26,6 +26,8 @@ var PictureBuffer = function() {};
 PictureBuffer.prototype.initializePictureBuffer = function(id, width, height,
                                                            hasUndoStates,
                                                            hasAlpha) {
+    this.isDummy = false;
+    this.mergedTo = null;
     this.id = id;
     this.events = [];
     if (hasUndoStates === undefined) {
@@ -91,33 +93,39 @@ PictureBuffer.prototype.playbackStartingFrom = function(eventIndex,
  * Rasterize an event to the picture buffer. Subject to the current clipping
  * rectangle.
  * @param {PictureEvent} event The event to rasterize.
- * @param {BaseRasterizer} rasterizer The rasterizer.
+ * @param {BaseRasterizer} rasterizer The rasterizer to use.
  * @protected
  */
 PictureBuffer.prototype.applyEvent = function(event, rasterizer) {
-    var boundingBox = event.getBoundingBox(this.boundsRect);
-    if (boundingBox === null) {
-        rasterizer.setClip(this.getCurrentClipRect());
-        event.drawTo(rasterizer);
-        boundingBox = event.getBoundingBox(this.boundsRect);
-        // TODO: assert(boundingBox !== null);
-        this.pushClipRect(boundingBox);
-        if (this.getCurrentClipRect().isEmpty()) {
-            this.popClip();
-            return;
+    if (event.isRasterized()) {
+        var boundingBox = event.getBoundingBox(this.boundsRect);
+        if (boundingBox === null) {
+            rasterizer.setClip(this.getCurrentClipRect());
+            event.drawTo(rasterizer);
+            boundingBox = event.getBoundingBox(this.boundsRect);
+            // TODO: assert(boundingBox !== null);
+            this.pushClipRect(boundingBox);
+            if (this.getCurrentClipRect().isEmpty()) {
+                this.popClip();
+                return;
+            }
+        } else {
+            this.pushClipRect(boundingBox);
+            if (this.getCurrentClipRect().isEmpty()) {
+                this.popClip();
+                return;
+            }
+            rasterizer.setClip(this.getCurrentClipRect());
+            event.drawTo(rasterizer);
         }
-    } else {
-        this.pushClipRect(boundingBox);
-        if (this.getCurrentClipRect().isEmpty()) {
-            this.popClip();
-            return;
-        }
-        rasterizer.setClip(this.getCurrentClipRect());
-        event.drawTo(rasterizer);
+        this.drawRasterizerWithColor(rasterizer, event.color, event.opacity,
+                                     event.mode);
+        this.popClip();
+    } else if (event.eventType === 'bufferMerge') {
+        // TODO: assert(event.mergedBuffer !== this);
+        event.mergedBuffer.mergedTo = this;
+        this.drawBuffer(event.mergedBuffer, event.opacity);
     }
-    this.drawRasterizerWithColor(rasterizer, event.color, event.opacity,
-                                 event.mode);
-    this.popClip();
 };
 
 /**
@@ -129,7 +137,27 @@ PictureBuffer.prototype.pushEvent = function(event, rasterizer) {
     this.events.push(event);
     if (!event.undone) {
         this.applyEvent(event, rasterizer);
-        this.eventsChanged();
+        this.eventsChanged(rasterizer);
+    }
+};
+
+/**
+ * Called from a merged buffer when its contents have changed and need to be
+ * updated.
+ * @param {PictureBuffer} changedBuffer The merged buffer that changed.
+ * @param {BaseRasterizer} rasterizer The rasterizer to use.
+ * @protected
+ */
+PictureBuffer.prototype.mergedBufferChanged = function(changedBuffer,
+                                                       rasterizer) {
+    var i = this.events.length;
+    while (i > 0) {
+        --i;
+        if (this.events[i].eventType === 'bufferMerge' &&
+            this.events[i].mergedBuffer === changedBuffer) {
+            this.playbackAfterChange(i, rasterizer);
+            return;
+        }
     }
 };
 
@@ -144,7 +172,11 @@ PictureBuffer.prototype.insertEvent = function(event, rasterizer) {
         this.pushEvent(event, rasterizer);
     } else {
         this.events.splice(this.insertionPoint, 0, event);
-        event.drawTo(rasterizer); // Need to update the bounding box.
+        if (event.eventType !== 'bufferMerge') {
+            // Need to update the bounding box.
+            // TODO: something more elegant here
+            event.drawTo(rasterizer);
+        }
         if (!event.undone) {
             this.playbackAfterChange(this.insertionPoint, rasterizer);
         }
@@ -301,8 +333,9 @@ PictureBuffer.prototype.saveUndoState = function() {
 /**
  * Called after a new event has been pushed and applied. Updates undo states if
  * necessary.
+ * @param {BaseRasterizer} rasterizer The rasterizer to use.
  */
-PictureBuffer.prototype.eventsChanged = function() {
+PictureBuffer.prototype.eventsChanged = function(rasterizer) {
     if (this.undoStates !== null) {
         var previousState = this.previousUndoState(this.events.length);
 
@@ -325,6 +358,9 @@ PictureBuffer.prototype.eventsChanged = function() {
                 this.undoStates.push(newUndoState);
             }
         }
+    }
+    if (this.mergedTo !== null) {
+        this.mergedTo.mergedBufferChanged(this, rasterizer);
     }
 };
 
@@ -399,13 +435,21 @@ PictureBuffer.prototype.applyStateObject = function(undoState) {
  * @param {number} eventIndex Event index in the buffer.
  * @param {BaseRasterizer} rasterizer The rasterizer to use to update the
  * bitmap.
+ * @param {boolean} allowUndoMerge Allow undoing merge events.
  * @return {PictureEvent} The index of the undone event or null if nothing was
  * undone.
  */
-PictureBuffer.prototype.undoEventIndex = function(eventIndex, rasterizer) {
+PictureBuffer.prototype.undoEventIndex = function(eventIndex, rasterizer,
+                                                  allowUndoMerge) {
     if (this.events[eventIndex].undone) {
         console.log('Tried to undo event that was already undone');
         return null;
+    }
+    if (this.events[eventIndex].eventType === 'bufferMerge') {
+        if (!allowUndoMerge) {
+            return null;
+        }
+        this.events[eventIndex].mergedBuffer.mergedTo = null;
     }
     this.events[eventIndex].undone = true;
     this.playbackAfterChange(eventIndex, rasterizer);
@@ -417,6 +461,7 @@ PictureBuffer.prototype.undoEventIndex = function(eventIndex, rasterizer) {
  * @param {number} eventIndex Index of the first event to play back at minimum.
  * @param {BaseRasterizer} rasterizer The rasterizer to use to update the
  * bitmap.
+ * @protected
  */
 PictureBuffer.prototype.playbackAfterChange = function(eventIndex, rasterizer) {
     this.pushClipRect(this.events[eventIndex].getBoundingBox(this.boundsRect));
@@ -425,6 +470,9 @@ PictureBuffer.prototype.playbackAfterChange = function(eventIndex, rasterizer) {
     this.applyState(undoState);
     this.playbackStartingFrom(undoState.index, rasterizer);
     this.popClip();
+    if (this.mergedTo !== null) {
+        this.mergedTo.mergedBufferChanged(this, rasterizer);
+    }
 };
 
 /**
@@ -443,12 +491,9 @@ PictureBuffer.prototype.redoEventIndex = function(eventIndex, rasterizer) {
         // TODO: less conservative check for whether there's anything on top of
         // the event
         this.applyEvent(this.events[eventIndex], rasterizer);
+        this.eventsChanged(rasterizer);
     } else {
-        var bounds = this.events[eventIndex].getBoundingBox(this.boundsRect);
-        this.pushClipRect(bounds);
-        this.clear();
-        this.playbackAll(rasterizer);
-        this.popClip();
+        this.playbackAfterChange(eventIndex, rasterizer);
     }
     return;
 };
@@ -461,9 +506,13 @@ PictureBuffer.prototype.redoEventIndex = function(eventIndex, rasterizer) {
  */
 PictureBuffer.prototype.removeEventIndex = function(eventIndex, rasterizer) {
     if (!this.events[eventIndex].undone) {
-        this.undoEventIndex(eventIndex, rasterizer);
+        // TODO: maybe a better way to handle merge events
+        if (this.undoEventIndex(eventIndex, rasterizer, false)) {
+            this.events.splice(eventIndex, 1);
+        }
+    } else {
+        this.events.splice(eventIndex, 1);
     }
-    this.events.splice(eventIndex, 1);
 };
 
 /**
@@ -473,6 +522,7 @@ PictureBuffer.prototype.removeEventIndex = function(eventIndex, rasterizer) {
 PictureBuffer.prototype.isOpaque = function() {
     return !this.hasAlpha && this.opacity === 1.0;
 };
+
 
 /**
  * A PictureBuffer implementation with a canvas backing for the bitmap.
@@ -631,13 +681,33 @@ CanvasBuffer.drawRasterizer = function(dataCtx, targetCtx, raster, clipRect,
 };
 
 /**
+ * Blend another buffer with this one.
+ * @param {CanvasBuffer} buffer Buffer to blend.
+ * @param {number} opacity Opacity to blend with.
+ * @protected
+ */
+CanvasBuffer.prototype.drawBuffer = function(buffer, opacity) {
+    // TODO: Should rather use the compositor for this, but it needs some API
+    // changes.
+    var br = this.getCurrentClipRect().getXYWH();
+    if (br.w === 0 || br.h === 0) {
+        return;
+    }
+    this.ctx.globalAlpha = opacity;
+    this.ctx.drawImage(buffer.canvas, br.x, br.y, br.w, br.h,
+                       br.x, br.y, br.w, br.h);
+    this.ctx.globalAlpha = 1.0;
+};
+
+
+/**
  * A PictureBuffer implementation with a GL texture backing for the bitmap.
  * @constructor
  * @param {WebGLRenderingContext} gl The rendering context.
  * @param {Object} glManager The state manager returned by glStateManager() in
  * utilgl.
  * @param {GLCompositor} compositor The compositor to use for blends that are
- * not supported by blendFunc.
+ * not supported by blendFunc and merge operations.
  * @param {ShaderProgram} texBlitProgram Shader program to use for blits. Must
  * have uniform sampler uSrcTex for the source texture.
  * @param {number} id Identifier for this buffer. Unique at the Picture level.
@@ -754,11 +824,33 @@ GLBuffer.prototype.drawRasterizerWithColor = function(raster, color, opacity,
                                           this.texBlitUniforms);
 
         this.glManager.useFboTex(this.tex);
-        this.compositor.pushBufferTex(helper, 1.0);
+        this.compositor.pushBufferTex(helper, 1.0, false);
         this.compositor.pushRasterizer(raster, color, opacity, mode, null);
         this.compositor.flush();
         this.gl.deleteTexture(helper);
     }
+};
+
+/**
+ * Blend another buffer with this one.
+ * @param {GLBuffer} buffer Buffer to blend.
+ * @param {number} opacity Opacity to blend with.
+ * @protected
+ */
+GLBuffer.prototype.drawBuffer = function(buffer, opacity) {
+    this.updateClip();
+    // Copy into helper texture from this.tex, then use compositor to render
+    // that blended with the contents of the buffer back to this.tex.
+    var helper = glUtils.createTexture(this.gl, this.w, this.h);
+    this.glManager.useFboTex(helper);
+    this.texBlitUniforms.uSrcTex = this.tex;
+    this.glManager.drawFullscreenQuad(this.texBlitProgram,
+                                      this.texBlitUniforms);
+    this.glManager.useFboTex(this.tex);
+    this.compositor.pushBufferTex(helper, 1.0, false);
+    this.compositor.pushBufferTex(buffer.tex, opacity, false);
+    this.compositor.flush();
+    this.gl.deleteTexture(helper);
 };
 
 /**

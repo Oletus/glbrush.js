@@ -63,6 +63,8 @@ PictureEvent.parse = function(arr, i) {
         return BrushEvent.parse(arr, i, sid, sessionEventId, undone);
     } else if (eventType === 'gradient') {
         return GradientEvent.parse(arr, i, sid, sessionEventId, undone);
+    } else if (eventType === 'bufferMerge') {
+        return BufferMergeEvent.parse(arr, i, sid, sessionEventId, undone);
     } else {
         console.log('Unexpected picture event type ' + eventType);
         return null;
@@ -374,6 +376,13 @@ BrushEvent.prototype.getBoundingBox = function(clipRect) {
 };
 
 /**
+ * @return {boolean} Is the event drawn using a rasterizer?
+ */
+BrushEvent.prototype.isRasterized = function() {
+    return true;
+};
+
+/**
  * A PictureEvent representing a gradient.
  * @constructor
  * @param {number} sid Session identifier. Must be an integer.
@@ -448,7 +457,7 @@ GradientEvent.prototype.serialize = function(scale) {
 };
 
 /**
- * Scale this event. This will change the coordinates of the stroke. Note that
+ * Scale this event. This will change the coordinates of the gradient. Note that
  * the event is not cleared from any rasterizers, clear any rasterizers that
  * have this event manually before calling this function.
  * @param {number} scale Scaling factor. Must be larger than 0.
@@ -547,4 +556,93 @@ GradientEvent.prototype.drawTo = function(rasterizer) {
     }
     rasterizer.linearGradient(this.coords1, this.coords0);
     drawState.cleared = false;
+};
+
+/**
+ * @return {boolean} Is the event drawn using a rasterizer?
+ */
+GradientEvent.prototype.isRasterized = function() {
+    return true;
+};
+
+
+/**
+ * Event that merges a buffer into another.
+ * @constructor
+ * @param {number} sid Session identifier. Must be an integer.
+ * @param {number} sessionEventId An event/session specific identifier. The idea
+ * is that the sid/sessionEventId pair is unique for this event, and that newer
+ * events will have greater sessionEventIds. Must be an integer.
+ * @param {boolean} undone Whether this event is undone.
+ * @param {number} opacity Alpha value controlling blending the merged buffer to
+ * the target buffer. Range 0 to 1.
+ * @param {CanvasBuffer|GLBuffer} mergedBuffer The merged buffer.
+ */
+var BufferMergeEvent = function(sid, sessionEventId, undone, opacity,
+                                mergedBuffer) {
+    this.undone = undone;
+    this.sid = sid;
+    this.sessionEventId = sessionEventId;
+    this.opacity = opacity;
+    this.mergedBuffer = mergedBuffer;
+};
+
+BufferMergeEvent.prototype = new PictureEvent('bufferMerge');
+
+/**
+ * @return {boolean} Is the event drawn using a rasterizer?
+ */
+BufferMergeEvent.prototype.isRasterized = function() {
+    return false;
+};
+
+/**
+ * Scale this event.
+ * @param {number} scale Scaling factor. Must be larger than 0.
+ */
+BufferMergeEvent.prototype.scale = function(scale) {};
+
+/**
+ * Parse a BufferMergeEvent from a tokenized serialization.
+ * @param {Array.<string>} arr Array containing the tokens, split at spaces from
+ * the original serialization.
+ * @param {number} i Index of the first token to deserialize.
+ * @param {number} sid Session identifier. Must be an integer.
+ * @param {number} sessionEventId An event/session specific identifier. The idea
+ * is that the sid/sessionEventId pair is unique for this event. Must be an
+ * integer.
+ * @param {boolean} undone Whether this event is undone.
+ * @return {BrushEvent} The parsed event or null.
+ */
+BufferMergeEvent.parse = function(arr, i, sid, sessionEventId, undone) {
+    var opacity = parseFloat(arr[i++]);
+    var mergedBufferId = parseInt(arr[i++]);
+    var pictureEvent = new BufferMergeEvent(sid, sessionEventId, undone,
+                                            opacity,
+                                           {id: mergedBufferId, isDummy: true});
+    return pictureEvent;
+};
+
+/**
+ * @param {number} scale Scale to multiply serialized coordinates with.
+ * @return {string} A serialization of the event.
+ */
+BufferMergeEvent.prototype.serialize = function(scale) {
+    var eventMessage = this.serializePictureEvent();
+    eventMessage += ' ' + this.opacity;
+    eventMessage += ' ' + this.mergedBuffer.id;
+    return eventMessage;
+};
+
+/**
+ * @param {Rect} clipRect Canvas bounds that can be used to intersect the
+ * bounding box against, though this is not mandatory.
+ * @return {Rect} The event's bounding box, or null if it hasn't yet been
+ * generated. Events are allowed to defer bounding box calculation to drawTo().
+ * This function is not allowed to change its earlier return values as a side
+ * effect.
+ */
+BufferMergeEvent.prototype.getBoundingBox = function(clipRect) {
+    return new Rect(clipRect.left, clipRect.right,
+                    clipRect.top, clipRect.bottom);
 };

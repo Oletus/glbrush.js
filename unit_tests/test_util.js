@@ -61,6 +61,18 @@ function expectTestGradientEvent(gradientEvent) {
     expect(gradientEvent.mode).toBe(PictureEvent.Mode.normal);
 }
 
+function dummyBufferMergeEvent() {
+    return new BufferMergeEvent(0, 1, false, 0.78, {id: 2, isDummy: true});
+}
+
+function expectDummyBufferMergeEvent(bufferMergeEvent) {
+    expect(bufferMergeEvent.sid).toBe(0);
+    expect(bufferMergeEvent.sessionEventId).toBe(1);
+    expect(bufferMergeEvent.undone).toBe(false);
+    expect(bufferMergeEvent.opacity).toBe(0.78);
+    expect(bufferMergeEvent.mergedBuffer.id).toBe(2);
+}
+
 /**
  * Check a buffer for correctness by replaying it.
  * @param {PictureBuffer} buffer The buffer to check for correctness.
