@@ -317,6 +317,24 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         mergeEvent.mergedBuffer.undoEventIndex(0, rasterizer);
         expectBufferCorrect(buffer, rasterizer, 3);
     });
+
+    it('does not blame its creator', function() {
+        var buffer = createBuffer(params);
+        expect(buffer.blamePixel(new Vec2(1, 1)).length).toBe(0);
+    });
+    
+    it('blames a brush event', function() {
+        var buffer = createBuffer(params);
+        var rasterizer = createRasterizer(params);
+        var brushEvent = fillingBrushEvent(params.width, params.height,
+                                           [0, 0, 0], 0.7,
+                                           PictureEvent.Mode.normal);
+        buffer.pushEvent(brushEvent, rasterizer);
+        var blame = buffer.blamePixel(new Vec2(1, 1));
+        expect(blame.length).toBe(1);
+        expect(blame[0].event).toBe(brushEvent);
+        expect(blame[0].alpha).toBe(0.7);
+    });
 };
 
 describe('CanvasBuffer', function() {
