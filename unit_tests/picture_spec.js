@@ -22,13 +22,13 @@ var doPictureTest = function(mode) {
 
     it('contains buffers', function() {
         var pic = testPicture();
-        var clearColor = [12, 23, 34, 45];
+        var clearColor = [12, 23, 34];
         pic.addBuffer(1337, clearColor, false);
         expect(pic.buffers[0].id).toBe(1337);
-        expect(pic.buffers[0].clearColor[0]).toBe(12);
-        expect(pic.buffers[0].clearColor[1]).toBe(23);
-        expect(pic.buffers[0].clearColor[2]).toBe(34);
-        expect(pic.buffers[0].clearColor[3]).toBe(255); // hasAlpha = false
+        expect(pic.buffers[0].events[0].clearColor[0]).toBe(12);
+        expect(pic.buffers[0].events[0].clearColor[1]).toBe(23);
+        expect(pic.buffers[0].events[0].clearColor[2]).toBe(34);
+        expect(pic.buffers[0].events[0].clearColor.length).toBe(3);
         expect(pic.buffers[0].undoStates).toEqual([]);
         expect(pic.buffers[0].hasAlpha).toBe(false);
         expect(pic.buffers[0].width()).toBe(pic.bitmapWidth());
@@ -42,7 +42,7 @@ var doPictureTest = function(mode) {
 
     it('finds a buffer according to id', function() {
         var pic = testPicture();
-        var clearColor = [12, 23, 34, 45];
+        var clearColor = [12, 23, 34];
         pic.addBuffer(1337, clearColor, false);
         pic.addBuffer(123, clearColor, false);
         pic.addBuffer(9001, clearColor, false);
@@ -52,7 +52,7 @@ var doPictureTest = function(mode) {
 
     it('composits a current event in addition to buffers', function() {
         var pic = testPicture();
-        var clearColor = [12, 23, 34, 45];
+        var clearColor = [12, 23, 34];
         pic.addBuffer(1337, clearColor, false);
         var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 10, 0,
                                               PictureEvent.Mode.normal);
@@ -74,7 +74,7 @@ var doPictureTest = function(mode) {
 
     it('composits a current event with opacity', function() {
         var pic = testPicture();
-        var clearColor = [12, 23, 34, 45];
+        var clearColor = [12, 23, 34];
         pic.addBuffer(1337, clearColor, false);
         var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 0.5, 10, 0,
                                               PictureEvent.Mode.normal);
@@ -121,7 +121,7 @@ var doPictureTest = function(mode) {
 
     it('resizes', function() {
         var pic = testPicture();
-        var clearColor = [12, 23, 34, 45];
+        var clearColor = [12, 23, 34];
         pic.addBuffer(1337, clearColor, false);
         var pic2 = Picture.resize(pic, 3.0);
         expect(pic2.width()).toBe(pic.width());
@@ -139,7 +139,7 @@ var doPictureTest = function(mode) {
 
     it('resizes to the maximum scale', function() {
         var pic = testPicture();
-        var clearColor = [12, 23, 34, 45];
+        var clearColor = [12, 23, 34];
         pic.addBuffer(1337, clearColor, false);
         var pic2 = Picture.resize(pic, pic.maxBitmapScale());
         expect(pic2.width()).toBe(pic.width());
@@ -155,7 +155,7 @@ var doPictureTest = function(mode) {
 
     it('does not change if it is resized to the same size twice', function() {
         var pic = testPicture();
-        var clearColor = [12, 23, 34, 45];
+        var clearColor = [12, 23, 34];
         pic.addBuffer(1337, clearColor, false);
         var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 10, 0,
                                               PictureEvent.Mode.normal);
@@ -174,16 +174,16 @@ var doPictureTest = function(mode) {
         expect(samplePixel[1]).toBe(67);
         expect(samplePixel[2]).toBe(78);
         expect(samplePixel[3]).toBe(255);
-        var event = pic2.buffers[0].events[0];
+        var event = pic2.buffers[0].events[1];
         expect(event.coords[3]).toBeNear(pic2.bitmapWidth(), 1);
         expect(event.coords[4]).toBeNear(pic2.bitmapHeight(), 1);
     });
 
     it('composits buffers with opacity', function() {
         var pic = testPicture();
-        var clearColor = [254, 254, 254, 255];
+        var clearColor = [254, 254, 254];
         pic.addBuffer(1337, clearColor, false);
-        var clearColor2 = [0, 0, 0, 255];
+        var clearColor2 = [0, 0, 0];
         pic.addBuffer(1338, clearColor2, false);
         pic.setBufferOpacity(1, 0.5);
         var samplePixel = pic.getPixelRGBA(new Vec2(0, 0));
@@ -195,23 +195,42 @@ var doPictureTest = function(mode) {
 
     it('serializes buffer opacities', function() {
         var pic = testPicture();
-        var clearColor = [254, 254, 254, 255];
+        var clearColor = [254, 254, 254];
         pic.addBuffer(1337, clearColor, false);
-        var clearColor2 = [0, 0, 0, 255];
+        var clearColor2 = [0, 0, 0];
         pic.addBuffer(1338, clearColor2, false);
         pic.setBufferOpacity(1, 0.5);
         pic = Picture.resize(pic, pic.bitmapScale);
-        expect(pic.buffers[1].opacity).toBe(0.5);
+        expect(pic.buffers[1].opacity()).toBe(0.5);
         var samplePixel = pic.getPixelRGBA(new Vec2(0, 0));
         expect(samplePixel[0]).toBeNear(127, 5);
         expect(samplePixel[1]).toBeNear(127, 5);
         expect(samplePixel[2]).toBeNear(127, 5);
         expect(samplePixel[3]).toBe(255);
     });
+    
+    it('serializes buffer merges', function() {
+        var pic = testPicture();
+        var clearColor = [254, 254, 254];
+        pic.addBuffer(1337, clearColor, false);
+        var clearColor2 = [0, 0, 0];
+        pic.addBuffer(1338, clearColor2, false);
+        var mergeEvent = pic.createMergeEvent(1, 0.7);
+        pic.pushEvent(1337, mergeEvent);
+        expect(pic.buffers.length).toBe(1);
+        expect(pic.removedBuffers.length).toBe(1);
+        expect(pic.removedBuffers[0].mergedTo).toBe(pic.buffers[0]);
+
+        pic = Picture.resize(pic, pic.bitmapScale);
+
+        expect(pic.buffers.length).toBe(1);
+        expect(pic.removedBuffers.length).toBe(1);
+        expect(pic.removedBuffers[0].mergedTo).toBe(pic.buffers[0]);
+    });
 
     it('can undo the latest event', function() {
         var pic = testPicture();
-        var clearColor = [12, 23, 34, 255];
+        var clearColor = [12, 23, 34];
         pic.addBuffer(1337, clearColor, false);
         var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 10, 0,
                                               PictureEvent.Mode.normal);
@@ -229,7 +248,7 @@ var doPictureTest = function(mode) {
     
     it('removes an event which is already undone', function() {
         var pic = testPicture();
-        var clearColor = [12, 23, 34, 255];
+        var clearColor = [12, 23, 34];
         pic.addBuffer(1337, clearColor, false);
         var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 10, 0,
                                               PictureEvent.Mode.normal);
@@ -237,15 +256,15 @@ var doPictureTest = function(mode) {
         brushEvent.pushCoordTriplet(pic.bitmapWidth(), pic.bitmapHeight(), 1.0);
         pic.pushEvent(1337, brushEvent);
         var undoneEvent = pic.undoLatest();
-        expect(pic.buffers[0].events.length).toBe(1);
+        expect(pic.buffers[0].events.length).toBe(2);
         expect(undoneEvent).toBe(brushEvent);
         expect(pic.removeEventSessionId(0, 0)).toBe(true);
-        expect(pic.buffers[0].events.length).toBe(0);
+        expect(pic.buffers[0].events.length).toBe(1);
     });
 
     it('only undoes events from the current active session', function() {
         var pic = testPicture();
-        var clearColor = [12, 23, 34, 255];
+        var clearColor = [12, 23, 34];
         pic.addBuffer(1337, clearColor, false);
         var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 10, 0,
                                               PictureEvent.Mode.normal);
@@ -264,7 +283,7 @@ var doPictureTest = function(mode) {
 
     it('applies a parsed merge event', function() {
         var pic = testPicture();
-        var clearColor = [12, 23, 34, 255];
+        var clearColor = [12, 23, 34];
         pic.addBuffer(1337, clearColor, false);
         pic.addBuffer(9001, clearColor, false);
         var mergeEvent = pic.createMergeEvent(1, 0.7);

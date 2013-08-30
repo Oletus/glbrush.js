@@ -17,7 +17,8 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         expect(buffer.id).toBe(params.id);
         expect(buffer.width()).toBe(params.width);
         expect(buffer.height()).toBe(params.height);
-        expect(buffer.clearColor).toBe(params.clearColor);
+        expect(buffer.events[0].clearColor).toBe(params.clearColor);
+        expect(buffer.hasAlpha).toBe(params.hasAlpha);
         expect(buffer.undoStates).toEqual([]);
     });
 
@@ -25,7 +26,7 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
         expectBufferCorrect(buffer, rasterizer, 0);
-        buffer.clear();
+        buffer.clear(buffer.events[0].clearColor);
         expectBufferCorrect(buffer, rasterizer, 0);
     });
 
@@ -281,8 +282,8 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         var event = generateBrushEvent(9001, buffer.width(), buffer.height());
         buffer.replaceWithEvent(event, rasterizer);
         expectBufferCorrect(buffer, rasterizer, 0);
-        expect(buffer.events.length).toBe(1);
-        if (buffer.undoStateInterval > 1) {
+        expect(buffer.events.length).toBe(2);
+        if (buffer.undoStateInterval > 2) {
             expect(buffer.undoStates.length).toBe(0);
         }
     });
@@ -304,7 +305,7 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         buffer.pushEvent(mergeEvent);
         var event = generateBrushEvent(9001, params.width, params.height);
         mergeEvent.mergedBuffer.insertEvent(event, rasterizer);
-        expect(mergeEvent.mergedBuffer.events[0]).toBe(event);
+        expect(mergeEvent.mergedBuffer.events[1]).toBe(event);
         expectBufferCorrect(buffer, rasterizer, 3);
     });
 
@@ -320,9 +321,11 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
 
 describe('CanvasBuffer', function() {
     var createBuffer = function(params) {
-        return new CanvasBuffer(params.id, params.width, params.height,
-                                params.clearColor, params.hasUndoStates,
-                                params.hasAlpha);
+    var createEvent = new BufferAddEvent(-1, -1, false, params.id,
+                                         params.hasAlpha, params.clearColor,
+                                         1.0);
+        return new CanvasBuffer(createEvent, params.width, params.height,
+                                params.hasUndoStates);
     };
     var createRasterizer = function(params) {
         return new Rasterizer(params.width, params.height);
@@ -346,10 +349,12 @@ describe('GLBuffer', function() {
     };
 
     var createBuffer = function(params) {
+        var createEvent = new BufferAddEvent(-1, -1, false, params.id,
+                                             params.hasAlpha, params.clearColor,
+                                             1.0);
         return new GLBuffer(gl, glManager, compositor, texBlitProgram,
-                            params.id, params.width, params.height,
-                            params.clearColor, params.hasUndoStates,
-                            params.hasAlpha);
+                            createEvent, params.width, params.height,
+                            params.hasUndoStates);
     };
     var createRasterizer = function(params) {
         return new GLDoubleBufferedRasterizer(gl, glManager, params.width,

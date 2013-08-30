@@ -13,28 +13,23 @@ var PictureBuffer = function() {};
 
 /**
  * Initialize picture buffer data.
- * @param {number} id Identifier for this buffer. Unique at the Picture level.
- * Can be -1 if events won't be serialized separately from this buffer.
+ * @param {BufferAddEvent} createEvent Event that initializes the buffer.
  * @param {number} width Width of the buffer in pixels. Must be an integer.
  * @param {number} height Height of the buffer in pixels. Must be an integer.
  * @param {boolean} hasUndoStates Does this buffer store undo states? Defaults
  * to false.
- * @param {boolean} hasAlpha Does this buffer have an alpha channel? Defaults to
- * true.
  * @protected
  */
-PictureBuffer.prototype.initializePictureBuffer = function(id, width, height,
-                                                           hasUndoStates,
-                                                           hasAlpha) {
+PictureBuffer.prototype.initializePictureBuffer = function(createEvent,
+                                                           width, height,
+                                                           hasUndoStates) {
+    this.hasAlpha = createEvent.hasAlpha;
+    this.id = createEvent.bufferId;
+    this.events = [];
     this.isDummy = false;
     this.mergedTo = null;
-    this.id = id;
-    this.events = [];
     if (hasUndoStates === undefined) {
         hasUndoStates = false;
-    }
-    if (hasAlpha === undefined) {
-        hasAlpha = true;
     }
     if (hasUndoStates) {
         this.undoStates = [];
@@ -43,15 +38,20 @@ PictureBuffer.prototype.initializePictureBuffer = function(id, width, height,
     } else {
         this.undoStates = null;
     }
-    this.hasAlpha = hasAlpha;
 
     this.boundsRect = new Rect(0, width, 0, height);
     this.clipStack = [];
     this.currentClipRect = new Rect(0, width, 0, height);
 
     this.visible = true;
-    this.opacity = 1.0;
     this.insertionPoint = 0;
+};
+
+/**
+ * @return {number} The compositing opacity for this buffer.
+ */
+PictureBuffer.prototype.opacity = function() {
+    return this.events[0].opacity;
 };
 
 /**
@@ -125,6 +125,8 @@ PictureBuffer.prototype.applyEvent = function(event, rasterizer) {
         // TODO: assert(event.mergedBuffer !== this);
         event.mergedBuffer.mergedTo = this;
         this.drawBuffer(event.mergedBuffer, event.opacity);
+    } else if (event.eventType === 'bufferAdd') {
+        this.clear(event.clearColor);
     }
 };
 
@@ -190,6 +192,7 @@ PictureBuffer.prototype.insertEvent = function(event, rasterizer) {
  * event index.
  */
 PictureBuffer.prototype.setInsertionPoint = function(insertionPoint) {
+    // TODO: assert(insertionPoint > 0) // First event is always create event
     this.insertionPoint = insertionPoint;
     // TODO: Maintain an undo state exactly at the insertion point.
 };
@@ -203,19 +206,19 @@ PictureBuffer.prototype.setInsertionPoint = function(insertionPoint) {
  * should be set in the rasterizer in advance.
  */
 PictureBuffer.prototype.replaceWithEvent = function(event, rasterizer) {
-    // TODO: assert that the clip stack is empty
-    if (this.events.length > 1) {
-        this.clear();
-    } else if (this.events.length === 1) {
-        this.pushClipRect(this.events[0].getBoundingBox(this.boundsRect));
-        this.clear();
+    // TODO: assert(this.clipStack.length === 0);
+    if (this.events.length > 2) {
+        this.clear(this.events[0].clearColor);
+    } else if (this.events.length === 2) {
+        this.pushClipRect(this.events[1].getBoundingBox(this.boundsRect));
+        this.clear(this.events[0].clearColor);
         this.popClip();
     }
-    this.events.splice(0, this.events.length);
+    this.events.splice(1, this.events.length);
     if (event !== null) {
         this.pushEvent(event, rasterizer);
     }
-    this.invalidateUndoStatesFrom(0);
+    this.invalidateUndoStatesFrom(1);
 };
 
 /**
@@ -231,7 +234,7 @@ PictureBuffer.prototype.blamePixel = function(coords) {
                               Math.floor(coords.y), Math.floor(coords.y) + 1);
     this.blameRasterizer.setClip(coordsRect);
     var blame = [];
-    while (i >= 0) {
+    while (i >= 1) {
         if (!this.events[i].undone) {
             var boundingBox = this.events[i].getBoundingBox(coordsRect);
             if (boundingBox.containsRoundedOut(coords)) {
@@ -370,6 +373,8 @@ PictureBuffer.prototype.eventsChanged = function(rasterizer) {
  * the given index.
  */
 PictureBuffer.prototype.previousUndoState = function(eventIndex) {
+    // TODO: assert(eventIndex > 0); // event 0 is the buffer add event, undone
+    // at a higher level.
     if (this.undoStates !== null) {
         var i = this.undoStates.length - 1;
         while (i >= 0) {
@@ -412,9 +417,6 @@ PictureBuffer.prototype.invalidateUndoStatesFrom = function(eventIndex) {
 PictureBuffer.prototype.applyState = function(undoState) {
     if (undoState.index !== 0) {
         this.applyStateObject(undoState);
-    }
-    if (undoState.index === 0) {
-        this.clear();
     }
 };
 
@@ -520,37 +522,27 @@ PictureBuffer.prototype.removeEventIndex = function(eventIndex, rasterizer) {
  * compositing.
  */
 PictureBuffer.prototype.isOpaque = function() {
-    return !this.hasAlpha && this.opacity === 1.0;
+    return !this.hasAlpha && this.opacity() === 1.0;
 };
 
 
 /**
  * A PictureBuffer implementation with a canvas backing for the bitmap.
  * @constructor
- * @param {number} id Identifier for this buffer. Unique at the Picture level.
- * Can be -1 if events won't be serialized separately from this buffer.
+ * @param {BufferAddEvent} createEvent Event that initializes the buffer.
  * @param {number} width Width of the buffer in pixels. Must be an integer.
  * @param {number} height Height of the buffer in pixels. Must be an integer.
- * @param {Uint8Array|Array.<number>} clearColor The RGBA color to use when
- * clearing the buffer. Unpremultiplied and channel values are between 0-255.
  * @param {boolean} hasUndoStates Does this buffer store undo states?
- * @param {boolean} hasAlpha Does this buffer have an alpha channel?
  */
-var CanvasBuffer = function(id, width, height, clearColor, hasUndoStates,
-                            hasAlpha) {
-    this.initializePictureBuffer(id, width, height, hasUndoStates, hasAlpha);
+var CanvasBuffer = function(createEvent, width, height, hasUndoStates) {
+    this.initializePictureBuffer(createEvent, width, height, hasUndoStates);
     this.canvas = document.createElement('canvas');
-    this.clearColor = clearColor;
-    if (!this.hasAlpha) {
-        this.clearColor[3] = 255;
-    }
     this.canvas.width = width;
     this.canvas.height = height;
     this.ctx = this.canvas.getContext('2d');
-    this.opaque = !hasAlpha;
 
     this.blameRasterizer = new Rasterizer(width, height);
-    this.clear();
+    this.insertEvent(createEvent, null); // will clear the buffer
 };
 
 CanvasBuffer.prototype = new PictureBuffer();
@@ -588,19 +580,26 @@ CanvasBuffer.prototype.applyStateObject = function(undoState) {
 
 /**
  * Clear the bitmap. Subject to the current clipping rectangle.
+ * @param {Uint8Array|Array.<number>} clearColor The RGB(A) color to use when
+ * clearing the buffer. Unpremultiplied and channel values are between 0-255.
  * @protected
  */
-CanvasBuffer.prototype.clear = function() {
+CanvasBuffer.prototype.clear = function(clearColor) {
     var br = this.getCurrentClipRect().getXYWH();
-    if (this.clearColor[3] < 255) {
+    if (clearColor.length === 4 && clearColor[3] < 255) {
         this.ctx.clearRect(br.x, br.y, br.w, br.h);
         this.opaque = false;
     } else if (br.w === this.width() && br.h === this.height() &&
                br.x === 0 && br.y === 0) {
         this.opaque = true;
     }
-    if (this.clearColor[3] !== 0) {
-        this.ctx.fillStyle = cssUtil.rgbaString(this.clearColor);
+    if (clearColor.length === 4) {
+        if (clearColor[3] !== 0) {
+            this.ctx.fillStyle = cssUtil.rgbaString(clearColor);
+            this.ctx.fillRect(br.x, br.y, br.w, br.h);
+        }
+    } else {
+        this.ctx.fillStyle = cssUtil.rgbString(clearColor);
         this.ctx.fillRect(br.x, br.y, br.w, br.h);
     }
 };
@@ -710,20 +709,16 @@ CanvasBuffer.prototype.drawBuffer = function(buffer, opacity) {
  * not supported by blendFunc and merge operations.
  * @param {ShaderProgram} texBlitProgram Shader program to use for blits. Must
  * have uniform sampler uSrcTex for the source texture.
- * @param {number} id Identifier for this buffer. Unique at the Picture level.
- * Can be -1 if events won't be serialized separately from this buffer.
+ * @param {BufferAddEvent} createEvent Event that initializes the buffer.
  * @param {number} width Width of the buffer in pixels. Must be an integer.
  * @param {number} height Height of the buffer in pixels. Must be an integer.
- * @param {Uint8Array|Array.<number>} clearColor The RGBA color to use when
- * clearing the buffer. Unpremultiplied and channel values are between 0-255.
  * @param {boolean} hasUndoStates Does this buffer store undo states?
- * @param {boolean} hasAlpha Does this buffer have an alpha channel?
  */
-var GLBuffer = function(gl, glManager, compositor, texBlitProgram, id, width,
-                        height, clearColor, hasUndoStates, hasAlpha) {
+var GLBuffer = function(gl, glManager, compositor, texBlitProgram, createEvent,
+                        width, height, hasUndoStates) {
     this.texBlitProgram = texBlitProgram;
     this.texBlitUniforms = texBlitProgram.uniformParameters();
-    this.initializePictureBuffer(id, width, height, hasUndoStates, hasAlpha);
+    this.initializePictureBuffer(createEvent, width, height, hasUndoStates);
     // Add undo states less often than the default, since drawing is cheap.
     this.undoStateInterval = 32;
     this.gl = gl;
@@ -731,13 +726,6 @@ var GLBuffer = function(gl, glManager, compositor, texBlitProgram, id, width,
     this.compositor = compositor;
     this.w = width;
     this.h = height;
-    if (clearColor === undefined) {
-        clearColor = [0, 0, 0, 0];
-    }
-    this.clearColor = clearColor;
-    if (!this.hasAlpha) {
-        this.clearColor[3] = 255;
-    }
 
     var format = this.hasAlpha ? gl.RGBA : gl.RGB;
     this.tex = glUtils.createTexture(this.gl, width, height, format);
@@ -748,7 +736,7 @@ var GLBuffer = function(gl, glManager, compositor, texBlitProgram, id, width,
     }
 
     this.blameRasterizer = new Rasterizer(this.w, this.h);
-    this.clear();
+    this.insertEvent(createEvent, null); // will clear the buffer
 };
 
 GLBuffer.prototype = new PictureBuffer();
@@ -777,14 +765,24 @@ GLBuffer.prototype.height = function() {
 
 /**
  * Clear the bitmap. Subject to the current clipping rectangle.
+ * @param {Uint8Array|Array.<number>} unPremulClearColor The RGB(A) color to use
+ * when clearing the buffer. Unpremultiplied and channel values are between
+ * 0-255.
  * @protected
  */
-GLBuffer.prototype.clear = function() {
+GLBuffer.prototype.clear = function(unPremulClearColor) {
     this.updateClip();
     this.glManager.useFboTex(this.tex);
-    var clearColor = colorUtil.premultiply(this.clearColor);
-    this.gl.clearColor(clearColor[0] / 255.0, clearColor[1] / 255.0,
-                       clearColor[2] / 255.0, clearColor[3] / 255.0);
+    if (unPremulClearColor.length === 3) {
+        this.gl.clearColor(unPremulClearColor[0] / 255.0,
+                           unPremulClearColor[1] / 255.0,
+                           unPremulClearColor[2] / 255.0,
+                           1.0);
+    } else {
+        var clearColor = colorUtil.premultiply(unPremulClearColor);
+        this.gl.clearColor(clearColor[0] / 255.0, clearColor[1] / 255.0,
+                           clearColor[2] / 255.0, clearColor[3] / 255.0);
+    }
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 };
 

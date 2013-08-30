@@ -26,6 +26,10 @@ describe('PictureEvent', function() {
         commonEventTests(testGradientEvent, expectTestGradientEvent);
     });
 
+    describe('BufferAddEvent', function() {
+        commonEventTests(testBufferAddEvent, expectTestBufferAddEvent);
+    });
+
     describe('BufferMergeEvent', function() {
         commonEventTests(dummyBufferMergeEvent, expectDummyBufferMergeEvent);
     });

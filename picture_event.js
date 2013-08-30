@@ -65,6 +65,8 @@ PictureEvent.parse = function(arr, i) {
         return GradientEvent.parse(arr, i, sid, sessionEventId, undone);
     } else if (eventType === 'bufferMerge') {
         return BufferMergeEvent.parse(arr, i, sid, sessionEventId, undone);
+    } else if (eventType === 'bufferAdd') {
+        return BufferAddEvent.parse(arr, i, sid, sessionEventId, undone);
     } else {
         console.log('Unexpected picture event type ' + eventType);
         return null;
@@ -563,6 +565,106 @@ GradientEvent.prototype.drawTo = function(rasterizer) {
  */
 GradientEvent.prototype.isRasterized = function() {
     return true;
+};
+
+/**
+ * Event that adds a buffer into a Picture.
+ * @constructor
+ * @param {number} sid Session identifier. Must be an integer.
+ * @param {number} sessionEventId An event/session specific identifier. The idea
+ * is that the sid/sessionEventId pair is unique for this event, and that newer
+ * events will have greater sessionEventIds. Must be an integer.
+ * @param {boolean} undone Whether this event is undone.
+ * @param {number} bufferId Id of the added buffer. Unique at the Picture level.
+ * @param {boolean} hasAlpha Whether the buffer has an alpha channel.
+ * @param {Uint8Array|Array.<number>} clearColor The RGB(A) color used to clear
+ * the buffer. Channel values are integers between 0-255.
+ * @param {number} opacity Alpha value controlling compositing the buffer. Range
+ * 0 to 1.
+ */
+var BufferAddEvent = function(sid, sessionEventId, undone, bufferId, hasAlpha,
+                              clearColor, opacity) {
+    // TODO: assert(clearColor.length === (hasAlpha ? 4 : 3));
+    this.undone = undone;
+    this.sid = sid;
+    this.sessionEventId = sessionEventId;
+    this.bufferId = bufferId;
+    this.hasAlpha = hasAlpha;
+    this.clearColor = clearColor;
+    this.opacity = opacity;
+};
+
+BufferAddEvent.prototype = new PictureEvent('bufferAdd');
+
+/**
+ * @return {boolean} Is the event drawn using a rasterizer?
+ */
+BufferAddEvent.prototype.isRasterized = function() {
+    return false;
+};
+
+/**
+ * Scale this event.
+ * @param {number} scale Scaling factor. Must be larger than 0.
+ */
+BufferAddEvent.prototype.scale = function(scale) {};
+
+/**
+ * Parse a BufferMergeEvent from a tokenized serialization.
+ * @param {Array.<string>} arr Array containing the tokens, split at spaces from
+ * the original serialization.
+ * @param {number} i Index of the first token to deserialize.
+ * @param {number} sid Session identifier. Must be an integer.
+ * @param {number} sessionEventId An event/session specific identifier. The idea
+ * is that the sid/sessionEventId pair is unique for this event. Must be an
+ * integer.
+ * @param {boolean} undone Whether this event is undone.
+ * @return {BrushEvent} The parsed event or null.
+ */
+BufferAddEvent.parse = function(arr, i, sid, sessionEventId, undone) {
+    var bufferId = parseInt(arr[i++]);
+    var hasAlpha = arr[i++] === '1';
+    var clearColor = [];
+    clearColor[0] = parseInt(arr[i++]);
+    clearColor[1] = parseInt(arr[i++]);
+    clearColor[2] = parseInt(arr[i++]);
+    if (hasAlpha) {
+        clearColor[3] = parseInt(arr[i++]);
+    }
+    var opacity = parseFloat(arr[i++]);
+    var pictureEvent = new BufferAddEvent(sid, sessionEventId, undone, bufferId,
+                                          hasAlpha, clearColor, opacity);
+    return pictureEvent;
+};
+
+/**
+ * @param {number} scale Scale to multiply serialized coordinates with.
+ * @return {string} A serialization of the event.
+ */
+BufferAddEvent.prototype.serialize = function(scale) {
+    var eventMessage = this.serializePictureEvent();
+    eventMessage += ' ' + this.bufferId;
+    eventMessage += ' ' + (this.hasAlpha ? '1' : '0');
+    if (this.hasAlpha) {
+        eventMessage += ' ' + colorUtil.serializeRGBA(this.clearColor);
+    } else {
+        eventMessage += ' ' + colorUtil.serializeRGB(this.clearColor);
+    }
+    eventMessage += ' ' + this.opacity;
+    return eventMessage;
+};
+
+/**
+ * @param {Rect} clipRect Canvas bounds that can be used to intersect the
+ * bounding box against, though this is not mandatory.
+ * @return {Rect} The event's bounding box, or null if it hasn't yet been
+ * generated. Events are allowed to defer bounding box calculation to drawTo().
+ * This function is not allowed to change its earlier return values as a side
+ * effect.
+ */
+BufferAddEvent.prototype.getBoundingBox = function(clipRect) {
+    return new Rect(clipRect.left, clipRect.right,
+                    clipRect.top, clipRect.bottom);
 };
 
 

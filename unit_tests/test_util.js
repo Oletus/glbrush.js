@@ -73,6 +73,20 @@ function expectDummyBufferMergeEvent(bufferMergeEvent) {
     expect(bufferMergeEvent.mergedBuffer.id).toBe(2);
 }
 
+function testBufferAddEvent() {
+    return new BufferAddEvent(0, 1, false, 2, true, [12, 23, 34, 45], 0.5);
+}
+
+function expectTestBufferAddEvent(bufferAddEvent) {
+    expect(bufferAddEvent.sid).toBe(0);
+    expect(bufferAddEvent.sessionEventId).toBe(1);
+    expect(bufferAddEvent.undone).toBe(false);
+    expect(bufferAddEvent.bufferId).toBe(2);
+    expect(bufferAddEvent.hasAlpha).toBe(true);
+    expect(bufferAddEvent.clearColor).toEqual([12, 23, 34, 45]);
+    expect(bufferAddEvent.opacity).toBe(0.5);
+}
+
 /**
  * Check a buffer for correctness by replaying it.
  * @param {PictureBuffer} buffer The buffer to check for correctness.
@@ -90,7 +104,6 @@ function expectBufferCorrect(buffer, rasterizer, tolerance) {
     expect(clipRect.top).toBe(0);
     expect(clipRect.width()).toBe(buffer.width());
     expect(clipRect.height()).toBe(buffer.height());
-    buffer.clear();
     buffer.playbackAll(rasterizer);
     var correctState = buffer.saveUndoState();
     var stateData;

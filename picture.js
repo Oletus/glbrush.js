@@ -111,8 +111,8 @@ Picture.prototype.setupGLState = function() {
  * @param {boolean} hasAlpha Does the buffer have an alpha channel?
  */
 Picture.prototype.addBuffer = function(id, clearColor, hasAlpha) {
-    var buffer = this.createBuffer(id, clearColor, true, hasAlpha);
-    this.buffers.push(buffer);
+    var addEvent = this.createBufferAddEvent(id, hasAlpha, clearColor);
+    this.pushEvent(id, addEvent);
 };
 
 /**
@@ -207,7 +207,7 @@ Picture.prototype.setBufferVisible = function(buffer, visible) {
  * @param {number} opacity Opacity value to set, range from 0 to 1.
  */
 Picture.prototype.setBufferOpacity = function(buffer, opacity) {
-    this.buffers[buffer].opacity = opacity;
+    this.buffers[buffer].events[0].opacity = opacity;
 };
 
 /**
@@ -270,33 +270,16 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry,
     var pic = Picture.create(id, width, height, bitmapScale, modesToTry,
                              currentEventAttachment);
     var i = 1;
+    var currentId = -1;
     while (i < eventStrings.length) {
         if (eventStrings[i] === 'metadata') {
             break;
         } else {
             var arr = eventStrings[i].split(' ');
-            if (arr[0] === 'buffer') {
-                var j = 1;
-                var bufferId = parseInt(arr[j++]);
-                var clearColor = [parseInt(arr[j++]),
-                                  parseInt(arr[j++]),
-                                  parseInt(arr[j++]),
-                                  parseInt(arr[j++])];
-                var hasAlpha = arr[j++] === '1';
-                var insertionPoint = parseInt(arr[j++]);
-                var visible = arr[j++] === '1';
-                var opacity = parseFloat(arr[j++]);
-                pic.addBuffer(bufferId, clearColor, hasAlpha);
-                var targetBuffer = pic.buffers[pic.buffers.length - 1];
-                targetBuffer.setInsertionPoint(insertionPoint);
-                targetBuffer.visible = visible;
-                targetBuffer.opacity = opacity;
-            } else {
-                var pictureEvent = PictureEvent.parse(arr, 0);
-                pictureEvent.scale(bitmapScale);
-                pic.pushEvent(pic.buffers[pic.buffers.length - 1].id,
-                              pictureEvent);
-            }
+            var pictureEvent = PictureEvent.parse(arr, 0);
+            pictureEvent.scale(bitmapScale);
+            pic.pushEvent(currentId, pictureEvent);
+            currentId = pic.buffers[pic.buffers.length - 1].id;
             ++i;
         }
     }
@@ -333,20 +316,22 @@ Picture.prototype.maxBitmapScale = function() {
 
 /**
  * @return {string} A serialization of this Picture. Can be parsed into a new
- * Picture by calling Picture.parse. Serializing pictures with buffer merges
- * is not yet supported, and compatibility between versions is not guaranteed.
+ * Picture by calling Picture.parse. Compatibility between versions is not
+ * guaranteed.
  */
 Picture.prototype.serialize = function() {
     var serializationScale = 1.0 / this.bitmapScale;
     var serialization = ['picture ' + this.width() + ' ' + this.height()];
-    for (var i = 0; i < this.buffers.length; ++i) {
-        var buffer = this.buffers[i];
-        serialization.push('buffer ' + buffer.id +
-                           ' ' + colorUtil.serializeRGBA(buffer.clearColor) +
-                           ' ' + (buffer.hasAlpha ? '1' : '0') +
-                           ' ' + buffer.insertionPoint +
-                           ' ' + (buffer.visible ? '1' : '0') +
-                           ' ' + buffer.opacity);
+    var i;
+    var buffer;
+    for (i = 0; i < this.removedBuffers.length; ++i) {
+        buffer = this.removedBuffers[i];
+        for (var j = 0; j < buffer.events.length; ++j) {
+            serialization.push(buffer.events[j].serialize(serializationScale));
+        }
+    }
+    for (i = 0; i < this.buffers.length; ++i) {
+        buffer = this.buffers[i];
         for (var j = 0; j < buffer.events.length; ++j) {
             serialization.push(buffer.events[j].serialize(serializationScale));
         }
@@ -407,6 +392,23 @@ Picture.prototype.createGradientEvent = function(color, opacity, mode) {
                                   false, color, opacity, mode);
     this.activeSessionEventId++;
     return event;
+};
+
+/**
+ * Create a buffer add event using the current active session. The event is
+ * marked as not undone.
+ * @param {number} id Id of the added buffer. Unique at the Picture level.
+ * @param {boolean} hasAlpha Whether the buffer has an alpha channel.
+ * @param {Uint8Array|Array.<number>} clearColor The RGB(A) color used to clear
+ * the buffer. Channel values are integers between 0-255.
+ * @return {BufferAddEvent} The created buffer adding event.
+ */
+Picture.prototype.createBufferAddEvent = function(id, hasAlpha, clearColor) {
+    var createEvent = new BufferAddEvent(this.activeSid,
+                                         this.activeSessionEventId, false, id,
+                                         hasAlpha, clearColor, 1.0);
+    this.activeSessionEventId++;
+    return createEvent;
 };
 
 /**
@@ -493,26 +495,20 @@ Picture.prototype.initRasterizers = function() {
 
 /**
  * Create a single buffer using the mode specified for this picture.
- * @param {number} id Identifier for this buffer. Unique at the Picture level.
- * Can be -1 if events won't be serialized separately from this buffer.
- * @param {Array.<number>} clearColor 4-component array with RGBA color that's
- * used to clear this buffer. Unpremultiplied and channel values are between
- * 0-255.
+ * @param {BufferAddEvent} createEvent Event that initializes the buffer.
  * @param {boolean} hasUndoStates Does the buffer store undo states?
- * @param {boolean} hasAlpha Does the buffer have an alpha channel?
  * @return {GLBuffer|CanvasBuffer} The buffer.
  * @protected
  */
-Picture.prototype.createBuffer = function(id, clearColor, hasUndoStates,
-                                          hasAlpha) {
+Picture.prototype.createBuffer = function(createEvent, hasUndoStates) {
     if (this.usesWebGl()) {
         return new GLBuffer(this.gl, this.glManager, this.compositor,
-                            this.texBlitProgram, id,
+                            this.texBlitProgram, createEvent,
                             this.bitmapWidth(), this.bitmapHeight(),
-                            clearColor, hasUndoStates, hasAlpha);
+                            hasUndoStates);
     } else if (this.mode === 'canvas') {
-        return new CanvasBuffer(id, this.bitmapWidth(), this.bitmapHeight(),
-                                clearColor, hasUndoStates, hasAlpha);
+        return new CanvasBuffer(createEvent, this.bitmapWidth(),
+                                this.bitmapHeight(), hasUndoStates);
     }
 };
 
@@ -581,10 +577,16 @@ Picture.prototype.scaleParsedEvent = function(event) {
 
 /**
  * Add an event to the top of one of this picture's buffers.
- * @param {number} targetBufferId The id of the buffer to apply the event to.
+ * @param {number} targetBufferId The id of the buffer to apply the event to. In
+ * case the event is a buffer add event, the id is ignored.
  * @param {PictureEvent} event Event to add.
  */
 Picture.prototype.pushEvent = function(targetBufferId, event) {
+    if (event.eventType === 'bufferAdd') {
+        var buffer = this.createBuffer(event, true);
+        this.buffers.push(buffer);
+        return;
+    }
     var targetBuffer = this.findBuffer(targetBufferId);
     if (this.currentEventRasterizer.drawEvent === event) {
         targetBuffer.pushEvent(event, this.currentEventRasterizer);
@@ -940,12 +942,16 @@ Picture.prototype.animate = function(simultaneousStrokes, speed,
 
     this.totalEvents = 0;
     this.animationBuffers = [];
-    // TODO: Currently playback is from bottom to top. Switch to a
-    // timestamp-based approach.
+    // TODO: Currently playback is from bottom to top and doesn't support merge
+    // events. Switch to a timestamp-based approach.
     for (var i = 0; i < this.buffers.length; ++i) {
-        this.totalEvents += this.buffers[i].events.length;
-        var buffer = this.createBuffer(-1, this.buffers[i].clearColor,
-                                       false, this.buffers[i].hasAlpha);
+        // Create event doesn't count
+        this.totalEvents += this.buffers[i].events.length - 1;
+        var createEvent = new BufferAddEvent(-1, -1, false, -1,
+                                             this.buffers[i].hasAlpha,
+                                           this.buffers[i].events[0].clearColor,
+                                             this.buffers[i].events[0].opacity);
+        var buffer = this.createBuffer(createEvent, false);
         this.animationBuffers.push(buffer);
     }
     this.animationRasterizers = [];
@@ -955,10 +961,11 @@ Picture.prototype.animate = function(simultaneousStrokes, speed,
     var j = -1;
     this.eventToAnimate = function(index) {
         for (var i = 0; i < that.buffers.length; ++i) {
-            if (index < that.buffers[i].events.length) {
-                return {event: that.buffers[i].events[index], bufferIndex: i};
+            if (index < that.buffers[i].events.length - 1) {
+                return {event: that.buffers[i].events[index + 1],
+                        bufferIndex: i};
             } else {
-                index -= that.buffers[i].events.length;
+                index -= that.buffers[i].events.length - 1;
             }
         }
         return null; // should not be reached
@@ -1108,7 +1115,7 @@ Picture.prototype.blamePixel = function(coords) {
     var j = this.buffers.length;
     while (j >= 1) {
         --j;
-        if (this.buffers[j].events.length > 0) {
+        if (this.buffers[j].events.length > 1) {
             var bufferBlame = this.buffers[j].blamePixel(coords);
             if (bufferBlame.length > 0) {
                 blame = blame.concat(bufferBlame);

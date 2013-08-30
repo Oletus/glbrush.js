@@ -81,14 +81,14 @@ CanvasCompositor.prototype.flush = function() {
     while (i < this.pending.length) {
         if (i + 1 === this.pending.length ||
             this.pending[i + 1].type === CanvasCompositor.Element.buffer) {
-            this.ctx.globalAlpha = this.pending[i].buffer.opacity;
+            this.ctx.globalAlpha = this.pending[i].buffer.opacity();
             this.ctx.drawImage(this.pending[i].buffer.canvas, 0, 0);
             ++i;
         } else {
             if (this.pending[i].buffer.hasAlpha) {
                 this.compositingCtx.clearRect(0, 0, this.width, this.height);
             }
-            var opacity = this.pending[i].buffer.opacity;
+            var opacity = this.pending[i].buffer.opacity();
             this.compositingCtx.drawImage(this.pending[i].buffer.canvas, 0, 0);
             var sourceCtx = this.pending[i].buffer.ctx;
             ++i;
@@ -144,7 +144,7 @@ GLCompositor.prototype.prepare = CanvasCompositor.prototype.prepare;
  */
 GLCompositor.prototype.pushBuffer = function(buffer) {
     // TODO: assert(buffer.visible);
-    this.pushBufferTex(buffer.tex, buffer.opacity, buffer.isOpaque());
+    this.pushBufferTex(buffer.tex, buffer.opacity(), buffer.isOpaque());
 };
 
 /**
