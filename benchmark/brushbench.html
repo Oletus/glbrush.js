@@ -58,7 +58,6 @@ runTest = function() {
     var eventCount = 1000;
     var mode = PictureEvent.Mode.normal;
     var bufferHasAlpha = true;
-    var hasUndoStates = true;
     var radius = 20;
     var softness = 1.0;
 
@@ -69,7 +68,7 @@ runTest = function() {
         console.log('Could not test mode ' + pictureMode);
         return undefined;
     }
-    testPic.addBuffer(0, [255, 255, 255, 128], hasUndoStates, bufferHasAlpha);
+    testPic.addBuffer(0, [255, 255, 255, 128], bufferHasAlpha);
     for (var report = 0; report <= 1; ++report) {
         var totalTime = measureBrushStrokeTime(testPic, 1000, radius, softness,
                                                mode, report === 1);

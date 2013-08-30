@@ -108,12 +108,10 @@ Picture.prototype.setupGLState = function() {
  * Should be an integer >= 0.
  * @param {Array.<number>} clearColor 4-component array with RGBA color that's
  * used to clear this buffer.
- * @param {boolean} hasUndoStates Does the buffer store undo states?
  * @param {boolean} hasAlpha Does the buffer have an alpha channel?
  */
-Picture.prototype.addBuffer = function(id, clearColor, hasUndoStates,
-                                       hasAlpha) {
-    var buffer = this.createBuffer(id, clearColor, hasUndoStates, hasAlpha);
+Picture.prototype.addBuffer = function(id, clearColor, hasAlpha) {
+    var buffer = this.createBuffer(id, clearColor, true, hasAlpha);
     this.buffers.push(buffer);
 };
 
@@ -284,12 +282,11 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry,
                                   parseInt(arr[j++]),
                                   parseInt(arr[j++]),
                                   parseInt(arr[j++])];
-                var hasUndoStates = arr[j++] === '1';
                 var hasAlpha = arr[j++] === '1';
                 var insertionPoint = parseInt(arr[j++]);
                 var visible = arr[j++] === '1';
                 var opacity = parseFloat(arr[j++]);
-                pic.addBuffer(bufferId, clearColor, hasUndoStates, hasAlpha);
+                pic.addBuffer(bufferId, clearColor, hasAlpha);
                 var targetBuffer = pic.buffers[pic.buffers.length - 1];
                 targetBuffer.setInsertionPoint(insertionPoint);
                 targetBuffer.visible = visible;
@@ -346,7 +343,6 @@ Picture.prototype.serialize = function() {
         var buffer = this.buffers[i];
         serialization.push('buffer ' + buffer.id +
                            ' ' + colorUtil.serializeRGBA(buffer.clearColor) +
-                           ' ' + (buffer.undoStates !== null ? '1' : '0') +
                            ' ' + (buffer.hasAlpha ? '1' : '0') +
                            ' ' + buffer.insertionPoint +
                            ' ' + (buffer.visible ? '1' : '0') +
