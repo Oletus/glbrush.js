@@ -298,6 +298,20 @@ var doPictureTest = function(mode) {
         expect(mergeEvent.mergedBuffer.isDummy).toBe(false);
     });
 
+    it('undoes a merge event', function() {
+        var pic = testPicture();
+        var clearColor = [12, 23, 34];
+        pic.addBuffer(1337, clearColor, false);
+        pic.addBuffer(9001, clearColor, false);
+        var mergeEvent = pic.createMergeEvent(1, 0.7);
+        pic.pushEvent(1337, mergeEvent);
+        expect(pic.buffers.length).toBe(1);
+        pic.undoLatest();
+        expect(pic.buffers.length).toBe(2);
+        expect(pic.buffers[0].id).toBe(1337);
+        expect(pic.buffers[1].id).toBe(9001);
+    });
+
     it('does not display buffers whose creation has been undone', function() {
         var pic = testPicture();
         var clearColor = [12, 23, 34];

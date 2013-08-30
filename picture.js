@@ -701,7 +701,8 @@ Picture.prototype.undoEventIndex = function(buffer, eventIndex,
                                        allowUndoMerge);
     if (undone && undone.eventType === 'bufferMerge') {
         // TODO: assert(allowUndoMerge);
-        this.buffers.splice(latest.bufferIndex + 1, 0, undone.mergedBuffer);
+        var bufferIndex = this.findBufferIndex(this.buffers, buffer.id);
+        this.buffers.splice(bufferIndex + 1, 0, undone.mergedBuffer);
     }
     return undone;
 };
