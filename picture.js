@@ -884,7 +884,7 @@ Picture.prototype.display = function() {
         this.gl.scissor(0, 0, this.bitmapWidth(), this.bitmapHeight());
     }
     for (var i = 0; i < this.buffers.length; ++i) {
-        if (this.buffers[i].visible) {
+        if (this.buffers[i].visible && !this.buffers[i].events[0].undone) {
             this.compositor.pushBuffer(this.buffers[i]);
             if (this.currentEventAttachment === i) {
                 if (this.currentEvent) {
