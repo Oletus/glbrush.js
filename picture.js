@@ -713,7 +713,6 @@ Picture.prototype.undoEventIndex = function(buffer, eventIndex,
  * @return {boolean} True on success.
  */
 Picture.prototype.undoEventSessionId = function(sid, sessionEventId) {
-    var j = this.buffers.length;
     if (this.undoEventFromBuffers(this.buffers, sid, sessionEventId)) {
         return true;
     }
@@ -733,6 +732,7 @@ Picture.prototype.undoEventSessionId = function(sid, sessionEventId) {
  */
 Picture.prototype.undoEventFromBuffers = function(buffers, sid,
                                                   sessionEventId) {
+    var j = this.buffers.length;
     while (j >= 1) {
         --j;
         var i = buffers[j].eventIndexBySessionId(sid, sessionEventId);

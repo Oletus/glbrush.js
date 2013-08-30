@@ -314,6 +314,14 @@ var doPictureTest = function(mode) {
         expect(samplePixel[2]).toBe(0);
         expect(samplePixel[3]).toBe(0);
     });
+
+    it('undoes an event according to session id', function() {
+        var pic = testPicture();
+        var clearColor = [12, 23, 34];
+        pic.addBuffer(1337, clearColor, false);
+        pic.undoEventSessionId(pic.activeSid, pic.activeSessionEventId - 1);
+        expect(pic.buffers[0].events[0].undone).toBe(true);
+    });
 };
  
 describe('Picture', function() {
