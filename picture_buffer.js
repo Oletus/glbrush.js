@@ -124,7 +124,9 @@ PictureBuffer.prototype.applyEvent = function(event, rasterizer) {
     } else if (event.eventType === 'bufferMerge') {
         // TODO: assert(event.mergedBuffer !== this);
         event.mergedBuffer.mergedTo = this;
-        this.drawBuffer(event.mergedBuffer, event.opacity);
+        if (!event.mergedBuffer.events[0].undone) {
+            this.drawBuffer(event.mergedBuffer, event.opacity);
+        }
     } else if (event.eventType === 'bufferAdd') {
         this.clear(event.clearColor);
     }
@@ -466,12 +468,15 @@ PictureBuffer.prototype.undoEventIndex = function(eventIndex, rasterizer,
  * @protected
  */
 PictureBuffer.prototype.playbackAfterChange = function(eventIndex, rasterizer) {
-    this.pushClipRect(this.events[eventIndex].getBoundingBox(this.boundsRect));
-    this.invalidateUndoStatesFrom(eventIndex);
-    var undoState = this.previousUndoState(eventIndex);
-    this.applyState(undoState);
-    this.playbackStartingFrom(undoState.index, rasterizer);
-    this.popClip();
+    if (!this.events[0].undone) {
+        var bBox = this.events[eventIndex].getBoundingBox(this.boundsRect);
+        this.pushClipRect(bBox);
+        this.invalidateUndoStatesFrom(eventIndex);
+        var undoState = this.previousUndoState(eventIndex);
+        this.applyState(undoState);
+        this.playbackStartingFrom(undoState.index, rasterizer);
+        this.popClip();
+    }
     if (this.mergedTo !== null) {
         this.mergedTo.mergedBufferChanged(this, rasterizer);
     }

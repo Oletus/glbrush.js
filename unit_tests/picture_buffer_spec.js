@@ -242,7 +242,8 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
     var createTestMergeEvent = function() {
         var mergedBuffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
-        var event = generateBrushEvent(9231, params.width, params.height);
+        var event = fillingBrushEvent(params.width, params.height, [12, 23, 34],
+                                      1.0);
         mergedBuffer.pushEvent(event, rasterizer);
         // TODO: using this sessionEventId value is not actually correct,
         // and same goes for events generated in fillBuffer().
@@ -314,8 +315,27 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
         buffer.pushEvent(mergeEvent);
+        mergeEvent.mergedBuffer.undoEventIndex(1, rasterizer);
+        expectBufferCorrect(buffer, rasterizer, 3);
+    });
+    
+    it('does not draw an undone merged buffer', function() {
+        var mergeEvent = createTestMergeEvent();
+        var buffer = createBuffer(params);
+        var rasterizer = createRasterizer(params);
+        buffer.pushEvent(mergeEvent);
+        var samplePixel = buffer.getPixelRGBA(new Vec2(0, 0));
+        expect(samplePixel[0]).not.toBeNear(60, 5);
+        expect(samplePixel[1]).not.toBeNear(120, 5);
+        expect(samplePixel[2]).not.toBeNear(180, 5);
+        expect(samplePixel[3]).not.toBeNear(150, 5);
         mergeEvent.mergedBuffer.undoEventIndex(0, rasterizer);
         expectBufferCorrect(buffer, rasterizer, 3);
+        samplePixel = buffer.getPixelRGBA(new Vec2(0, 0));
+        expect(samplePixel[0]).toBeNear(60, 5);
+        expect(samplePixel[1]).toBeNear(120, 5);
+        expect(samplePixel[2]).toBeNear(180, 5);
+        expect(samplePixel[3]).toBeNear(150, 5);
     });
 
     it('does not blame its creator', function() {
