@@ -218,6 +218,11 @@ describe('util2d', function() {
             expect(rect.height()).toBe(2);
         });
 
+        it('calculates its area', function() {
+            var rect = testRect();
+            expect(rect.area()).toBe(2);
+        });
+
         it('can be made empty', function() {
             var rect = testRect();
             expect(rect.isEmpty()).toBe(false);
@@ -363,6 +368,24 @@ describe('util2d', function() {
             expect(rectA.right).toBe(1.5);
             rectA.limitRight(0.5);
             expect(rectA.right).toBe(1);
+        });
+
+        it('determines whether another Rect is mostly inside it', function() {
+            var rectA = testRect();
+            expect(rectA.isMostlyInside(new Rect(rectA.left - 2,
+                                                 rectA.right + rectA.width(),
+                                                 rectA.top - rectA.height(),
+                                                 rectA.bottom + 2))).toBe(true);
+            expect(rectA.isMostlyInside(new Rect(rectA.left +
+                                                 rectA.width() * 0.49,
+                                                 rectA.right,
+                                                 rectA.top,
+                                                 rectA.bottom))).toBe(true);
+            expect(rectA.isMostlyInside(new Rect(rectA.left +
+                                                 rectA.width() * 0.51,
+                                                 rectA.right,
+                                                 rectA.top,
+                                                 rectA.bottom))).toBe(false);
         });
     });
 });

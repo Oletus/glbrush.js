@@ -525,6 +525,21 @@ PictureBuffer.prototype.isOpaque = function() {
     return !this.hasAlpha && this.opacity() === 1.0;
 };
 
+/**
+ * @param {Rect} rect Rectangle to pick events from.
+ * @return {Array.<PictureEvent>} Events mostly inside the given rect.
+ */
+PictureBuffer.prototype.pickEventsMostlyInside = function(rect) {
+    var inside = [];
+    for (var i = 1; i < this.events.length; ++i) {
+        var bb = this.events[i].getBoundingBox(this.boundsRect);
+        if (bb && !this.events[i].undone && bb.isMostlyInside(rect)) {
+            inside.push(this.events[i]);
+        }
+    }
+    return inside;
+};
+
 
 /**
  * A PictureBuffer implementation with a canvas backing for the bitmap.

@@ -244,6 +244,28 @@ BrushEvent.prototype.scale = function(scale) {
 };
 
 /**
+ * Translate this event. This will change the coordinates of the stroke. Note
+ * that the event is not cleared from any rasterizers, clear any rasterizers
+ * that have this event manually before calling this function.
+ * @param {Vec2} offset The vector to translate with.
+ */
+BrushEvent.prototype.translate = function(offset) {
+    for (var i = 0; i < this.coords.length; ++i) {
+        if (i % BrushEvent.coordsStride === 0) {
+            this.coords[i] += offset.x;
+        } else if (i % BrushEvent.coordsStride === 1) {
+            this.coords[i] += offset.y;
+        }
+    }
+    if (this.boundingBox) {
+        this.boundingBox.left += offset.x;
+        this.boundingBox.right += offset.x;
+        this.boundingBox.top += offset.y;
+        this.boundingBox.bottom += offset.y;
+    }
+};
+
+/**
  * @const
  */
 BrushEvent.lineSegmentLength = 5.0;

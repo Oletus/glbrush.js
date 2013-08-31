@@ -371,6 +371,13 @@ Rect.prototype.height = function() {
 };
 
 /**
+ * @return {number} Area of the rectangle.
+ */
+Rect.prototype.area = function() {
+    return this.width() * this.height();
+};
+
+/**
  * @return {Object} This rectangle rounded out to integer coordinates. The
  * return value includes numbers x (left edge), y (top edge), w (width) and h
  * (height).
@@ -567,6 +574,15 @@ Rect.prototype.getIntersection = function(rect) {
     var ret = new Rect(rect.left, rect.right, rect.top, rect.bottom);
     ret.intersectRect(this);
     return ret;
+};
+
+/**
+ * Test whether this rectangle is mostly inside another.
+ * @param {Rect} rect Rectangle to check against.
+ * @return {boolean} Whether most of this rectangle is inside the given one.
+ */
+Rect.prototype.isMostlyInside = function(rect) {
+    return (this.getIntersection(rect).area() > 0.5 * this.area());
 };
 
 /**
