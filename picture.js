@@ -665,9 +665,11 @@ Picture.prototype.findLatest = function(sid, canBeUndone) {
  * Undo the latest non-undone event applied to this picture by the current
  * active session. Won't do anything in case the latest event is a merge event
  * applied to a buffer that is itself removed or merged.
+ * @param {boolean} keepLastBuffer Don't undo the last remaining buffer.
+ * Defaults to true.
  * @return {PictureEvent} The event that was undone or null if no event found.
  */
-Picture.prototype.undoLatest = function() {
+Picture.prototype.undoLatest = function(keepLastBuffer) {
     var latest = this.findLatest(this.activeSid, false);
     if (latest === null) {
         return null;
@@ -677,6 +679,20 @@ Picture.prototype.undoLatest = function() {
         buffer = this.removedBuffers[latest.bufferIndex];
     } else {
         buffer = this.buffers[latest.bufferIndex];
+        if (keepLastBuffer === undefined) {
+            keepLastBuffer = true;
+        }
+        if (keepLastBuffer && latest.eventIndex === 0) {
+            var buffersLeft = 0;
+            for (var i = 0; i < this.buffers.length; ++i) {
+                if (!this.buffers[i].events[0].undone) {
+                    ++buffersLeft;
+                }
+            }
+            if (buffersLeft === 1) {
+                return null;
+            }
+        }
     }
     var undone = this.undoEventIndex(buffer, latest.eventIndex,
                                      latest.inRemovedBuffer);
