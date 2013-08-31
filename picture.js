@@ -955,8 +955,6 @@ Picture.prototype.animate = function(simultaneousStrokes, speed,
         var buffer = this.createBuffer(createEvent, false);
         this.animationBuffers.push(buffer);
     }
-    this.animationRasterizers = [];
-    this.animationEventIndices = [];
 
     simultaneousStrokes = Math.min(simultaneousStrokes, this.totalEvents);
     var j = -1;
@@ -982,51 +980,58 @@ Picture.prototype.animate = function(simultaneousStrokes, speed,
         if (eventToAnimate !== null) {
             bufferIndex = eventToAnimate.bufferIndex;
         }
-        return {index: j, bufferIndex: bufferIndex};
+        return {eventIndex: j, bufferIndex: bufferIndex};
+    };
+
+    this.animators = [];
+    var Animator = function(animationPos) {
+        this.rasterizer = that.createRasterizer(true);
+        var indices = getNextEventIndexToAnimate();
+        this.bufferIndex = indices.bufferIndex;
+        this.eventIndex = indices.eventIndex;
+        this.animationPos = animationPos;
     };
 
     for (var i = 0; i < simultaneousStrokes; ++i) {
-        this.animationRasterizers.push(this.createRasterizer(true));
-        this.animationEventIndices.push(getNextEventIndexToAnimate());
+        this.animators.push(new Animator(-i / simultaneousStrokes));
     }
 
-    var animationPos = 0;
     var animationFrame = function() {
         if (!that.animating) {
             return;
         }
         var finishedRasterizers = 0;
-        var animationPosForStroke = animationPos;
-        animationPos += that.animationSpeed;
         for (var i = 0; i < simultaneousStrokes; ++i) {
-            animationPosForStroke -= 1.0 / simultaneousStrokes;
-            var eventIndex = that.animationEventIndices[i].index;
+            var eventIndex = that.animators[i].eventIndex;
             if (eventIndex < that.totalEvents) {
-                if (animationPosForStroke > 0) {
+                that.animators[i].animationPos += that.animationSpeed;
+                if (that.animators[i].animationPos > 0) {
                     var eventToAnimate = that.eventToAnimate(eventIndex);
-                    var bufferIndex = eventToAnimate.bufferIndex;
                     var event = eventToAnimate.event;
-                    var untilPos = (animationPosForStroke % 1.0) +
-                                   that.animationSpeed;
-                    if (untilPos > 1.0) {
-                        event.drawTo(that.animationRasterizers[i]);
-                        that.animationBuffers[bufferIndex].pushEvent(event,
-                            that.animationRasterizers[i]);
-                        that.animationEventIndices[i] =
-                            getNextEventIndexToAnimate();
-                        that.animationRasterizers[i].clear();
-                        that.animationRasterizers[i].resetClip();
+                    if (that.animators[i].animationPos >= 1.0) {
+                        event.drawTo(that.animators[i].rasterizer);
+                        var buffer = that.animationBuffers[
+                            that.animators[i].bufferIndex];
+                        buffer.pushEvent(event, that.animators[i].rasterizer);
+                        var indices = getNextEventIndexToAnimate();
+                        that.animators[i].eventIndex = indices.eventIndex;
+                        that.animators[i].bufferIndex = indices.bufferIndex;
+                        that.animators[i].rasterizer.clear();
+                        that.animators[i].rasterizer.resetClip();
+                        that.animators[i].animationPos -= 1.0;
                     } else {
-                        var untilCoord = event.coords.length * untilPos;
+                        var untilCoord = event.coords.length *
+                                      that.animators[i].animationPos;
+                        event.animationCoord = untilCoord;
                         untilCoord = Math.ceil(untilCoord / 3) * 3;
-                        event.drawTo(that.animationRasterizers[i],
+                        event.drawTo(that.animators[i].rasterizer,
                                      untilCoord);
                     }
                 }
             } else {
-                if (that.animationRasterizers[i] !== null) {
-                    that.animationRasterizers[i].free();
-                    that.animationRasterizers[i] = null;
+                if (that.animators[i].rasterizer !== null) {
+                    that.animators[i].rasterizer.free();
+                    that.animators[i].rasterizer = null;
                 }
                 ++finishedRasterizers;
             }
@@ -1052,10 +1057,10 @@ Picture.prototype.stopAnimating = function() {
     if (this.animating) {
         this.animating = false;
         var i;
-        for (i = 0; i < this.animationRasterizers.length; ++i) {
-            if (this.animationRasterizers[i] !== null) {
-                this.animationRasterizers[i].free();
-                this.animationRasterizers[i] = null;
+        for (i = 0; i < this.animators.length; ++i) {
+            if (this.animators[i].rasterizer !== null) {
+                this.animators[i].rasterizer.free();
+                this.animators[i].rasterizer = null;
             }
         }
         for (i = 0; i < this.animationBuffers.length; ++i) {
@@ -1078,23 +1083,22 @@ Picture.prototype.displayAnimation = function() {
     }
     var i, j;
     var rasterizerIndexOffset = 0;
-    for (i = 0; i < this.animationRasterizers.length; ++i) {
-        if (this.animationEventIndices[i].index <
-            this.animationEventIndices[rasterizerIndexOffset].index) {
+    for (i = 0; i < this.animators.length; ++i) {
+        if (this.animators[i].eventIndex <
+            this.animators[rasterizerIndexOffset].eventIndex) {
             rasterizerIndexOffset = i;
         }
     }
     for (i = 0; i < this.animationBuffers.length; ++i) {
         this.compositor.pushBuffer(this.animationBuffers[i]);
-        for (j = 0; j < this.animationRasterizers.length; ++j) {
+        for (j = 0; j < this.animators.length; ++j) {
             // Start from the rasterizer that's first in the bottom-to-top order
-            var ri = (j + rasterizerIndexOffset) %
-                                  this.animationRasterizers.length;
-            if (this.animationEventIndices[ri].index < this.totalEvents &&
-                this.animationEventIndices[ri].bufferIndex === i) {
+            var ri = (j + rasterizerIndexOffset) % this.animators.length;
+            if (this.animators[ri].eventIndex < this.totalEvents &&
+                this.animators[ri].bufferIndex === i) {
                 var event = this.eventToAnimate(
-                                this.animationEventIndices[ri].index).event;
-                this.compositor.pushRasterizer(this.animationRasterizers[ri],
+                                 this.animators[ri].eventIndex).event;
+                this.compositor.pushRasterizer(this.animators[ri].rasterizer,
                                                event.color, event.opacity,
                                                event.mode,
                                          event.getBoundingBox(this.bitmapRect));
