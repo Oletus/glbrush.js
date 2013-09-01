@@ -329,6 +329,36 @@ var doPictureTest = function(mode) {
         expect(samplePixel[3]).toBe(0);
     });
 
+    it('does not display removed buffers', function() {
+        var pic = testPicture();
+        var clearColor = [12, 23, 34];
+        pic.addBuffer(1337, clearColor, false);
+        var samplePixel = pic.getPixelRGBA(new Vec2(0, 0));
+        expect(samplePixel[0]).toBe(12);
+        expect(samplePixel[1]).toBe(23);
+        expect(samplePixel[2]).toBe(34);
+        expect(samplePixel[3]).toBe(255);
+        pic.removeBuffer(1337);
+        var samplePixel = pic.getPixelRGBA(new Vec2(0, 0));
+        expect(samplePixel[0]).toBe(0);
+        expect(samplePixel[1]).toBe(0);
+        expect(samplePixel[2]).toBe(0);
+        expect(samplePixel[3]).toBe(0);
+    });
+
+    it('can undo buffer removal', function() {
+        var pic = testPicture();
+        var clearColor = [12, 23, 34];
+        pic.addBuffer(1337, clearColor, false);
+        pic.removeBuffer(1337);
+        pic.undoLatest(); // Undo the buffer removal
+        var samplePixel = pic.getPixelRGBA(new Vec2(0, 0));
+        expect(samplePixel[0]).toBe(12);
+        expect(samplePixel[1]).toBe(23);
+        expect(samplePixel[2]).toBe(34);
+        expect(samplePixel[3]).toBe(255);
+    });
+
     it('keeps the last buffer when undoing if told so', function() {
         var pic = testPicture();
         var clearColor = [12, 23, 34];

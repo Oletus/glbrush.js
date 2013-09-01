@@ -28,6 +28,7 @@ PictureBuffer.prototype.initializePictureBuffer = function(createEvent,
     this.events = [];
     this.isDummy = false;
     this.mergedTo = null;
+    this.removed = false;
     if (hasUndoStates === undefined) {
         hasUndoStates = false;
     }
@@ -125,10 +126,13 @@ PictureBuffer.prototype.applyEvent = function(event, rasterizer) {
         // TODO: assert(event.mergedBuffer !== this);
         event.mergedBuffer.mergedTo = this;
         if (!event.mergedBuffer.events[0].undone) {
+            // TODO: assert(!event.mergedBuffer.removed)
             this.drawBuffer(event.mergedBuffer, event.opacity);
         }
     } else if (event.eventType === 'bufferAdd') {
         this.clear(event.clearColor);
+    } else if (event.eventType === 'bufferRemove') {
+        this.removed = true;
     }
 };
 
@@ -237,7 +241,7 @@ PictureBuffer.prototype.blamePixel = function(coords) {
     this.blameRasterizer.setClip(coordsRect);
     var blame = [];
     while (i >= 1) {
-        if (!this.events[i].undone) {
+        if (!this.events[i].undone && this.events[i].isRasterized()) {
             var boundingBox = this.events[i].getBoundingBox(coordsRect);
             if (boundingBox.containsRoundedOut(coords)) {
                 this.blameRasterizer.clear();
@@ -454,6 +458,8 @@ PictureBuffer.prototype.undoEventIndex = function(eventIndex, rasterizer,
             return null;
         }
         this.events[eventIndex].mergedBuffer.mergedTo = null;
+    } else if (this.events[eventIndex].eventType === 'bufferRemove') {
+        this.removed = false;
     }
     this.events[eventIndex].undone = true;
     this.playbackAfterChange(eventIndex, rasterizer);
@@ -543,6 +549,20 @@ PictureBuffer.prototype.pickEventsMostlyInside = function(rect) {
         }
     }
     return inside;
+};
+
+/**
+ * @return {boolean} Whether this buffer should be considered removed.
+ */
+PictureBuffer.prototype.isRemoved = function() {
+    return this.events[0].undone || this.removed;
+};
+
+/**
+ * @return {boolean} Whether this buffer should be composited.
+ */
+PictureBuffer.prototype.isComposited = function() {
+    return this.visible && !this.isRemoved();
 };
 
 

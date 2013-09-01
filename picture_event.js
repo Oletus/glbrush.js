@@ -67,6 +67,8 @@ PictureEvent.parse = function(arr, i) {
         return BufferMergeEvent.parse(arr, i, sid, sessionEventId, undone);
     } else if (eventType === 'bufferAdd') {
         return BufferAddEvent.parse(arr, i, sid, sessionEventId, undone);
+    } else if (eventType === 'bufferRemove') {
+        return BufferRemoveEvent.parse(arr, i, sid, sessionEventId, undone);
     } else {
         console.log('Unexpected picture event type ' + eventType);
         return null;
@@ -445,7 +447,7 @@ GradientEvent.prototype = new PictureEvent('gradient');
  * is that the sid/sessionEventId pair is unique for this event. Must be an
  * integer.
  * @param {boolean} undone Whether this event is undone.
- * @return {BrushEvent} The parsed event or null.
+ * @return {GradientEvent} The parsed event or null.
  */
 GradientEvent.parse = function(arr, i, sid, sessionEventId, undone) {
     var color = [];
@@ -632,7 +634,7 @@ BufferAddEvent.prototype.isRasterized = function() {
 BufferAddEvent.prototype.scale = function(scale) {};
 
 /**
- * Parse a BufferMergeEvent from a tokenized serialization.
+ * Parse a BufferAddEvent from a tokenized serialization.
  * @param {Array.<string>} arr Array containing the tokens, split at spaces from
  * the original serialization.
  * @param {number} i Index of the first token to deserialize.
@@ -641,7 +643,7 @@ BufferAddEvent.prototype.scale = function(scale) {};
  * is that the sid/sessionEventId pair is unique for this event. Must be an
  * integer.
  * @param {boolean} undone Whether this event is undone.
- * @return {BrushEvent} The parsed event or null.
+ * @return {BufferAddEvent} The parsed event or null.
  */
 BufferAddEvent.parse = function(arr, i, sid, sessionEventId, undone) {
     var bufferId = parseInt(arr[i++]);
@@ -685,6 +687,80 @@ BufferAddEvent.prototype.serialize = function(scale) {
  * effect.
  */
 BufferAddEvent.prototype.getBoundingBox = function(clipRect) {
+    return new Rect(clipRect.left, clipRect.right,
+                    clipRect.top, clipRect.bottom);
+};
+
+/**
+ * Event that removes a buffer from a Picture.
+ * @constructor
+ * @param {number} sid Session identifier. Must be an integer.
+ * @param {number} sessionEventId An event/session specific identifier. The idea
+ * is that the sid/sessionEventId pair is unique for this event, and that newer
+ * events will have greater sessionEventIds. Must be an integer.
+ * @param {boolean} undone Whether this event is undone.
+ * @param {number} bufferId Id of the removed buffer.
+ */
+var BufferRemoveEvent = function(sid, sessionEventId, undone, bufferId) {
+    this.undone = undone;
+    this.sid = sid;
+    this.sessionEventId = sessionEventId;
+    this.bufferId = bufferId;
+};
+
+BufferRemoveEvent.prototype = new PictureEvent('bufferRemove');
+
+/**
+ * @return {boolean} Is the event drawn using a rasterizer?
+ */
+BufferRemoveEvent.prototype.isRasterized = function() {
+    return false;
+};
+
+/**
+ * Scale this event.
+ * @param {number} scale Scaling factor. Must be larger than 0.
+ */
+BufferRemoveEvent.prototype.scale = function(scale) {};
+
+/**
+ * Parse a BufferRemoveEvent from a tokenized serialization.
+ * @param {Array.<string>} arr Array containing the tokens, split at spaces from
+ * the original serialization.
+ * @param {number} i Index of the first token to deserialize.
+ * @param {number} sid Session identifier. Must be an integer.
+ * @param {number} sessionEventId An event/session specific identifier. The idea
+ * is that the sid/sessionEventId pair is unique for this event. Must be an
+ * integer.
+ * @param {boolean} undone Whether this event is undone.
+ * @return {BufferRemoveEvent} The parsed event or null.
+ */
+BufferRemoveEvent.parse = function(arr, i, sid, sessionEventId, undone) {
+    var bufferId = parseInt(arr[i++]);
+    var pictureEvent = new BufferRemoveEvent(sid, sessionEventId, undone,
+                                             bufferId);
+    return pictureEvent;
+};
+
+/**
+ * @param {number} scale Scale to multiply serialized coordinates with.
+ * @return {string} A serialization of the event.
+ */
+BufferRemoveEvent.prototype.serialize = function(scale) {
+    var eventMessage = this.serializePictureEvent();
+    eventMessage += ' ' + this.bufferId;
+    return eventMessage;
+};
+
+/**
+ * @param {Rect} clipRect Canvas bounds that can be used to intersect the
+ * bounding box against, though this is not mandatory.
+ * @return {Rect} The event's bounding box, or null if it hasn't yet been
+ * generated. Events are allowed to defer bounding box calculation to drawTo().
+ * This function is not allowed to change its earlier return values as a side
+ * effect.
+ */
+BufferRemoveEvent.prototype.getBoundingBox = function(clipRect) {
     return new Rect(clipRect.left, clipRect.right,
                     clipRect.top, clipRect.bottom);
 };
@@ -736,7 +812,7 @@ BufferMergeEvent.prototype.scale = function(scale) {};
  * is that the sid/sessionEventId pair is unique for this event. Must be an
  * integer.
  * @param {boolean} undone Whether this event is undone.
- * @return {BrushEvent} The parsed event or null.
+ * @return {BufferMergeEvent} The parsed event or null.
  */
 BufferMergeEvent.parse = function(arr, i, sid, sessionEventId, undone) {
     var opacity = parseFloat(arr[i++]);

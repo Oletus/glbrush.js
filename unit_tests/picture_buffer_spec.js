@@ -342,7 +342,14 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         var buffer = createBuffer(params);
         expect(buffer.blamePixel(new Vec2(1, 1)).length).toBe(0);
     });
-    
+
+    it('does not blame its removal', function() {
+        var buffer = createBuffer(params);
+        var removal = new BufferRemoveEvent(0, 2, false, buffer.id);
+        buffer.pushEvent(removal);
+        expect(buffer.blamePixel(new Vec2(1, 1)).length).toBe(0);
+    });
+
     it('blames a brush event', function() {
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);

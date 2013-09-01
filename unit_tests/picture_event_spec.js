@@ -30,6 +30,10 @@ describe('PictureEvent', function() {
         commonEventTests(testBufferAddEvent, expectTestBufferAddEvent);
     });
 
+    describe('BufferRemoveEvent', function() {
+        commonEventTests(testBufferRemoveEvent, expectTestBufferRemoveEvent);
+    });
+
     describe('BufferMergeEvent', function() {
         commonEventTests(dummyBufferMergeEvent, expectDummyBufferMergeEvent);
     });

@@ -87,6 +87,17 @@ function expectTestBufferAddEvent(bufferAddEvent) {
     expect(bufferAddEvent.opacity).toBe(0.5);
 }
 
+function testBufferRemoveEvent() {
+    return new BufferRemoveEvent(0, 1, false, 2);
+}
+
+function expectTestBufferRemoveEvent(bufferRemoveEvent) {
+    expect(bufferRemoveEvent.sid).toBe(0);
+    expect(bufferRemoveEvent.sessionEventId).toBe(1);
+    expect(bufferRemoveEvent.undone).toBe(false);
+    expect(bufferRemoveEvent.bufferId).toBe(2);
+}
+
 /**
  * Check a buffer for correctness by replaying it.
  * @param {PictureBuffer} buffer The buffer to check for correctness.

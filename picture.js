@@ -116,6 +116,16 @@ Picture.prototype.addBuffer = function(id, clearColor, hasAlpha) {
 };
 
 /**
+ * Mark a buffer as removed from the stack. It won't be composited, but it can
+ * still be changed.
+ * @param {number} id Identifier for the removed buffer.
+ */
+Picture.prototype.removeBuffer = function(id) {
+    var removeEvent = this.createBufferRemoveEvent(id);
+    this.pushEvent(id, removeEvent);
+};
+
+/**
  * Find a buffer with the given id from this picture.
  * @param {Array.<PictureBuffer>} buffers Array to search for the buffer.
  * @param {number} id Identifier of the buffer to find.
@@ -341,7 +351,8 @@ Picture.prototype.serialize = function() {
 
 /**
  * Set the session with the given sid active for purposes of createBrushEvent,
- * createGradientEvent, createMergeEvent, and undoLatest.
+ * createGradientEvent, createMergeEvent, createBufferAddEvent, addBuffer,
+ * createBufferRemoveEvent, removeBuffer and undoLatest.
  * @param {number} sid The session id to activate. Must be a positive integer.
  */
 Picture.prototype.setActiveSession = function(sid) {
@@ -409,6 +420,21 @@ Picture.prototype.createBufferAddEvent = function(id, hasAlpha, clearColor) {
                                          hasAlpha, clearColor, 1.0);
     this.activeSessionEventId++;
     return createEvent;
+};
+
+/**
+ * Create a buffer removal event using the current active session. The event is
+ * marked as not undone.
+ * @param {number} id Id of the removed buffer.
+ * @return {BufferRemoveEvent} The created buffer adding event.
+ */
+Picture.prototype.createBufferRemoveEvent = function(id) {
+    // TODO: assert(this.findBufferIndex(this.buffers, id) >= 0);
+    var removeEvent = new BufferRemoveEvent(this.activeSid,
+                                            this.activeSessionEventId, false,
+                                            id);
+    this.activeSessionEventId++;
+    return removeEvent;
 };
 
 /**
@@ -586,6 +612,11 @@ Picture.prototype.pushEvent = function(targetBufferId, event) {
         var buffer = this.createBuffer(event, true);
         this.buffers.push(buffer);
         return;
+    } else if (event.eventType === 'bufferRemove') {
+        var bufferIndex = this.findBufferIndex(this.buffers, event.bufferId);
+        // TODO: assert(bufferIndex >= 0);
+        this.buffers[bufferIndex].pushEvent(event, this.genericRasterizer);
+        return;
     }
     var targetBuffer = this.findBuffer(targetBufferId);
     if (this.currentEventRasterizer.drawEvent === event) {
@@ -685,7 +716,7 @@ Picture.prototype.undoLatest = function(keepLastBuffer) {
         if (keepLastBuffer && latest.eventIndex === 0) {
             var buffersLeft = 0;
             for (var i = 0; i < this.buffers.length; ++i) {
-                if (!this.buffers[i].events[0].undone) {
+                if (!this.buffers[i].isRemoved()) {
                     ++buffersLeft;
                 }
             }
@@ -901,7 +932,7 @@ Picture.prototype.display = function() {
         this.gl.scissor(0, 0, this.bitmapWidth(), this.bitmapHeight());
     }
     for (var i = 0; i < this.buffers.length; ++i) {
-        if (this.buffers[i].visible && !this.buffers[i].events[0].undone) {
+        if (this.buffers[i].isComposited()) {
             this.compositor.pushBuffer(this.buffers[i]);
             if (this.currentEventAttachment === i) {
                 if (this.currentEvent) {
@@ -962,25 +993,29 @@ Picture.prototype.animate = function(simultaneousStrokes, speed,
     // TODO: Currently playback is from bottom to top and doesn't support merge
     // events. Switch to a timestamp-based approach.
     for (var i = 0; i < this.buffers.length; ++i) {
-        // Create event doesn't count
-        this.totalEvents += this.buffers[i].events.length - 1;
-        var createEvent = new BufferAddEvent(-1, -1, false, -1,
-                                             this.buffers[i].hasAlpha,
+        if (!this.buffers[i].isRemoved()) {
+            // Create event doesn't count
+            this.totalEvents += this.buffers[i].events.length - 1;
+            var createEvent = new BufferAddEvent(-1, -1, false, -1,
+                                                 this.buffers[i].hasAlpha,
                                            this.buffers[i].events[0].clearColor,
                                              this.buffers[i].events[0].opacity);
-        var buffer = this.createBuffer(createEvent, false);
-        this.animationBuffers.push(buffer);
+            var buffer = this.createBuffer(createEvent, false);
+            this.animationBuffers.push(buffer);
+        }
     }
 
     simultaneousStrokes = Math.min(simultaneousStrokes, this.totalEvents);
     var j = -1;
     this.eventToAnimate = function(index) {
         for (var i = 0; i < that.buffers.length; ++i) {
-            if (index < that.buffers[i].events.length - 1) {
-                return {event: that.buffers[i].events[index + 1],
-                        bufferIndex: i};
-            } else {
-                index -= that.buffers[i].events.length - 1;
+            if (!this.buffers[i].isRemoved()) {
+                if (index < that.buffers[i].events.length - 1) {
+                    return {event: that.buffers[i].events[index + 1],
+                            bufferIndex: i};
+                } else {
+                    index -= that.buffers[i].events.length - 1;
+                }
             }
         }
         return null; // should not be reached
@@ -1137,7 +1172,7 @@ Picture.prototype.blamePixel = function(coords) {
     var j = this.buffers.length;
     while (j >= 1) {
         --j;
-        if (this.buffers[j].events.length > 1) {
+        if (this.buffers[j].events.length > 1 && !this.buffers[j].isRemoved()) {
             var bufferBlame = this.buffers[j].blamePixel(coords);
             if (bufferBlame.length > 0) {
                 blame = blame.concat(bufferBlame);
