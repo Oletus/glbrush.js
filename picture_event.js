@@ -93,6 +93,13 @@ PictureEvent.prototype.boundsIntersectRect = function(rect) {
 };
 
 /**
+ * @return {boolean} Whether the event is a buffer stack change.
+ */
+PictureEvent.prototype.isBufferStackChange = function() {
+    return false;
+};
+
+/**
  * @enum {number}
  */
 PictureEvent.Mode = {
@@ -408,6 +415,7 @@ BrushEvent.prototype.isRasterized = function() {
     return true;
 };
 
+
 /**
  * A PictureEvent representing a gradient.
  * @constructor
@@ -628,6 +636,13 @@ BufferAddEvent.prototype.isRasterized = function() {
 };
 
 /**
+ * @return {boolean} Whether the event is a buffer stack change.
+ */
+BufferAddEvent.prototype.isBufferStackChange = function() {
+    return true;
+};
+
+/**
  * Scale this event.
  * @param {number} scale Scaling factor. Must be larger than 0.
  */
@@ -718,6 +733,13 @@ BufferRemoveEvent.prototype.isRasterized = function() {
 };
 
 /**
+ * @return {boolean} Whether the event is a buffer stack change.
+ */
+BufferRemoveEvent.prototype.isBufferStackChange = function() {
+    return true;
+};
+
+/**
  * Scale this event.
  * @param {number} scale Scaling factor. Must be larger than 0.
  */
@@ -794,6 +816,13 @@ BufferMergeEvent.prototype = new PictureEvent('bufferMerge');
  */
 BufferMergeEvent.prototype.isRasterized = function() {
     return false;
+};
+
+/**
+ * @return {boolean} Whether the event is a buffer stack change.
+ */
+BufferMergeEvent.prototype.isBufferStackChange = function() {
+    return true;
 };
 
 /**
