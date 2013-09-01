@@ -27,8 +27,8 @@ var Picture = function(id, boundsRect, bitmapScale, mode,
     this.activeSessionEventId = 0;
 
     this.buffers = [];
-    this.removedBuffers = []; // Merged and removed buffers. Events can still be
-    // undone from these buffers.
+    this.mergedBuffers = []; // Merged buffers. Events can still be undone from
+    // these buffers.
     this.currentEventAttachment = currentEventAttachment;
     this.currentEvent = null;
     this.currentEventMode = PictureEvent.Mode.normal;
@@ -142,9 +142,9 @@ Picture.prototype.findBuffer = function(id) {
     if (ind !== -1) {
         return this.buffers[ind];
     }
-    ind = this.findBufferIndex(this.removedBuffers, id);
+    ind = this.findBufferIndex(this.mergedBuffers, id);
     if (ind !== -1) {
-        return this.removedBuffers[ind];
+        return this.mergedBuffers[ind];
     }
     return null;
 };
@@ -324,8 +324,8 @@ Picture.prototype.serialize = function() {
     var serialization = ['picture ' + this.width() + ' ' + this.height()];
     var i;
     var buffer;
-    for (i = 0; i < this.removedBuffers.length; ++i) {
-        buffer = this.removedBuffers[i];
+    for (i = 0; i < this.mergedBuffers.length; ++i) {
+        buffer = this.mergedBuffers[i];
         for (var j = 0; j < buffer.events.length; ++j) {
             serialization.push(buffer.events[j].serialize(serializationScale));
         }
@@ -600,7 +600,7 @@ Picture.prototype.pushEvent = function(targetBufferId, event) {
             }
             targetBuffer.pushEvent(event, this.genericRasterizer);
             this.buffers.splice(mergedBufferIndex, 1);
-            this.removedBuffers.push(event.mergedBuffer);
+            this.mergedBuffers.push(event.mergedBuffer);
         } else {
             targetBuffer.pushEvent(event, this.genericRasterizer);
         }
@@ -642,15 +642,15 @@ Picture.prototype.findLatest = function(sid, canBeUndone) {
             latestId = this.buffers[i].events[latestIdx].sessionEventId;
         }
     }
-    for (i = 0; i < this.removedBuffers.length; ++i) {
-        var candidateIndex = this.removedBuffers[i].findLatest(sid,
-                                                               canBeUndone);
+    for (i = 0; i < this.mergedBuffers.length; ++i) {
+        var candidateIndex = this.mergedBuffers[i].findLatest(sid,
+                                                              canBeUndone);
         if (candidateIndex >= 0 &&
-            this.removedBuffers[i].events[candidateIndex].sessionEventId >
+            this.mergedBuffers[i].events[candidateIndex].sessionEventId >
             latestId) {
             latestBufferIndex = i;
             latestIdx = candidateIndex;
-            latestId = this.removedBuffers[i].events[latestIdx].sessionEventId;
+            latestId = this.mergedBuffers[i].events[latestIdx].sessionEventId;
             latestInRemovedBuffer = true;
         }
     }
@@ -676,7 +676,7 @@ Picture.prototype.undoLatest = function(keepLastBuffer) {
     }
     var buffer;
     if (latest.inRemovedBuffer) {
-        buffer = this.removedBuffers[latest.bufferIndex];
+        buffer = this.mergedBuffers[latest.bufferIndex];
     } else {
         buffer = this.buffers[latest.bufferIndex];
         if (keepLastBuffer === undefined) {
@@ -704,15 +704,15 @@ Picture.prototype.undoLatest = function(keepLastBuffer) {
  * handle events that change the buffer stack.
  * @param {PictureBuffer} buffer Buffer to undo from.
  * @param {number} eventIndex Index of the event in the buffer.
- * @param {boolean} isBufferRemoved Is the buffer in removedBuffers?
+ * @param {boolean} isBufferMerged Is the buffer in mergedBuffers?
  * @return {PictureEvent} Undone event or null if couldn't undo.
  * @protected
  */
 Picture.prototype.undoEventIndex = function(buffer, eventIndex,
-                                            isBufferRemoved) {
-    // Disallowing undoing merge events from removed or merged buffers. Must
-    // avoid head exploding from complexity...
-    var allowUndoMerge = !isBufferRemoved;
+                                            isBufferMerged) {
+    // Disallowing undoing merge events from merged buffers. Must avoid head
+    // exploding from complexity...
+    var allowUndoMerge = !isBufferMerged;
     var undone = buffer.undoEventIndex(eventIndex, this.genericRasterizer,
                                        allowUndoMerge);
     if (undone && undone.eventType === 'bufferMerge') {
@@ -733,7 +733,7 @@ Picture.prototype.undoEventSessionId = function(sid, sessionEventId) {
     if (this.undoEventFromBuffers(this.buffers, sid, sessionEventId)) {
         return true;
     }
-    if (this.undoEventFromBuffers(this.removedBuffers, sid, sessionEventId)) {
+    if (this.undoEventFromBuffers(this.mergedBuffers, sid, sessionEventId)) {
         return true;
     }
     return false;
@@ -756,7 +756,7 @@ Picture.prototype.undoEventFromBuffers = function(buffers, sid,
         if (i >= 0) {
             if (!buffers[j].events[i].undone) {
                 this.undoEventIndex(buffers[j], i,
-                                    buffers === this.removedBuffers);
+                                    buffers === this.mergedBuffers);
             }
             return true;
         }
@@ -775,7 +775,7 @@ Picture.prototype.redoEventSessionId = function(sid, sessionEventId) {
     if (this.redoEventFromBuffers(this.buffers, sid, sessionEventId)) {
         return true;
     }
-    return this.redoEventFromBuffers(this.removedBuffers, sid, sessionEventId);
+    return this.redoEventFromBuffers(this.mergedBuffers, sid, sessionEventId);
 };
 
 /**
@@ -800,7 +800,7 @@ Picture.prototype.redoEventFromBuffers = function(buffers, sid,
                 // TODO: assert(!event.mergedBuffer.isDummy);
                 buffers[j].redoEventIndex(i, this.genericRasterizer);
                 this.buffers.splice(mergedBufferIndex, 1);
-                this.removedBuffers.push(event.mergedBuffer);
+                this.mergedBuffers.push(event.mergedBuffer);
             } else {
                 buffers[j].redoEventIndex(i, this.genericRasterizer);
             }
@@ -820,7 +820,7 @@ Picture.prototype.removeEventSessionId = function(sid, sessionEventId) {
     if (this.removeEventFromBuffers(this.buffers, sid, sessionEventId)) {
         return true;
     }
-    return this.removeEventFromBuffers(this.removedBuffers, sid,
+    return this.removeEventFromBuffers(this.mergedBuffers, sid,
                                        sessionEventId);
 };
 
@@ -841,9 +841,9 @@ Picture.prototype.removeEventFromBuffers = function(buffers, sid,
         if (i >= 0) {
             var undone = true;
             if (!buffers[j].events[i].undone) {
-                // Don't undo merge events from removed or merged buffers
+                // Don't undo merge events from merged buffers
                 undone = this.undoEventIndex(buffers[j], i,
-                                             buffers === this.removedBuffers);
+                                             buffers === this.mergedBuffers);
             }
             if (undone) {
                 buffers[j].removeEventIndex(i, this.genericRasterizer);

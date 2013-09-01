@@ -218,14 +218,14 @@ var doPictureTest = function(mode) {
         var mergeEvent = pic.createMergeEvent(1, 0.7);
         pic.pushEvent(1337, mergeEvent);
         expect(pic.buffers.length).toBe(1);
-        expect(pic.removedBuffers.length).toBe(1);
-        expect(pic.removedBuffers[0].mergedTo).toBe(pic.buffers[0]);
+        expect(pic.mergedBuffers.length).toBe(1);
+        expect(pic.mergedBuffers[0].mergedTo).toBe(pic.buffers[0]);
 
         pic = Picture.resize(pic, pic.bitmapScale);
 
         expect(pic.buffers.length).toBe(1);
-        expect(pic.removedBuffers.length).toBe(1);
-        expect(pic.removedBuffers[0].mergedTo).toBe(pic.buffers[0]);
+        expect(pic.mergedBuffers.length).toBe(1);
+        expect(pic.mergedBuffers[0].mergedTo).toBe(pic.buffers[0]);
     });
 
     it('can undo the latest event', function() {
