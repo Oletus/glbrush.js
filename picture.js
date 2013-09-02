@@ -625,10 +625,10 @@ Picture.prototype.pushEvent = function(targetBufferId, event) {
         if (event.eventType === 'bufferMerge') {
             var mergedBufferIndex = this.findBufferIndex(this.buffers,
                                                          event.mergedBuffer.id);
-            // TODO: assert(mergedBufferIndex !== targetBuffer);
             if (event.mergedBuffer.isDummy) {
                 event.mergedBuffer = this.buffers[mergedBufferIndex];
             }
+            // TODO: assert(event.mergedBuffer !== targetBuffer);
             targetBuffer.pushEvent(event, this.genericRasterizer);
             this.buffers.splice(mergedBufferIndex, 1);
             this.mergedBuffers.push(event.mergedBuffer);
@@ -646,7 +646,19 @@ Picture.prototype.pushEvent = function(targetBufferId, event) {
  */
 Picture.prototype.insertEvent = function(targetBufferId, event) {
     var targetBuffer = this.findBuffer(targetBufferId);
-    targetBuffer.insertEvent(event, this.genericRasterizer);
+    if (event.eventType === 'bufferMerge') {
+        var mergedBufferIndex = this.findBufferIndex(this.buffers,
+                                                     event.mergedBuffer.id);
+        if (event.mergedBuffer.isDummy) {
+            event.mergedBuffer = this.buffers[mergedBufferIndex];
+        }
+        // TODO: assert(event.mergedBuffer !== targetBuffer);
+        targetBuffer.insertEvent(event, this.genericRasterizer);
+        this.buffers.splice(mergedBufferIndex, 1);
+        this.mergedBuffers.push(event.mergedBuffer);
+    } else {
+        targetBuffer.insertEvent(event, this.genericRasterizer);
+    }
 };
 
 /**
