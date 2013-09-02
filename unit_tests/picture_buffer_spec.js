@@ -350,6 +350,26 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         expect(buffer.blamePixel(new Vec2(1, 1)).length).toBe(0);
     });
 
+    it('can be removed multiple times through redo', function() {
+        var buffer = createBuffer(params);
+        var removal = new BufferRemoveEvent(0, 2, false, buffer.id);
+        buffer.pushEvent(removal);
+        buffer.undoEventIndex(1, null, false);
+        removal = new BufferRemoveEvent(1, 2, false, buffer.id);
+        buffer.pushEvent(removal);
+        expect(buffer.removeCount).toBe(1);
+        expect(buffer.isRemoved()).toBe(true);
+        buffer.redoEventIndex(1, null, false);
+        expect(buffer.removeCount).toBe(2);
+        expect(buffer.isRemoved()).toBe(true);
+        buffer.undoEventIndex(2, null, false);
+        expect(buffer.removeCount).toBe(1);
+        expect(buffer.isRemoved()).toBe(true);
+        buffer.undoEventIndex(1, null, false);
+        expect(buffer.removeCount).toBe(0);
+        expect(buffer.isRemoved()).toBe(false);
+    });
+
     it('blames a brush event', function() {
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);

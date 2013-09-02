@@ -28,7 +28,9 @@ PictureBuffer.prototype.initializePictureBuffer = function(createEvent,
     this.events = [];
     this.isDummy = false;
     this.mergedTo = null;
-    this.removed = false;
+    // How many remove events are not undone in this buffer. There could be
+    // multiple ones if the buffer is edited from multiple sessions.
+    this.removeCount = 0;
     if (hasUndoStates === undefined) {
         hasUndoStates = false;
     }
@@ -126,14 +128,12 @@ PictureBuffer.prototype.applyEvent = function(event, rasterizer) {
         // TODO: assert(event.mergedBuffer !== this);
         event.mergedBuffer.mergedTo = this;
         if (!event.mergedBuffer.events[0].undone) {
-            // TODO: assert(!event.mergedBuffer.removed)
+            // TODO: assert(event.mergedBuffer.removeCount === 0)
             this.drawBuffer(event.mergedBuffer, event.opacity);
         }
     } else if (event.eventType === 'bufferAdd') {
         this.clear(event.clearColor);
-    } else if (event.eventType === 'bufferRemove') {
-        this.removed = true;
-    }
+    } // Nothing to be done on remove
 };
 
 /**
@@ -145,6 +145,9 @@ PictureBuffer.prototype.pushEvent = function(event, rasterizer) {
     this.events.push(event);
     if (!event.undone) {
         this.applyEvent(event, rasterizer);
+        if (event.eventType === 'bufferRemove') {
+            ++this.removeCount;
+        }
         this.eventsChanged(rasterizer);
     }
 };
@@ -459,7 +462,7 @@ PictureBuffer.prototype.undoEventIndex = function(eventIndex, rasterizer,
         }
         this.events[eventIndex].mergedBuffer.mergedTo = null;
     } else if (this.events[eventIndex].eventType === 'bufferRemove') {
-        this.removed = false;
+        --this.removeCount;
     }
     this.events[eventIndex].undone = true;
     this.playbackAfterChange(eventIndex, rasterizer);
@@ -500,6 +503,9 @@ PictureBuffer.prototype.redoEventIndex = function(eventIndex, rasterizer) {
         return;
     }
     this.events[eventIndex].undone = false;
+    if (this.events[eventIndex].eventType === 'bufferRemove') {
+        ++this.removeCount;
+    }
     if (eventIndex === this.events.length - 1) {
         // TODO: less conservative check for whether there's anything on top of
         // the event
@@ -555,7 +561,7 @@ PictureBuffer.prototype.pickEventsMostlyInside = function(rect) {
  * @return {boolean} Whether this buffer should be considered removed.
  */
 PictureBuffer.prototype.isRemoved = function() {
-    return this.events[0].undone || this.removed;
+    return this.events[0].undone || this.removeCount > 0;
 };
 
 /**
