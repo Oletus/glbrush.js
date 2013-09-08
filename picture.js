@@ -265,7 +265,6 @@ Picture.create = function(id, width, height, bitmapScale, modesToTry,
  */
 Picture.parse = function(id, serialization, bitmapScale, modesToTry,
                          currentEventAttachment) {
-    // TODO: Handle parsing and serializing removed and merged buffers
     var startTime = new Date().getTime();
     var eventStrings = serialization.split(/\r?\n/);
     var pictureParams = eventStrings[0].split(' ');
