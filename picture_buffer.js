@@ -102,25 +102,13 @@ PictureBuffer.prototype.playbackStartingFrom = function(eventIndex,
 PictureBuffer.prototype.applyEvent = function(event, rasterizer) {
     if (event.isRasterized()) {
         var boundingBox = event.getBoundingBox(this.boundsRect);
-        if (boundingBox === null) {
-            rasterizer.setClip(this.getCurrentClipRect());
-            event.drawTo(rasterizer);
-            boundingBox = event.getBoundingBox(this.boundsRect);
-            // TODO: assert(boundingBox !== null);
-            this.pushClipRect(boundingBox);
-            if (this.getCurrentClipRect().isEmpty()) {
-                this.popClip();
-                return;
-            }
-        } else {
-            this.pushClipRect(boundingBox);
-            if (this.getCurrentClipRect().isEmpty()) {
-                this.popClip();
-                return;
-            }
-            rasterizer.setClip(this.getCurrentClipRect());
-            event.drawTo(rasterizer);
+        this.pushClipRect(boundingBox);
+        if (this.getCurrentClipRect().isEmpty()) {
+            this.popClip();
+            return;
         }
+        rasterizer.setClip(this.getCurrentClipRect());
+        event.drawTo(rasterizer);
         this.drawRasterizerWithColor(rasterizer, event.color, event.opacity,
                                      event.mode);
         this.popClip();
@@ -183,11 +171,6 @@ PictureBuffer.prototype.insertEvent = function(event, rasterizer) {
         this.pushEvent(event, rasterizer);
     } else {
         this.events.splice(this.insertionPoint, 0, event);
-        if (event.eventType !== 'bufferMerge') {
-            // Need to update the bounding box.
-            // TODO: something more elegant here
-            event.drawTo(rasterizer);
-        }
         if (!event.undone) {
             this.playbackAfterChange(this.insertionPoint, rasterizer);
         }

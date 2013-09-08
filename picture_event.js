@@ -85,13 +85,7 @@ PictureEvent.parse = function(arr, i) {
  * given rectangle?
  */
 PictureEvent.prototype.boundsIntersectRect = function(rect) {
-    var boundingBox = this.getBoundingBox(rect);
-    if (boundingBox === null) {
-        // TODO: use an assert instead
-        console.log('boundsIntersectRect from an event with no bounding box');
-        return undefined;
-    }
-    return boundingBox.intersectsRectRoundedOut(rect);
+    return this.getBoundingBox(rect).intersectsRectRoundedOut(rect);
 };
 
 /**
@@ -282,6 +276,46 @@ BrushEvent.prototype.translate = function(offset) {
 BrushEvent.lineSegmentLength = 5.0;
 
 /**
+ * A rasterizer that does not really rasterize anything. Used to assist in
+ * computing bounding boxes for BrushEvents.
+ * @constructor
+ */
+var BrushEventNullRasterizer = function() {};
+
+/**
+ * Get draw event state for the given event.
+ * @param {BrushEvent} event The event to be rasterized.
+ * @param {function()} stateConstructor Constructor for creating a new draw
+ * event state object unless the event already has been rasterized to this
+ * rasterizer's bitmap.
+ * @return {Object} Draw event state for the given event.
+ */
+BrushEventNullRasterizer.prototype.getDrawEventState = function(event,
+                                                             stateConstructor) {
+    return new stateConstructor();
+};
+
+/**
+ * Do nothing.
+ */
+BrushEventNullRasterizer.prototype.beginCircleLines = function() {};
+
+/**
+ * Do nothing.
+ */
+BrushEventNullRasterizer.prototype.circleLineTo = function() {};
+
+/**
+ * Do nothing.
+ */
+BrushEventNullRasterizer.prototype.flushCircles = function() {};
+
+/**
+ * Global null rasterizer to share between brush events.
+ */
+BrushEvent.nullRasterizer = new BrushEventNullRasterizer();
+
+/**
  * Draw the brush event to the given rasterizer's bitmap.
  * @param {BaseRasterizer} rasterizer The rasterizer to use.
  * @param {number} untilCoord Maximum coordinate index to draw + 1.
@@ -296,8 +330,8 @@ BrushEvent.prototype.drawTo = function(rasterizer, untilCoord) {
             drawState = new BrushEventState();
         }
     }
-    // TODO: assert(untilCoord % BrushEvent.coordsStride == 0);
-    if (this.coords.length % BrushEvent.coordsStride != 0) {
+    // TODO: assert(untilCoord % BrushEvent.coordsStride === 0);
+    if (this.coords.length % BrushEvent.coordsStride !== 0) {
         // TODO: turn this into an assert.
         console.log('Tried to apply event with odd number of coordinates');
         return;
@@ -397,17 +431,14 @@ BrushEvent.prototype.drawTo = function(rasterizer, untilCoord) {
 /**
  * @param {Rect} clipRect Canvas bounds that can be used to intersect the
  * bounding box against, though this is not mandatory.
- * @return {Rect} The event's bounding box, or null if it hasn't yet been
- * generated. Events are allowed to defer bounding box calculation to drawTo().
- * This function is not allowed to change its earlier return values as a side
- * effect.
+ * @return {Rect} The event's bounding box. This function is not allowed to
+ * change its earlier return values as a side effect.
  */
 BrushEvent.prototype.getBoundingBox = function(clipRect) {
-    if (this.boundingBoxUpTo === this.coords.length - BrushEvent.coordsStride) {
-        return this.boundingBox;
-    } else {
-        return null;
+    if (this.boundingBoxUpTo !== this.coords.length - BrushEvent.coordsStride) {
+        this.drawTo(BrushEvent.nullRasterizer);
     }
+    return this.boundingBox;
 };
 
 /**
@@ -509,10 +540,8 @@ GradientEvent.prototype.scale = function(scale) {
 /**
  * @param {Rect} clipRect Canvas bounds that can be used to intersect the
  * bounding box against, though this is not mandatory.
- * @return {Rect} The event's bounding box, or null if it hasn't yet been
- * generated. Events are allowed to defer bounding box calculation to drawTo().
- * This function is not allowed to change its earlier return values as a side
- * effect.
+ * @return {Rect} The event's bounding box. This function is not allowed to
+ * change its earlier return values as a side effect.
  */
 GradientEvent.prototype.getBoundingBox = function(clipRect) {
     var boundingBox = new Rect(clipRect.left, clipRect.right,
@@ -698,10 +727,8 @@ BufferAddEvent.prototype.serialize = function(scale) {
 /**
  * @param {Rect} clipRect Canvas bounds that can be used to intersect the
  * bounding box against, though this is not mandatory.
- * @return {Rect} The event's bounding box, or null if it hasn't yet been
- * generated. Events are allowed to defer bounding box calculation to drawTo().
- * This function is not allowed to change its earlier return values as a side
- * effect.
+ * @return {Rect} The event's bounding box. This function is not allowed to
+ * change its earlier return values as a side effect.
  */
 BufferAddEvent.prototype.getBoundingBox = function(clipRect) {
     return new Rect(clipRect.left, clipRect.right,
@@ -779,10 +806,8 @@ BufferRemoveEvent.prototype.serialize = function(scale) {
 /**
  * @param {Rect} clipRect Canvas bounds that can be used to intersect the
  * bounding box against, though this is not mandatory.
- * @return {Rect} The event's bounding box, or null if it hasn't yet been
- * generated. Events are allowed to defer bounding box calculation to drawTo().
- * This function is not allowed to change its earlier return values as a side
- * effect.
+ * @return {Rect} The event's bounding box. This function is not allowed to
+ * change its earlier return values as a side effect.
  */
 BufferRemoveEvent.prototype.getBoundingBox = function(clipRect) {
     return new Rect(clipRect.left, clipRect.right,
@@ -871,10 +896,8 @@ BufferMoveEvent.prototype.serialize = function(scale) {
 /**
  * @param {Rect} clipRect Canvas bounds that can be used to intersect the
  * bounding box against, though this is not mandatory.
- * @return {Rect} The event's bounding box, or null if it hasn't yet been
- * generated. Events are allowed to defer bounding box calculation to drawTo().
- * This function is not allowed to change its earlier return values as a side
- * effect.
+ * @return {Rect} The event's bounding box. This function is not allowed to
+ * change its earlier return values as a side effect.
  */
 BufferMoveEvent.prototype.getBoundingBox = function(clipRect) {
     return new Rect(clipRect.left, clipRect.right,
@@ -960,10 +983,8 @@ BufferMergeEvent.prototype.serialize = function(scale) {
 /**
  * @param {Rect} clipRect Canvas bounds that can be used to intersect the
  * bounding box against, though this is not mandatory.
- * @return {Rect} The event's bounding box, or null if it hasn't yet been
- * generated. Events are allowed to defer bounding box calculation to drawTo().
- * This function is not allowed to change its earlier return values as a side
- * effect.
+ * @return {Rect} The event's bounding box. This function is not allowed to
+ * change its earlier return values as a side effect.
  */
 BufferMergeEvent.prototype.getBoundingBox = function(clipRect) {
     return new Rect(clipRect.left, clipRect.right,

@@ -67,6 +67,8 @@ BaseRasterizer.prototype.getDrawEventState = function(event, stateConstructor) {
             restoreClip.setRect(this.clipRect);
             // TODO: This does not do a minimal clear in case of brush events
             this.setClip(this.drawEvent.getBoundingBox(this.drawEventClipRect));
+            // TODO: Is there a case where the clipRect gets smaller while the
+            // event stays the same? That could get us into trouble...
             this.clear();
             this.setClip(restoreClip);
         }
