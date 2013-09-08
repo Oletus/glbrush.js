@@ -69,6 +69,8 @@ PictureEvent.parse = function(arr, i) {
         return BufferAddEvent.parse(arr, i, sid, sessionEventId, undone);
     } else if (eventType === 'bufferRemove') {
         return BufferRemoveEvent.parse(arr, i, sid, sessionEventId, undone);
+    } else if (eventType === 'bufferMove') {
+        return BufferMoveEvent.parse(arr, i, sid, sessionEventId, undone);
     } else {
         console.log('Unexpected picture event type ' + eventType);
         return null;
@@ -783,6 +785,98 @@ BufferRemoveEvent.prototype.serialize = function(scale) {
  * effect.
  */
 BufferRemoveEvent.prototype.getBoundingBox = function(clipRect) {
+    return new Rect(clipRect.left, clipRect.right,
+                    clipRect.top, clipRect.bottom);
+};
+
+
+/**
+ * Event that moves a buffer to a different position in the Picture stack.
+ * @constructor
+ * @param {number} sid Session identifier. Must be an integer.
+ * @param {number} sessionEventId An event/session specific identifier. The idea
+ * is that the sid/sessionEventId pair is unique for this event, and that newer
+ * events will have greater sessionEventIds. Must be an integer.
+ * @param {boolean} undone Whether this event is undone.
+ * @param {number} movedId Id of the moved buffer.
+ * @param {number} fromIndex Index where the buffer was moved from. Only used
+ * for undo.
+ * @param {number} toIndex Index where the buffer is being moved to.
+ */
+var BufferMoveEvent = function(sid, sessionEventId, undone, movedId, fromIndex,
+                               toIndex) {
+    this.undone = undone;
+    this.sid = sid;
+    this.sessionEventId = sessionEventId;
+    this.movedId = movedId;
+    this.fromIndex = fromIndex;
+    this.toIndex = toIndex;
+};
+
+BufferMoveEvent.prototype = new PictureEvent('bufferMove');
+
+/**
+ * @return {boolean} Is the event drawn using a rasterizer?
+ */
+BufferMoveEvent.prototype.isRasterized = function() {
+    return false;
+};
+
+/**
+ * @return {boolean} Whether the event is a buffer stack change.
+ */
+BufferMoveEvent.prototype.isBufferStackChange = function() {
+    return true;
+};
+
+/**
+ * Scale this event.
+ * @param {number} scale Scaling factor. Must be larger than 0.
+ */
+BufferMoveEvent.prototype.scale = function(scale) {};
+
+/**
+ * Parse a BufferMoveEvent from a tokenized serialization.
+ * @param {Array.<string>} arr Array containing the tokens, split at spaces from
+ * the original serialization.
+ * @param {number} i Index of the first token to deserialize.
+ * @param {number} sid Session identifier. Must be an integer.
+ * @param {number} sessionEventId An event/session specific identifier. The idea
+ * is that the sid/sessionEventId pair is unique for this event. Must be an
+ * integer.
+ * @param {boolean} undone Whether this event is undone.
+ * @return {BufferMoveEvent} The parsed event or null.
+ */
+BufferMoveEvent.parse = function(arr, i, sid, sessionEventId, undone) {
+    var movedId = parseInt(arr[i++]);
+    var fromIndex = parseInt(arr[i++]);
+    var toIndex = parseInt(arr[i++]);
+    var pictureEvent = new BufferMoveEvent(sid, sessionEventId, undone,
+                                           movedId, fromIndex, toIndex);
+    return pictureEvent;
+};
+
+/**
+ * @param {number} scale Scale to multiply serialized coordinates with.
+ * @return {string} A serialization of the event.
+ */
+BufferMoveEvent.prototype.serialize = function(scale) {
+    var eventMessage = this.serializePictureEvent();
+    eventMessage += ' ' + this.movedId;
+    eventMessage += ' ' + this.fromIndex;
+    eventMessage += ' ' + this.toIndex;
+    return eventMessage;
+};
+
+/**
+ * @param {Rect} clipRect Canvas bounds that can be used to intersect the
+ * bounding box against, though this is not mandatory.
+ * @return {Rect} The event's bounding box, or null if it hasn't yet been
+ * generated. Events are allowed to defer bounding box calculation to drawTo().
+ * This function is not allowed to change its earlier return values as a side
+ * effect.
+ */
+BufferMoveEvent.prototype.getBoundingBox = function(clipRect) {
     return new Rect(clipRect.left, clipRect.right,
                     clipRect.top, clipRect.bottom);
 };

@@ -98,6 +98,19 @@ function expectTestBufferRemoveEvent(bufferRemoveEvent) {
     expect(bufferRemoveEvent.bufferId).toBe(2);
 }
 
+function testBufferMoveEvent() {
+    return new BufferMoveEvent(0, 1, false, 2, 3, 4);
+}
+
+function expectTestBufferMoveEvent(bufferMoveEvent) {
+    expect(bufferMoveEvent.sid).toBe(0);
+    expect(bufferMoveEvent.sessionEventId).toBe(1);
+    expect(bufferMoveEvent.undone).toBe(false);
+    expect(bufferMoveEvent.movedId).toBe(2);
+    expect(bufferMoveEvent.fromIndex).toBe(3);
+    expect(bufferMoveEvent.toIndex).toBe(4);
+}
+
 /**
  * Check a buffer for correctness by replaying it.
  * @param {PictureBuffer} buffer The buffer to check for correctness.

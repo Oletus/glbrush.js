@@ -104,13 +104,15 @@ var doPictureTest = function(mode) {
         expect(samplePixel[3]).toBeNear(blendedPixel[3], 8);
     });
 
-    it('can change the order of two buffers', function() {
+    it('changes the order of two buffers', function() {
         var pic = testPicture();
         var clearColor = [12, 23, 34, 45];
         pic.addBuffer(1337, clearColor, true);
         var clearColor2 = [35, 46, 57, 68];
         pic.addBuffer(1338, clearColor2, true);
-        pic.moveBuffer(1, 0);
+        pic.moveBuffer(1338, 0);
+        expect(pic.buffers[0].id).toBe(1338);
+        expect(pic.buffers[1].id).toBe(1337);
         var blendedPixel = colorUtil.blend(clearColor2, clearColor);
         var samplePixel = pic.getPixelRGBA(new Vec2(0, 0));
         expect(samplePixel[0]).toBeNear(blendedPixel[0], 8);
@@ -391,6 +393,45 @@ var doPictureTest = function(mode) {
         pic.addBuffer(1337, clearColor, false);
         pic.undoEventSessionId(pic.activeSid, pic.activeSessionEventId - 1);
         expect(pic.buffers[0].events[0].undone).toBe(true);
+    });
+
+    it('undoes buffer moves', function() {
+        var pic = testPicture();
+        var clearColor = [12, 23, 34];
+        pic.addBuffer(1337, clearColor, false);
+        pic.addBuffer(9001, clearColor, false);
+        pic.addBuffer(1338, clearColor, false);
+        pic.moveBuffer(9001, 0);
+        pic.moveBuffer(1338, 0);
+        pic.moveBuffer(1337, 0);
+        pic.undoLatest();
+        expect(pic.buffers[0].id).toBe(1338);
+        expect(pic.buffers[1].id).toBe(9001);
+        expect(pic.buffers[2].id).toBe(1337);
+        pic.undoLatest();
+        expect(pic.buffers[0].id).toBe(9001);
+        expect(pic.buffers[1].id).toBe(1337);
+        expect(pic.buffers[2].id).toBe(1338);
+        pic.undoLatest();
+        expect(pic.buffers[0].id).toBe(1337);
+        expect(pic.buffers[1].id).toBe(9001);
+        expect(pic.buffers[2].id).toBe(1338);
+    });
+
+    it('serializes and parses a picture with buffer moves', function() {
+        var pic = testPicture();
+        var clearColor = [12, 23, 34];
+        pic.addBuffer(1337, clearColor, false);
+        pic.addBuffer(9001, clearColor, false);
+        pic.addBuffer(1338, clearColor, false);
+        pic.moveBuffer(9001, 0);
+        pic.moveBuffer(1338, 0);
+        var pic2 = Picture.resize(pic, 1.0);
+        expect(pic2.buffers[0].id).toBe(pic.buffers[0].id);
+        expect(pic2.buffers[1].id).toBe(pic.buffers[1].id);
+        expect(pic2.buffers[2].id).toBe(pic.buffers[2].id);
+        pic2.moveBuffer(9001, 0);
+        expect(pic2.buffers[0].id).toBe(9001);
     });
 };
  

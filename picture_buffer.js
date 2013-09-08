@@ -465,7 +465,9 @@ PictureBuffer.prototype.undoEventIndex = function(eventIndex, rasterizer,
         --this.removeCount;
     }
     this.events[eventIndex].undone = true;
-    this.playbackAfterChange(eventIndex, rasterizer);
+    if (this.events[eventIndex].eventType !== 'bufferMove') {
+        this.playbackAfterChange(eventIndex, rasterizer);
+    }
     return this.events[eventIndex];
 };
 

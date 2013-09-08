@@ -126,6 +126,18 @@ Picture.prototype.removeBuffer = function(id) {
 };
 
 /**
+ * Move a buffer to the given index in the buffer stack. Current event stays
+ * attached to the moved buffer, if it exists.
+ * @param {number} movedId The id of the buffer to move.
+ * @param {number} toIndex The index to move this buffer to. Must be an integer
+ * between 0 and Picture.buffers.length - 1.
+ */
+Picture.prototype.moveBuffer = function(movedId, toIndex) {
+    var moveEvent = this.createBufferMoveEvent(movedId, toIndex);
+    this.pushEvent(movedId, moveEvent);
+};
+
+/**
  * Find a buffer with the given id from this picture.
  * @param {Array.<PictureBuffer>} buffers Array to search for the buffer.
  * @param {number} id Identifier of the buffer to find.
@@ -157,24 +169,6 @@ Picture.prototype.findBuffer = function(id) {
         return this.mergedBuffers[ind];
     }
     return null;
-};
-
-/**
- * Move a buffer to the given index in the buffer stack. Current event stays
- * attached to the moved buffer, if it exists.
- * @param {number} fromIndex The index of the buffer to move. Must be an integer
- * between 0 and Picture.buffers.length - 1.
- * @param {number} toIndex The index to move this buffer to. Must be an integer
- * between 0 and Picture.buffers.length - 1.
- */
-Picture.prototype.moveBuffer = function(fromIndex, toIndex) {
-    // TODO: assert that buffer count is respected
-    var buffer = this.buffers[fromIndex];
-    this.buffers.splice(fromIndex, 1);
-    this.buffers.splice(toIndex, 0, buffer);
-    if (this.currentEventAttachment === fromIndex) {
-        this.currentEventAttachment = toIndex;
-    }
 };
 
 /**
@@ -279,6 +273,11 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry,
     var height = parseInt(pictureParams[2]);
     var pic = Picture.create(id, width, height, bitmapScale, modesToTry,
                              currentEventAttachment);
+    pic.moveBufferInternal = function() {}; // Move events can be processed out
+    // of order here, so we don't apply them. Instead rely on buffers being
+    // already in the correct order.
+    // TODO: Maybe serialization and parsing would be simpler and more reliable
+    // if events were serialized and parsed in the order they were applied?
     var i = 1;
     var currentId = -1;
     while (i < eventStrings.length) {
@@ -293,6 +292,7 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry,
             ++i;
         }
     }
+    delete pic.moveBufferInternal; // switch back to prototype's move function
     var metadata = [];
     if (i < eventStrings.length && eventStrings[i] === 'metadata') {
         metadata = eventStrings.slice(i);
@@ -352,7 +352,7 @@ Picture.prototype.serialize = function() {
 /**
  * Set the session with the given sid active for purposes of createBrushEvent,
  * createGradientEvent, createMergeEvent, createBufferAddEvent, addBuffer,
- * createBufferRemoveEvent, removeBuffer and undoLatest.
+ * createBufferRemoveEvent, createBufferMoveEvent, removeBuffer and undoLatest.
  * @param {number} sid The session id to activate. Must be a positive integer.
  */
 Picture.prototype.setActiveSession = function(sid) {
@@ -435,6 +435,23 @@ Picture.prototype.createBufferRemoveEvent = function(id) {
                                             id);
     this.activeSessionEventId++;
     return removeEvent;
+};
+
+/**
+ * Create a buffer move event using the current active session. The event is
+ * marked as not undone.
+ * @param {number} movedId Id of the moved buffer.
+ * @param {number} toIndex Index to move the buffer to.
+ * @return {BufferMoveEvent} The created buffer move event.
+ */
+Picture.prototype.createBufferMoveEvent = function(movedId, toIndex) {
+    var fromIndex = this.findBufferIndex(this.buffers, movedId);
+    // TODO: assert(fromIndex >= 0);
+    var moveEvent = new BufferMoveEvent(this.activeSid,
+                                        this.activeSessionEventId, false,
+                                        movedId, fromIndex, toIndex);
+    this.activeSessionEventId++;
+    return moveEvent;
 };
 
 /**
@@ -608,15 +625,23 @@ Picture.prototype.scaleParsedEvent = function(event) {
  * @param {PictureEvent} event Event to add.
  */
 Picture.prototype.pushEvent = function(targetBufferId, event) {
-    if (event.eventType === 'bufferAdd') {
-        var buffer = this.createBuffer(event, true);
-        this.buffers.push(buffer);
-        return;
-    } else if (event.eventType === 'bufferRemove') {
-        var bufferIndex = this.findBufferIndex(this.buffers, event.bufferId);
-        // TODO: assert(bufferIndex >= 0);
-        this.buffers[bufferIndex].pushEvent(event, this.genericRasterizer);
-        return;
+    if (event.isBufferStackChange()) {
+        if (event.eventType === 'bufferAdd') {
+            var buffer = this.createBuffer(event, true);
+            this.buffers.push(buffer);
+            return;
+        } else if (event.eventType === 'bufferRemove') {
+            var bufferIndex = this.findBufferIndex(this.buffers,
+                                                   event.bufferId);
+            // TODO: assert(bufferIndex >= 0);
+            this.buffers[bufferIndex].pushEvent(event, this.genericRasterizer);
+            return;
+        } else if (event.eventType === 'bufferMove') {
+            var fromIndex = this.findBufferIndex(this.buffers, event.movedId);
+            this.buffers[fromIndex].pushEvent(event);
+            this.moveBufferInternal(fromIndex, event.toIndex);
+            return;
+        }
     }
     var targetBuffer = this.findBuffer(targetBufferId);
     if (this.currentEventRasterizer.drawEvent === event) {
@@ -705,6 +730,24 @@ Picture.prototype.findLatest = function(sid, canBeUndone) {
 };
 
 /**
+ * Move a buffer in the buffer stack. Current event stays attached to the moved
+ * buffer, if it exists.
+ * @param {number} fromIndex Index to move the buffer from.
+ * @param {number} toIndex Index to move the buffer to.
+ * @protected
+ */
+Picture.prototype.moveBufferInternal = function(fromIndex, toIndex) {
+    // TODO: assert(fromIndex < this.buffers.length);
+    // TODO: assert(toIndex < this.buffers.length);
+    var buffer = this.buffers[fromIndex];
+    this.buffers.splice(fromIndex, 1);
+    this.buffers.splice(toIndex, 0, buffer);
+    if (this.currentEventAttachment === fromIndex) {
+        this.currentEventAttachment = toIndex;
+    }
+};
+
+/**
  * Undo the latest non-undone event applied to this picture by the current
  * active session. Won't do anything in case the latest event is a merge event
  * applied to a buffer that is itself removed or merged.
@@ -758,10 +801,20 @@ Picture.prototype.undoEventIndex = function(buffer, eventIndex,
     var allowUndoMerge = !isBufferMerged;
     var undone = buffer.undoEventIndex(eventIndex, this.genericRasterizer,
                                        allowUndoMerge);
-    if (undone && undone.eventType === 'bufferMerge') {
-        // TODO: assert(allowUndoMerge);
-        var bufferIndex = this.findBufferIndex(this.buffers, buffer.id);
-        this.buffers.splice(bufferIndex + 1, 0, undone.mergedBuffer);
+    if (undone) {
+        if (undone.eventType === 'bufferMerge') {
+            // TODO: assert(allowUndoMerge);
+            var bufferIndex = this.findBufferIndex(this.buffers, buffer.id);
+            this.buffers.splice(bufferIndex + 1, 0, undone.mergedBuffer);
+        } else if (undone.eventType === 'bufferMove' && !isBufferMerged) {
+            // TODO: a better solution for undoing move events. This way works
+            // for in-sequence undo but out-of-sequence undo will behave
+            // unintuitively. Also, undoing moves for merged buffers is
+            // simply ignored.
+            var undoneIndex = this.findBufferIndex(this.buffers, buffer.id);
+            var toIndex = Math.min(this.buffers.length - 1, undone.fromIndex);
+            this.moveBufferInternal(undoneIndex, toIndex);
+        }
     }
     return undone;
 };
