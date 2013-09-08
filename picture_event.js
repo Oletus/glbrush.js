@@ -11,10 +11,15 @@
  * current segment.
  */
 var BrushEventState = function(coordsInd, direction) {
-    if (coordsInd === undefined)
+    if (coordsInd === undefined) {
         coordsInd = 0;
+    }
+    if (direction === undefined) {
+        direction = new Vec2(0, 0);
+    }
     this.coordsInd = coordsInd;
     this.direction = direction;
+    this.useDirection = false;
 };
 
 /**
@@ -372,8 +377,9 @@ BrushEvent.prototype.drawTo = function(rasterizer, untilCoord) {
         var x2 = this.coords[i++];
         var y2 = this.coords[i++];
         var p2 = this.coords[i++];
-        var direction = new Vec2(x2 - x1, y2 - y1);
-        var d = direction.length();
+        var dx = x2 - x1;
+        var dy = y2 - y1;
+        var d = Math.sqrt(dx * dx + dy * dy);
 
         if (d < 1.0) {
             if (p2 > p1) {
@@ -385,16 +391,15 @@ BrushEvent.prototype.drawTo = function(rasterizer, untilCoord) {
         }
 
         // Brush smoothing. By default, make a straight line.
-        var bezier_x = x1 + direction.x * 0.5;
-        var bezier_y = y1 + direction.y * 0.5;
+        var bezierX = x1 + dx * 0.5;
+        var bezierY = y1 + dy * 0.5;
         // There's not much sense to do smoothing if intervals are short
-        if (prevDirection !== undefined && d > BrushEvent.lineSegmentLength) {
+        if (drawState.usePrevDirection && d > BrushEvent.lineSegmentLength) {
             // dot product check to ensure that the direction is similar enough
-            if (direction.x * prevDirection.x + direction.y * prevDirection.y >
-                d * 0.5) {
+            if (dx * prevDirection.x + dy * prevDirection.y > d * 0.5) {
                 // ad-hoc weighing of points to get a visually pleasing result
-                bezier_x = x1 + prevDirection.x * d * 0.25 + direction.x * 0.25;
-                bezier_y = y1 + prevDirection.y * d * 0.25 + direction.y * 0.25;
+                bezierX = x1 + prevDirection.x * d * 0.25 + dx * 0.25;
+                bezierY = y1 + prevDirection.y * d * 0.25 + dy * 0.25;
             }
         }
 
@@ -404,23 +409,25 @@ BrushEvent.prototype.drawTo = function(rasterizer, untilCoord) {
         var t = 0;
         var tSegment = 0.99999 / Math.ceil(d / BrushEvent.lineSegmentLength);
         while (t < 1.0) {
-            xd = x1 * Math.pow(1.0 - t, 2) + bezier_x * t * (1.0 - t) * 2 +
+            xd = x1 * Math.pow(1.0 - t, 2) + bezierX * t * (1.0 - t) * 2 +
                  x2 * Math.pow(t, 2);
-            yd = y1 * Math.pow(1.0 - t, 2) + bezier_y * t * (1.0 - t) * 2 +
+            yd = y1 * Math.pow(1.0 - t, 2) + bezierY * t * (1.0 - t) * 2 +
                  y2 * Math.pow(t, 2);
             pd = p1 + (p2 - p1) * t;
             rd = r * pd;
             rasterizer.circleLineTo(xd, yd, rd);
             t += tSegment;
         }
-        if (d < BrushEvent.lineSegmentLength)
-            prevDirection = undefined;
-        else {
+        if (d < BrushEvent.lineSegmentLength) {
+            drawState.usePrevDirection = false;
+        } else {
             // The tangent of the bezier curve at the end of the curve
             // intersects with the control point, we get the next iteration's
             // direction from there.
-            prevDirection = new Vec2(x2 - bezier_x, y2 - bezier_y);
+            prevDirection.x = x2 - bezierX;
+            prevDirection.y = y2 - bezierY;
             prevDirection.normalize();
+            drawState.usePrevDirection = true;
         }
         x1 = x2;
         y1 = y2;
@@ -428,7 +435,6 @@ BrushEvent.prototype.drawTo = function(rasterizer, untilCoord) {
         drawState.coordsInd = i - BrushEvent.coordsStride;
     }
     rasterizer.flushCircles();
-    drawState.direction = prevDirection;
 };
 
 /**
