@@ -136,8 +136,7 @@ var BrushEvent = function(sid, sessionEventId, undone, color, flow, opacity,
     this.opacity = opacity;
     this.radius = radius;
     this.coords = []; // holding x,y,pressure triplets
-    this.boundingBox = null;
-    this.boundingBoxUpTo = null;
+    this.boundingBoxRasterizer = new BrushEvent.BBRasterizer();
     this.soft = softness > 0.5;
     this.mode = mode;
 };
@@ -244,8 +243,7 @@ BrushEvent.prototype.scale = function(scale) {
             this.coords[i] *= scale;
         }
     }
-    this.boundingBox = null;
-    this.boundingBoxUpTo = null;
+    this.boundingBoxRasterizer.boundingBox = null;
 };
 
 /**
@@ -262,12 +260,7 @@ BrushEvent.prototype.translate = function(offset) {
             this.coords[i] += offset.y;
         }
     }
-    if (this.boundingBox) {
-        this.boundingBox.left += offset.x;
-        this.boundingBox.right += offset.x;
-        this.boundingBox.top += offset.y;
-        this.boundingBox.bottom += offset.y;
-    }
+    this.boundingBoxRasterizer.translate(offset);
 };
 
 /**
@@ -276,11 +269,14 @@ BrushEvent.prototype.translate = function(offset) {
 BrushEvent.lineSegmentLength = 5.0;
 
 /**
- * A rasterizer that does not really rasterize anything. Used to assist in
- * computing bounding boxes for BrushEvents.
+ * A rasterizer that does not rasterize, but computes bounding boxes for a brush
+ * event. Only implements functions necessary for drawing a brush event.
  * @constructor
  */
-var BrushEventNullRasterizer = function() {};
+BrushEvent.BBRasterizer = function() {
+    this.state = null;
+    this.boundingBox = null;
+};
 
 /**
  * Get draw event state for the given event.
@@ -290,30 +286,50 @@ var BrushEventNullRasterizer = function() {};
  * rasterizer's bitmap.
  * @return {Object} Draw event state for the given event.
  */
-BrushEventNullRasterizer.prototype.getDrawEventState = function(event,
+BrushEvent.BBRasterizer.prototype.getDrawEventState = function(event,
                                                              stateConstructor) {
-    return new stateConstructor();
+    if (this.boundingBox === null) {
+        this.state = new stateConstructor();
+        this.boundingBox = new Rect();
+    }
+    return this.state;
 };
 
 /**
  * Do nothing.
  */
-BrushEventNullRasterizer.prototype.beginCircleLines = function() {};
+BrushEvent.BBRasterizer.prototype.beginCircleLines = function() {};
+
+/**
+ * Add a circle line to the bounding box.
+ * @param {number} centerX The x coordinate of the center of the circle at the
+ * end of the line.
+ * @param {number} centerY The y coordinate of the center of the circle at the
+ * end of the line.
+ * @param {number} radius The radius at the end of the line.
+ */
+BrushEvent.BBRasterizer.prototype.circleLineTo = function(centerX, centerY,
+                                                          radius) {
+    this.boundingBox.unionCircle(centerX, centerY, Math.max(radius, 1.0) + 1.0);
+};
+
+/**
+ * Translate the bounding box.
+ * @param {Vec2} offset Amount to translate with.
+ */
+BrushEvent.BBRasterizer.prototype.translate = function(offset) {
+    if (this.boundingBox !== null) {
+        this.boundingBox.left += offset.x;
+        this.boundingBox.right += offset.x;
+        this.boundingBox.top += offset.y;
+        this.boundingBox.bottom += offset.y;
+    }
+};
 
 /**
  * Do nothing.
  */
-BrushEventNullRasterizer.prototype.circleLineTo = function() {};
-
-/**
- * Do nothing.
- */
-BrushEventNullRasterizer.prototype.flushCircles = function() {};
-
-/**
- * Global null rasterizer to share between brush events.
- */
-BrushEvent.nullRasterizer = new BrushEventNullRasterizer();
+BrushEvent.BBRasterizer.prototype.flushCircles = function() {};
 
 /**
  * Draw the brush event to the given rasterizer's bitmap.
@@ -352,10 +368,6 @@ BrushEvent.prototype.drawTo = function(rasterizer, untilCoord) {
     var p1 = this.coords[i++]; // pressure
     var xd, yd, pd, rd;
 
-    if (this.boundingBoxUpTo === null) {
-        this.boundingBoxUpTo = 0;
-        this.boundingBox = Rect.fromCircle(x1, y1, Math.max(r * p1, 1.0) + 1.0);
-    }
     while (i + BrushEvent.coordsStride <= untilCoord) {
         var x2 = this.coords[i++];
         var y2 = this.coords[i++];
@@ -368,9 +380,6 @@ BrushEvent.prototype.drawTo = function(rasterizer, untilCoord) {
                 // Avoid leaving high-pressure events undrawn
                 // even if the x/y points are close to each other.
                 p1 = p2;
-            }
-            if (this.boundingBoxUpTo < i - BrushEvent.coordsStride) {
-                this.boundingBoxUpTo = i - BrushEvent.coordsStride;
             }
             continue;
         }
@@ -402,9 +411,6 @@ BrushEvent.prototype.drawTo = function(rasterizer, untilCoord) {
             pd = p1 + (p2 - p1) * t;
             rd = r * pd;
             rasterizer.circleLineTo(xd, yd, rd);
-            if (this.boundingBoxUpTo < i - BrushEvent.coordsStride) {
-                this.boundingBox.unionCircle(xd, yd, Math.max(rd, 1.0) + 1.0);
-            }
             t += tSegment;
         }
         if (d < BrushEvent.lineSegmentLength)
@@ -423,9 +429,6 @@ BrushEvent.prototype.drawTo = function(rasterizer, untilCoord) {
     }
     rasterizer.flushCircles();
     drawState.direction = prevDirection;
-    if (this.boundingBoxUpTo < drawState.coordsInd) {
-        this.boundingBoxUpTo = drawState.coordsInd;
-    }
 };
 
 /**
@@ -435,10 +438,12 @@ BrushEvent.prototype.drawTo = function(rasterizer, untilCoord) {
  * change its earlier return values as a side effect.
  */
 BrushEvent.prototype.getBoundingBox = function(clipRect) {
-    if (this.boundingBoxUpTo !== this.coords.length - BrushEvent.coordsStride) {
-        this.drawTo(BrushEvent.nullRasterizer);
+    if (this.boundingBoxRasterizer.boundingBox === null ||
+        this.boundingBoxRasterizer.state.coordsInd !==
+        this.coords.length - BrushEvent.coordsStride) {
+        this.drawTo(this.boundingBoxRasterizer);
     }
-    return this.boundingBox;
+    return this.boundingBoxRasterizer.boundingBox;
 };
 
 /**
