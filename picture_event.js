@@ -30,7 +30,6 @@ var BrushEventState = function(coordsInd, direction) {
 var GradientEventState = function() {
     this.coords0 = new Vec2(0, 0);
     this.coords1 = new Vec2(0, 0);
-    this.cleared = true; // Whether the rasterizer is completely cleared
 };
 
 /**
@@ -353,7 +352,7 @@ BrushEvent.prototype.drawTo = function(rasterizer, untilCoord) {
         untilCoord = this.coords.length;
     } else {
         if (drawState.coordsInd + BrushEvent.coordsStride > untilCoord) {
-            rasterizer.clear();
+            rasterizer.clearDirty();
             drawState = new BrushEventState();
         }
     }
@@ -633,11 +632,8 @@ GradientEvent.prototype.drawTo = function(rasterizer) {
     drawState.coords0.y = this.coords0.y;
     drawState.coords1.x = this.coords1.x;
     drawState.coords1.y = this.coords1.y;
-    if (!drawState.cleared) {
-        rasterizer.clear(); // TODO: Non-optimal clear area
-    }
+    rasterizer.clearDirty();
     rasterizer.linearGradient(this.coords1, this.coords0);
-    drawState.cleared = false;
 };
 
 /**

@@ -30,6 +30,7 @@ BaseRasterizer.prototype.initBaseRasterizer = function(width, height) {
     this.drawEvent = null;
     this.drawEventState = null;
     this.drawEventClipRect = new Rect(0, this.width, 0, this.height);
+    this.dirtyArea = new Rect();
 };
 
 /**
@@ -49,6 +50,21 @@ BaseRasterizer.prototype.resetClip = function() {
 };
 
 /**
+ * Clear all the pixels that have been touched by draw operations, disregarding
+ * current clipping rectangle.
+ */
+BaseRasterizer.prototype.clearDirty = function() {
+    if (!this.dirtyArea.isEmpty()) {
+        var restoreClip = new Rect();
+        restoreClip.setRect(this.clipRect);
+        this.setClip(this.dirtyArea);
+        this.clear();
+        this.setClip(restoreClip);
+        this.dirtyArea.makeEmpty();
+    }
+};
+
+/**
  * Get draw event state for the given event. The draw event state represents
  * what parts of the event have been rasterized to this rasterizer's bitmap.
  * Assumes that the intention is to rasterize the given event, and clears any
@@ -62,16 +78,7 @@ BaseRasterizer.prototype.resetClip = function() {
 BaseRasterizer.prototype.getDrawEventState = function(event, stateConstructor) {
     if (event !== this.drawEvent ||
         !this.drawEventClipRect.containsRect(this.clipRect)) {
-        if (this.drawEvent !== null) {
-            var restoreClip = new Rect();
-            restoreClip.setRect(this.clipRect);
-            // TODO: This does not do a minimal clear in case of brush events
-            this.setClip(this.drawEvent.getBoundingBox(this.drawEventClipRect));
-            // TODO: Is there a case where the clipRect gets smaller while the
-            // event stays the same? That could get us into trouble...
-            this.clear();
-            this.setClip(restoreClip);
-        }
+        this.clearDirty();
         this.drawEvent = event;
         this.drawEventState = new stateConstructor();
     }
@@ -455,6 +462,7 @@ Rasterizer.prototype.fillCircle = function(centerX, centerY, radius) {
     var circleRect = Rect.fromCircle(centerX, centerY,
                                      this.drawBoundingRadius(radius));
     circleRect.intersectRectRoundedOut(this.clipRect);
+    this.dirtyArea.unionRect(circleRect);
     // integer x and y coordinates that we use here correspond to pixel corners.
     // instead of correcting the x and y by 0.5 on each iteration,
     // compensate by moving the center.
@@ -546,6 +554,7 @@ Rasterizer.prototype.linearGradient = function(coords1, coords0) {
         if (coords1.y === coords0.y) {
             return;
         }
+        this.dirtyArea.unionRect(this.clipRect);
         // Every horizontal line will be of one color
         var top = Math.min(coords1.y, coords0.y);
         var bottom = Math.max(coords1.y, coords0.y);
@@ -589,6 +598,7 @@ Rasterizer.prototype.linearGradient = function(coords1, coords0) {
         }
         return;
     } else {
+        this.dirtyArea.unionRect(this.clipRect);
         var lineStartCoords = new Vec2(0, 0);
         var lineEndCoords = new Vec2(0, 0);
         for (var y = br.y; y < br.y + br.h; ++y) {
@@ -976,6 +986,7 @@ GLDoubleBufferedRasterizer.prototype.flushCircles = function() {
             this.nFillCircleProgram[circleCount - 1],
             this.uniformParameters[circleCount - 1]);
     }
+    this.dirtyArea.unionRect(drawRect);
     this.postDraw(this.circleRect);
     this.circleRect.makeEmpty();
     this.circleInd = 0;
@@ -993,6 +1004,7 @@ GLDoubleBufferedRasterizer.prototype.linearGradient = function(coords1,
     if (coords1.x === coords0.x && coords1.y === coords0.y) {
         return;
     }
+    this.dirtyArea.unionRect(this.clipRect);
     this.preDraw(null);
     var drawRect = new Rect(0, this.width, 0, this.height);
     drawRect.intersectRectRoundedOut(this.clipRect);
@@ -1322,6 +1334,7 @@ GLFloatTexDataRasterizer.prototype.flushCircles = function() {
         this.glManager.drawFullscreenQuad(this.fillCircleProgram,
                                           this.uniformParameters);
     }
+    this.dirtyArea.unionRect(this.circleRect);
     this.circleRect.makeEmpty();
     this.circleInd = 0;
 };
