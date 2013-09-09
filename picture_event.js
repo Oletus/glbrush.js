@@ -101,6 +101,12 @@ PictureEvent.prototype.isBufferStackChange = function() {
 };
 
 /**
+ * Scale this event.
+ * @param {number} scale Scaling factor. Must be larger than 0.
+ */
+PictureEvent.prototype.scale = function(scale) {};
+
+/**
  * @enum {number}
  */
 PictureEvent.Mode = {
@@ -685,12 +691,6 @@ BufferAddEvent.prototype.isBufferStackChange = function() {
 };
 
 /**
- * Scale this event.
- * @param {number} scale Scaling factor. Must be larger than 0.
- */
-BufferAddEvent.prototype.scale = function(scale) {};
-
-/**
  * Parse a BufferAddEvent from a tokenized serialization.
  * @param {Array.<string>} arr Array containing the tokens, split at spaces from
  * the original serialization.
@@ -780,12 +780,6 @@ BufferRemoveEvent.prototype.isBufferStackChange = function() {
 };
 
 /**
- * Scale this event.
- * @param {number} scale Scaling factor. Must be larger than 0.
- */
-BufferRemoveEvent.prototype.scale = function(scale) {};
-
-/**
  * Parse a BufferRemoveEvent from a tokenized serialization.
  * @param {Array.<string>} arr Array containing the tokens, split at spaces from
  * the original serialization.
@@ -864,12 +858,6 @@ BufferMoveEvent.prototype.isRasterized = function() {
 BufferMoveEvent.prototype.isBufferStackChange = function() {
     return true;
 };
-
-/**
- * Scale this event.
- * @param {number} scale Scaling factor. Must be larger than 0.
- */
-BufferMoveEvent.prototype.scale = function(scale) {};
 
 /**
  * Parse a BufferMoveEvent from a tokenized serialization.
@@ -952,12 +940,6 @@ BufferMergeEvent.prototype.isRasterized = function() {
 BufferMergeEvent.prototype.isBufferStackChange = function() {
     return true;
 };
-
-/**
- * Scale this event.
- * @param {number} scale Scaling factor. Must be larger than 0.
- */
-BufferMergeEvent.prototype.scale = function(scale) {};
 
 /**
  * Parse a BufferMergeEvent from a tokenized serialization.
