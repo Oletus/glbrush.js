@@ -444,6 +444,20 @@ var doPictureTest = function(mode) {
         pic2.moveBuffer(9001, 0);
         expect(pic2.buffers[0].id).toBe(9001);
     });
+
+    it('serializes buffer insertion points', function() {
+        var pic = testPicture();
+        var clearColor = [12, 23, 34];
+        pic.addBuffer(1337, clearColor, false);
+        var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 5, 0,
+                                              PictureEvent.Mode.normal);
+        brushEvent.pushCoordTriplet(0, 0, 1.0);
+        brushEvent.pushCoordTriplet(5, 5, 1.0);
+        pic.insertEvent(1337, brushEvent);
+        expect(pic.buffers[0].insertionPoint).toBe(2);
+        var pic2 = Picture.resize(pic, 1.0);
+        expect(pic2.buffers[0].insertionPoint).toBe(2);
+    });
 };
  
 describe('Picture', function() {

@@ -291,6 +291,13 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry,
             ++i;
         }
     }
+    for (i = 0; i < pic.buffers.length; ++i) {
+        pic.buffers[i].insertionPoint = pic.buffers[i].events[0].insertionPoint;
+    }
+    for (i = 0; i < pic.mergedBuffers.length; ++i) {
+        pic.mergedBuffers[i].insertionPoint =
+            pic.mergedBuffers[i].events[0].insertionPoint;
+    }
     delete pic.moveBufferInternal; // switch back to prototype's move function
     var metadata = [];
     if (i < eventStrings.length && eventStrings[i] === 'metadata') {
@@ -335,12 +342,14 @@ Picture.prototype.serialize = function() {
     var buffer;
     for (i = 0; i < this.mergedBuffers.length; ++i) {
         buffer = this.mergedBuffers[i];
+        buffer.events[0].insertionPoint = buffer.insertionPoint;
         for (var j = 0; j < buffer.events.length; ++j) {
             serialization.push(buffer.events[j].serialize(serializationScale));
         }
     }
     for (i = 0; i < this.buffers.length; ++i) {
         buffer = this.buffers[i];
+        buffer.events[0].insertionPoint = buffer.insertionPoint;
         for (var j = 0; j < buffer.events.length; ++j) {
             serialization.push(buffer.events[j].serialize(serializationScale));
         }
@@ -416,7 +425,7 @@ Picture.prototype.createGradientEvent = function(color, opacity, mode) {
 Picture.prototype.createBufferAddEvent = function(id, hasAlpha, clearColor) {
     var createEvent = new BufferAddEvent(this.activeSid,
                                          this.activeSessionEventId, false, id,
-                                         hasAlpha, clearColor, 1.0);
+                                         hasAlpha, clearColor, 1.0, 0);
     this.activeSessionEventId++;
     return createEvent;
 };

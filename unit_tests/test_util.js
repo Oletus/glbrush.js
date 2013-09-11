@@ -74,7 +74,7 @@ function expectDummyBufferMergeEvent(bufferMergeEvent) {
 }
 
 function testBufferAddEvent() {
-    return new BufferAddEvent(0, 1, false, 2, true, [12, 23, 34, 45], 0.5);
+    return new BufferAddEvent(0, 1, false, 2, true, [12, 23, 34, 45], 0.5, 7);
 }
 
 function expectTestBufferAddEvent(bufferAddEvent) {
@@ -85,6 +85,7 @@ function expectTestBufferAddEvent(bufferAddEvent) {
     expect(bufferAddEvent.hasAlpha).toBe(true);
     expect(bufferAddEvent.clearColor).toEqual([12, 23, 34, 45]);
     expect(bufferAddEvent.opacity).toBe(0.5);
+    expect(bufferAddEvent.insertionPoint).toBe(7);
 }
 
 function testBufferRemoveEvent() {

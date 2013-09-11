@@ -659,7 +659,7 @@ GradientEvent.prototype.isRasterized = function() {
  * 0 to 1.
  */
 var BufferAddEvent = function(sid, sessionEventId, undone, bufferId, hasAlpha,
-                              clearColor, opacity) {
+                              clearColor, opacity, insertionPoint) {
     // TODO: assert(clearColor.length === (hasAlpha ? 4 : 3));
     this.undone = undone;
     this.sid = sid;
@@ -668,6 +668,12 @@ var BufferAddEvent = function(sid, sessionEventId, undone, bufferId, hasAlpha,
     this.hasAlpha = hasAlpha;
     this.clearColor = clearColor;
     this.opacity = opacity;
+
+    // TODO: storing this is necessary for restoring complete picture state,
+    // but might not really logically belong in the add event.
+    // Note that this is not used when the event is pushed to a picture the
+    // usual way, only when a whole picture is parsed / serialized!
+    this.insertionPoint = insertionPoint;
 };
 
 BufferAddEvent.prototype = new PictureEvent('bufferAdd');
@@ -709,8 +715,10 @@ BufferAddEvent.parse = function(arr, i, sid, sessionEventId, undone) {
         clearColor[3] = parseInt(arr[i++]);
     }
     var opacity = parseFloat(arr[i++]);
+    var insertionPoint = parseInt(arr[i++]);
     var pictureEvent = new BufferAddEvent(sid, sessionEventId, undone, bufferId,
-                                          hasAlpha, clearColor, opacity);
+                                          hasAlpha, clearColor, opacity,
+                                          insertionPoint);
     return pictureEvent;
 };
 
@@ -728,6 +736,7 @@ BufferAddEvent.prototype.serialize = function(scale) {
         eventMessage += ' ' + colorUtil.serializeRGB(this.clearColor);
     }
     eventMessage += ' ' + this.opacity;
+    eventMessage += ' ' + this.insertionPoint;
     return eventMessage;
 };
 
