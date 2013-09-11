@@ -837,10 +837,7 @@ Picture.prototype.undoEventSessionId = function(sid, sessionEventId) {
     if (this.undoEventFromBuffers(this.buffers, sid, sessionEventId)) {
         return true;
     }
-    if (this.undoEventFromBuffers(this.mergedBuffers, sid, sessionEventId)) {
-        return true;
-    }
-    return false;
+    return this.undoEventFromBuffers(this.mergedBuffers, sid, sessionEventId);
 };
 
 /**
@@ -853,7 +850,7 @@ Picture.prototype.undoEventSessionId = function(sid, sessionEventId) {
  */
 Picture.prototype.undoEventFromBuffers = function(buffers, sid,
                                                   sessionEventId) {
-    var j = this.buffers.length;
+    var j = buffers.length;
     while (j >= 1) {
         --j;
         var i = buffers[j].eventIndexBySessionId(sid, sessionEventId);
@@ -875,7 +872,6 @@ Picture.prototype.undoEventFromBuffers = function(buffers, sid,
  * @return {boolean} True on success.
  */
 Picture.prototype.redoEventSessionId = function(sid, sessionEventId) {
-    var j = this.buffers.length;
     if (this.redoEventFromBuffers(this.buffers, sid, sessionEventId)) {
         return true;
     }

@@ -363,7 +363,7 @@ var doPictureTest = function(mode) {
         expect(samplePixel[3]).toBe(0);
     });
 
-    it('can undo buffer removal', function() {
+    it('undoes buffer removal', function() {
         var pic = testPicture();
         var clearColor = [12, 23, 34];
         pic.addBuffer(1337, clearColor, false);
@@ -404,6 +404,23 @@ var doPictureTest = function(mode) {
         pic.addBuffer(1337, clearColor, false);
         pic.undoEventSessionId(pic.activeSid, pic.activeSessionEventId - 1);
         expect(pic.buffers[0].events[0].undone).toBe(true);
+    });
+
+    it('undoes an event according to session id from a merged buffer',
+       function() {
+        var pic = testPicture();
+        var clearColor = [12, 23, 34];
+        pic.addBuffer(1337, clearColor, false);
+        pic.addBuffer(9001, clearColor, false);
+        var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 5, 0,
+                                              PictureEvent.Mode.normal);
+        brushEvent.pushCoordTriplet(0, 0, 1.0);
+        brushEvent.pushCoordTriplet(5, 5, 1.0);
+        pic.pushEvent(9001, brushEvent);
+        var mergeEvent = pic.createMergeEvent(1, 0.7);
+        pic.pushEvent(1337, mergeEvent);
+        pic.undoEventSessionId(pic.activeSid, pic.activeSessionEventId - 2);
+        expect(pic.mergedBuffers[0].events[1].undone).toBe(true);
     });
 
     it('undoes buffer moves', function() {
