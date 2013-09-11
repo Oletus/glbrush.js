@@ -657,6 +657,9 @@ GradientEvent.prototype.isRasterized = function() {
  * the buffer. Channel values are integers between 0-255.
  * @param {number} opacity Alpha value controlling compositing the buffer. Range
  * 0 to 1.
+ * @param {number} insertionPoint Insertion point for the added buffer. Only
+ * taken into account when the whole picture containing this buffer is parsed or
+ * serialized.
  */
 var BufferAddEvent = function(sid, sessionEventId, undone, bufferId, hasAlpha,
                               clearColor, opacity, insertionPoint) {
