@@ -58,6 +58,7 @@ var doPictureTest = function(mode) {
                                               PictureEvent.Mode.normal);
         brushEvent.pushCoordTriplet(0, 0, 1.0);
         brushEvent.pushCoordTriplet(width, height, 1.0);
+        pic.setCurrentEventAttachment(1337);
         pic.setCurrentEvent(brushEvent);
         var samplePixel = pic.getPixelRGBA(new Vec2(0, 0));
         expect(samplePixel[0]).toBe(56);
@@ -80,6 +81,7 @@ var doPictureTest = function(mode) {
                                               PictureEvent.Mode.normal);
         brushEvent.pushCoordTriplet(0, 0, 1.0);
         brushEvent.pushCoordTriplet(width, height, 1.0);
+        pic.setCurrentEventAttachment(1337);
         pic.setCurrentEvent(brushEvent);
         var samplePixel = pic.getPixelRGBA(new Vec2(0, 0));
         expect(samplePixel[0]).toBeNear(56 * 0.5 + 12 * 0.5, 5);

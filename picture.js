@@ -10,11 +10,8 @@
  * are pushed to this picture get this scale applied to them.
  * @param {string=} mode Either 'webgl', 'no-texdata-webgl' or 'canvas'.
  * Defaults to 'webgl'.
- * @param {number} currentEventAttachment Which buffer index to attach the
- * picture's current event to. Can be set to -1 if no current event is needed.
  */
-var Picture = function(id, boundsRect, bitmapScale, mode,
-                       currentEventAttachment) {
+var Picture = function(id, boundsRect, bitmapScale, mode) {
     this.id = id;
     if (mode === undefined) {
         mode = 'webgl';
@@ -29,7 +26,7 @@ var Picture = function(id, boundsRect, bitmapScale, mode,
     this.buffers = [];
     this.mergedBuffers = []; // Merged buffers. Events can still be undone from
     // these buffers.
-    this.currentEventAttachment = currentEventAttachment;
+    this.currentEventAttachment = -1;
     this.currentEvent = null;
     this.currentEventMode = PictureEvent.Mode.normal;
 
@@ -177,10 +174,11 @@ Picture.prototype.findBuffer = function(id) {
  */
 Picture.prototype.updateCurrentEventMode = function() {
     if (this.currentEvent !== null && this.currentEventAttachment >= 0) {
-        // TODO: assert(this.currentEventAttachment < this.buffers.length)
         this.currentEventMode = this.currentEvent.mode;
+        var buffer = this.findBuffer(this.currentEventAttachment);
+        // TODO: assert(buffer !== null)
         if (this.currentEventMode === PictureEvent.Mode.erase &&
-            !this.buffers[this.currentEventAttachment].hasAlpha) {
+            !buffer.hasAlpha) {
             this.currentEventMode = PictureEvent.Mode.normal;
         }
     }
@@ -188,7 +186,7 @@ Picture.prototype.updateCurrentEventMode = function() {
 
 /**
  * Attach the current event to the given buffer in the stack.
- * @param {number} attachment Which buffer index to attach the picture's current
+ * @param {number} attachment Which buffer id to attach the picture's current
  * event to. Can be set to -1 if no current event is needed.
  */
 Picture.prototype.setCurrentEventAttachment = function(attachment) {
@@ -224,20 +222,16 @@ Picture.prototype.setBufferOpacity = function(buffer, opacity) {
  * @param {Array.<string>} modesToTry Modes to try to initialize the picture.
  * Can contain either 'webgl', 'no-texdata-webgl', 'no-float-webgl' or 'canvas'.
  * Modes are tried in the order they are in the array.
- * @param {number} currentEventAttachment Which buffer index to attach the
- * picture's current event to. Can be set to -1 if no current event is needed.
  * @return {Picture} The created picture or null if one couldn't be created.
  */
-Picture.create = function(id, width, height, bitmapScale, modesToTry,
-                          currentEventAttachment) {
+Picture.create = function(id, width, height, bitmapScale, modesToTry) {
     var pictureBounds = new Rect(0, width, 0, height);
     var i = 0;
     var pic = null;
     while (i < modesToTry.length && pic === null) {
         var mode = modesToTry[i];
         if (glUtils.supportsTextureUnits(4) || mode === 'canvas') {
-            pic = new Picture(id, pictureBounds, bitmapScale, mode,
-                              currentEventAttachment);
+            pic = new Picture(id, pictureBounds, bitmapScale, mode);
             if (pic.mode === undefined) {
                 pic = null;
             }
@@ -258,20 +252,16 @@ Picture.create = function(id, width, height, bitmapScale, modesToTry,
  * @param {Array.<string>} modesToTry Modes to try to initialize the picture.
  * Can contain either 'webgl', 'no-texdata-webgl', 'no-float-webgl' or 'canvas'.
  * Modes are tried in the order they are in the array.
- * @param {number} currentEventAttachment Which buffer index to attach the
- * picture's current buffer to. Can be set to -1 if no current buffer is needed.
  * @return {Object} Object containing key 'picture' for the created picture and
  * key 'metadata' for the metadata lines or null if picture couldn't be created.
  */
-Picture.parse = function(id, serialization, bitmapScale, modesToTry,
-                         currentEventAttachment) {
+Picture.parse = function(id, serialization, bitmapScale, modesToTry) {
     var startTime = new Date().getTime();
     var eventStrings = serialization.split(/\r?\n/);
     var pictureParams = eventStrings[0].split(' ');
     var width = parseInt(pictureParams[1]);
     var height = parseInt(pictureParams[2]);
-    var pic = Picture.create(id, width, height, bitmapScale, modesToTry,
-                             currentEventAttachment);
+    var pic = Picture.create(id, width, height, bitmapScale, modesToTry);
     pic.moveBufferInternal = function() {}; // Move events can be processed out
     // of order here, so we don't apply them. Instead rely on buffers being
     // already in the correct order.
@@ -316,8 +306,10 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry,
  */
 Picture.resize = function(pic, bitmapScale) {
     var serialization = pic.serialize();
-    return Picture.parse(pic.id, serialization, bitmapScale, [pic.mode],
-                         pic.currentEventAttachment).picture;
+    var pic2 = Picture.parse(pic.id, serialization, bitmapScale,
+                             [pic.mode]).picture;
+    pic2.setCurrentEventAttachment(pic.currentEventAttachment);
+    return pic2;
 };
 
 /**
@@ -738,8 +730,7 @@ Picture.prototype.findLatest = function(sid, canBeUndone) {
 };
 
 /**
- * Move a buffer in the buffer stack. Current event stays attached to the moved
- * buffer, if it exists.
+ * Move a buffer in the buffer stack.
  * @param {number} fromIndex Index to move the buffer from.
  * @param {number} toIndex Index to move the buffer to.
  * @protected
@@ -750,9 +741,6 @@ Picture.prototype.moveBufferInternal = function(fromIndex, toIndex) {
     var buffer = this.buffers[fromIndex];
     this.buffers.splice(fromIndex, 1);
     this.buffers.splice(toIndex, 0, buffer);
-    if (this.currentEventAttachment === fromIndex) {
-        this.currentEventAttachment = toIndex;
-    }
 };
 
 /**
@@ -1003,7 +991,7 @@ Picture.prototype.display = function() {
     for (var i = 0; i < this.buffers.length; ++i) {
         if (this.buffers[i].isComposited()) {
             this.compositor.pushBuffer(this.buffers[i]);
-            if (this.currentEventAttachment === i) {
+            if (this.currentEventAttachment === this.buffers[i].id) {
                 if (this.currentEvent) {
                     this.compositor.pushRasterizer(this.currentEventRasterizer,
                                                    this.currentEvent.color,

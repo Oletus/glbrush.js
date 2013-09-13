@@ -63,7 +63,7 @@ runTest = function() {
 
     var w = 1024;
     var pictureMode = 'webgl';
-    var testPic = Picture.create(0, w, w, 1.0, [pictureMode], 0);
+    var testPic = Picture.create(0, w, w, 1.0, [pictureMode]);
     if (testPic === null) {
         console.log('Could not test mode ' + pictureMode);
         return undefined;

@@ -652,6 +652,7 @@ GradientEvent.prototype.isRasterized = function() {
  * events will have greater sessionEventIds. Must be an integer.
  * @param {boolean} undone Whether this event is undone.
  * @param {number} bufferId Id of the added buffer. Unique at the Picture level.
+ * Should be an integer >= 0.
  * @param {boolean} hasAlpha Whether the buffer has an alpha channel.
  * @param {Uint8Array|Array.<number>} clearColor The RGB(A) color used to clear
  * the buffer. Channel values are integers between 0-255.
