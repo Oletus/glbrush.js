@@ -655,8 +655,10 @@ Picture.prototype.pushEvent = function(targetBufferId, event) {
             }
             // TODO: assert(event.mergedBuffer !== targetBuffer);
             targetBuffer.pushEvent(event, this.genericRasterizer);
-            this.buffers.splice(mergedBufferIndex, 1);
-            this.mergedBuffers.push(event.mergedBuffer);
+            if (!event.undone) {
+                this.buffers.splice(mergedBufferIndex, 1);
+                this.mergedBuffers.push(event.mergedBuffer);
+            }
         } else {
             targetBuffer.pushEvent(event, this.genericRasterizer);
         }
@@ -679,8 +681,10 @@ Picture.prototype.insertEvent = function(targetBufferId, event) {
         }
         // TODO: assert(event.mergedBuffer !== targetBuffer);
         targetBuffer.insertEvent(event, this.genericRasterizer);
-        this.buffers.splice(mergedBufferIndex, 1);
-        this.mergedBuffers.push(event.mergedBuffer);
+        if (!event.undone) {
+            this.buffers.splice(mergedBufferIndex, 1);
+            this.mergedBuffers.push(event.mergedBuffer);
+        }
     } else {
         targetBuffer.insertEvent(event, this.genericRasterizer);
     }
