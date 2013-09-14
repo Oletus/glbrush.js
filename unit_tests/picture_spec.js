@@ -404,7 +404,9 @@ var doPictureTest = function(mode) {
         var pic = testPicture();
         var clearColor = [12, 23, 34];
         pic.addBuffer(1337, clearColor, false);
-        pic.undoEventSessionId(pic.activeSid, pic.activeSessionEventId - 1);
+        var undone = pic.undoEventSessionId(pic.activeSid,
+                                            pic.activeSessionEventId - 1);
+        expect(undone).toBe(pic.buffers[0].events[0]);
         expect(pic.buffers[0].events[0].undone).toBe(true);
     });
 
@@ -421,7 +423,9 @@ var doPictureTest = function(mode) {
         pic.pushEvent(9001, brushEvent);
         var mergeEvent = pic.createMergeEvent(1, 0.7);
         pic.pushEvent(1337, mergeEvent);
-        pic.undoEventSessionId(pic.activeSid, pic.activeSessionEventId - 2);
+        var undone = pic.undoEventSessionId(pic.activeSid,
+                                            pic.activeSessionEventId - 2);
+        expect(undone).toBe(pic.mergedBuffers[0].events[1]);
         expect(pic.mergedBuffers[0].events[1].undone).toBe(true);
     });
 

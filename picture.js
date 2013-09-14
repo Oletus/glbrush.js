@@ -819,11 +819,12 @@ Picture.prototype.undoEventIndex = function(buffer, eventIndex,
  * Undo the specified event applied to this picture.
  * @param {number} sid The session id of the event.
  * @param {number} sessionEventId The session-specific event id of the event.
- * @return {boolean} True on success.
+ * @return {PictureEvent} Undone event or null if couldn't undo.
  */
 Picture.prototype.undoEventSessionId = function(sid, sessionEventId) {
-    if (this.undoEventFromBuffers(this.buffers, sid, sessionEventId)) {
-        return true;
+    var undone = this.undoEventFromBuffers(this.buffers, sid, sessionEventId);
+    if (undone !== null) {
+        return undone;
     }
     return this.undoEventFromBuffers(this.mergedBuffers, sid, sessionEventId);
 };
@@ -833,7 +834,7 @@ Picture.prototype.undoEventSessionId = function(sid, sessionEventId) {
  * @param {Array.<PictureBuffer>} buffers Buffers to search from.
  * @param {number} sid The session id of the event.
  * @param {number} sessionEventId The session-specific event id of the event.
- * @return {boolean} True on success.
+ * @return {PictureEvent} Undone event or null if couldn't undo.
  * @protected
  */
 Picture.prototype.undoEventFromBuffers = function(buffers, sid,
@@ -844,13 +845,13 @@ Picture.prototype.undoEventFromBuffers = function(buffers, sid,
         var i = buffers[j].eventIndexBySessionId(sid, sessionEventId);
         if (i >= 0) {
             if (!buffers[j].events[i].undone) {
-                this.undoEventIndex(buffers[j], i,
-                                    buffers === this.mergedBuffers);
+                return this.undoEventIndex(buffers[j], i,
+                                           buffers === this.mergedBuffers);
             }
-            return true;
+            return buffers[j].events[i];
         }
     }
-    return false;
+    return null;
 };
 
 /**
