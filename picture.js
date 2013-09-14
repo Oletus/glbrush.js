@@ -196,20 +196,20 @@ Picture.prototype.setCurrentEventAttachment = function(attachment) {
 
 /**
  * Set one of this picture's buffers visible or invisible.
- * @param {number} buffer The index of the buffer to adjust.
+ * @param {number} bufferId The id of the buffer to adjust.
  * @param {boolean} visible Is the buffer visible?
  */
-Picture.prototype.setBufferVisible = function(buffer, visible) {
-    this.buffers[buffer].visible = visible;
+Picture.prototype.setBufferVisible = function(bufferId, visible) {
+    this.findBuffer(bufferId).visible = visible;
 };
 
 /**
  * Set the opacity of one of this picture's buffers.
- * @param {number} buffer The index of the buffer to adjust.
+ * @param {number} bufferId The id of the buffer to adjust.
  * @param {number} opacity Opacity value to set, range from 0 to 1.
  */
-Picture.prototype.setBufferOpacity = function(buffer, opacity) {
-    this.buffers[buffer].events[0].opacity = opacity;
+Picture.prototype.setBufferOpacity = function(bufferId, opacity) {
+    this.findBuffer(bufferId).events[0].opacity = opacity;
 };
 
 /**

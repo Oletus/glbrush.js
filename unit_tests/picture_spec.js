@@ -189,7 +189,7 @@ var doPictureTest = function(mode) {
         pic.addBuffer(1337, clearColor, false);
         var clearColor2 = [0, 0, 0];
         pic.addBuffer(1338, clearColor2, false);
-        pic.setBufferOpacity(1, 0.5);
+        pic.setBufferOpacity(1338, 0.5);
         var samplePixel = pic.getPixelRGBA(new Vec2(0, 0));
         expect(samplePixel[0]).toBeNear(127, 5);
         expect(samplePixel[1]).toBeNear(127, 5);
@@ -203,7 +203,7 @@ var doPictureTest = function(mode) {
         pic.addBuffer(1337, clearColor, false);
         var clearColor2 = [0, 0, 0];
         pic.addBuffer(1338, clearColor2, false);
-        pic.setBufferOpacity(1, 0.5);
+        pic.setBufferOpacity(1338, 0.5);
         pic = Picture.resize(pic, pic.bitmapScale);
         expect(pic.buffers[1].opacity()).toBe(0.5);
         var samplePixel = pic.getPixelRGBA(new Vec2(0, 0));
