@@ -806,6 +806,9 @@ Picture.prototype.undoEventIndex = function(buffer, eventIndex,
             // TODO: assert(allowUndoMerge);
             var bufferIndex = this.findBufferIndex(this.buffers, buffer.id);
             this.buffers.splice(bufferIndex + 1, 0, undone.mergedBuffer);
+            bufferIndex = this.findBufferIndex(this.mergedBuffers,
+                                               undone.mergedBuffer.id);
+            this.mergedBuffers.splice(bufferIndex, 1);
         } else if (undone.eventType === 'bufferMove' && !isBufferMerged) {
             // TODO: a better solution for undoing move events. This way works
             // for in-sequence undo but out-of-sequence undo will behave

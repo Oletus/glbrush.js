@@ -310,10 +310,16 @@ var doPictureTest = function(mode) {
         var mergeEvent = pic.createMergeEvent(1, 0.7);
         pic.pushEvent(1337, mergeEvent);
         expect(pic.buffers.length).toBe(1);
+        expect(pic.mergedBuffers.length).toBe(1);
+        expect(pic.buffers[0].id).toBe(1337);
+        expect(pic.mergedBuffers[0].id).toBe(9001);
+        expect(pic.mergedBuffers[0].mergedTo).toBe(pic.buffers[0]);
         pic.undoLatest();
         expect(pic.buffers.length).toBe(2);
+        expect(pic.mergedBuffers.length).toBe(0);
         expect(pic.buffers[0].id).toBe(1337);
         expect(pic.buffers[1].id).toBe(9001);
+        expect(pic.buffers[1].mergedTo).toBe(null);
     });
 
     it('does not act on an undone merge event', function() {
@@ -325,6 +331,7 @@ var doPictureTest = function(mode) {
         mergeEvent.undone = true;
         pic.pushEvent(1337, mergeEvent);
         expect(pic.buffers.length).toBe(2);
+        expect(pic.buffers[0].events[1]).toBe(mergeEvent);
         expect(pic.buffers[0].id).toBe(1337);
         expect(pic.buffers[1].id).toBe(9001);
         expect(pic.buffers[1].mergedTo).toBe(null);
@@ -332,6 +339,7 @@ var doPictureTest = function(mode) {
         mergeEvent.undone = true;
         pic.insertEvent(1337, mergeEvent);
         expect(pic.buffers.length).toBe(2);
+        expect(pic.buffers[0].events[1]).toBe(mergeEvent);
         expect(pic.buffers[0].id).toBe(1337);
         expect(pic.buffers[1].id).toBe(9001);
         expect(pic.buffers[1].mergedTo).toBe(null);
@@ -345,10 +353,16 @@ var doPictureTest = function(mode) {
         var mergeEvent = pic.createMergeEvent(1, 0.7);
         pic.insertEvent(1337, mergeEvent);
         expect(pic.buffers.length).toBe(1);
+        expect(pic.mergedBuffers.length).toBe(1);
+        expect(pic.buffers[0].id).toBe(1337);
+        expect(pic.mergedBuffers[0].id).toBe(9001);
+        expect(pic.mergedBuffers[0].mergedTo).toBe(pic.buffers[0]);
         pic.undoLatest();
         expect(pic.buffers.length).toBe(2);
+        expect(pic.mergedBuffers.length).toBe(0);
         expect(pic.buffers[0].id).toBe(1337);
         expect(pic.buffers[1].id).toBe(9001);
+        expect(pic.buffers[1].mergedTo).toBe(null);
     });
 
     it('does not display buffers whose creation has been undone', function() {
