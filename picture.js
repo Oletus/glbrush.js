@@ -890,13 +890,16 @@ Picture.prototype.redoEventFromBuffers = function(buffers, sid,
         var i = buffers[j].eventIndexBySessionId(sid, sessionEventId);
         if (i >= 0) {
             if (event.eventType === 'bufferMerge') {
-                var mergedBufferIndex = this.findBufferIndex(this.buffers,
-                                                         event.mergedBuffer.id);
-                // TODO: assert(mergedBufferIndex !== targetBuffer);
-                // TODO: assert(!event.mergedBuffer.isDummy);
-                buffers[j].redoEventIndex(i, this.genericRasterizer);
-                this.buffers.splice(mergedBufferIndex, 1);
-                this.mergedBuffers.push(event.mergedBuffer);
+                if (event.undone) {
+                    var mergedBufferIndex =
+                        this.findBufferIndex(this.buffers,
+                                             event.mergedBuffer.id);
+                    // TODO: assert(mergedBufferIndex !== targetBuffer);
+                    // TODO: assert(!event.mergedBuffer.isDummy);
+                    buffers[j].redoEventIndex(i, this.genericRasterizer);
+                    this.buffers.splice(mergedBufferIndex, 1);
+                    this.mergedBuffers.push(event.mergedBuffer);
+                }
             } else {
                 buffers[j].redoEventIndex(i, this.genericRasterizer);
             }
