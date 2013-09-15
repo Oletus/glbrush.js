@@ -316,6 +316,27 @@ var doPictureTest = function(mode) {
         expect(pic.buffers[1].id).toBe(9001);
     });
 
+    it('does not act on an undone merge event', function() {
+        var pic = testPicture();
+        var clearColor = [12, 23, 34];
+        pic.addBuffer(1337, clearColor, false);
+        pic.addBuffer(9001, clearColor, false);
+        var mergeEvent = pic.createMergeEvent(1, 0.7);
+        mergeEvent.undone = true;
+        pic.pushEvent(1337, mergeEvent);
+        expect(pic.buffers.length).toBe(2);
+        expect(pic.buffers[0].id).toBe(1337);
+        expect(pic.buffers[1].id).toBe(9001);
+        expect(pic.buffers[1].mergedTo).toBe(null);
+        mergeEvent = pic.createMergeEvent(1, 0.7);
+        mergeEvent.undone = true;
+        pic.insertEvent(1337, mergeEvent);
+        expect(pic.buffers.length).toBe(2);
+        expect(pic.buffers[0].id).toBe(1337);
+        expect(pic.buffers[1].id).toBe(9001);
+        expect(pic.buffers[1].mergedTo).toBe(null);
+    });
+
     it('inserts a merge event', function() {
         var pic = testPicture();
         var clearColor = [12, 23, 34];
