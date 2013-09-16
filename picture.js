@@ -1139,7 +1139,7 @@ Picture.prototype.animate = function(simultaneousStrokes, speed,
                         that.animators[i].rasterizer.clear();
                         that.animators[i].rasterizer.resetClip();
                         that.animators[i].animationPos -= 1.0;
-                    } else {
+                    } else if (event.eventType === 'brush') {
                         var untilCoord = event.coords.length *
                                       that.animators[i].animationPos;
                         event.animationCoord = untilCoord;
