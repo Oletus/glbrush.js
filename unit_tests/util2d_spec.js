@@ -91,6 +91,17 @@ describe('util2d', function() {
                 }
             }
         });
+        it('generates a visually distinct color for a given color', function() {
+            var RGB = [255, 127, 255];
+            var differentRGB = colorUtil.differentColor(RGB);
+            expect(differentRGB[0]).toBeNear(0, 5);
+            expect(differentRGB[2]).toBeNear(0, 5);
+            RGB = [127, 127, 127];
+            differentRGB = colorUtil.differentColor(RGB);
+            expect(differentRGB[0]).toBeNear(230, 25);
+            expect(differentRGB[1]).toBeNear(230, 25);
+            expect(differentRGB[2]).toBeNear(230, 25);
+        });
     });
 
     describe('Vec2', function() {

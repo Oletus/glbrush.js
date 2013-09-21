@@ -35,7 +35,8 @@ colorUtil = {
     blend: null,
     serializeRGB: null,
     nBlends: null,
-    alphaForNBlends: null
+    alphaForNBlends: null,
+    differentColor: null
 };
 
 /**
@@ -181,6 +182,24 @@ colorUtil.alphaForNBlends = function(flow, n) {
     } else {
         return 1.0;
     }
+};
+
+/**
+ * Return a color that is visually distinct from the given color. The hue is
+ * inverted and the lightness is inverted, unless the lightness is close to
+ * 0.5, when the lightness is simply increased.
+ * @param {Array.<number>|Uint8Array} color An RGB value.
+ * @return {Array.<number>} A different RGB value.
+ */
+colorUtil.differentColor = function(color) {
+    var hsl = rgbToHsl(color[0], color[1], color[2]);
+    hsl[0] = (hsl[0] + 0.5) % 1;
+    if (hsl[2] < 0.4 || hsl[2] > 0.6) {
+        hsl[2] = 1.0 - hsl[2];
+    } else {
+        hsl[2] = (hsl[2] + 0.4) % 1;
+    }
+    return hslToRgb(hsl[0], hsl[1], hsl[2]);
 };
 
 /**
