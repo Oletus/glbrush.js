@@ -380,13 +380,33 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         var blame = buffer.blamePixel(new Vec2(1, 1));
         expect(blame.length).toBe(1);
         expect(blame[0].event).toBe(brushEvent);
-        expect(blame[0].alpha).toBe(0.7);
+        expect(blame[0].alpha).toBeNear(0.7, 0.03);
         // Check blaming the same event twice, there has been a bug related to
         // this
         blame = buffer.blamePixel(new Vec2(1, 1));
         expect(blame.length).toBe(1);
         expect(blame[0].event).toBe(brushEvent);
-        expect(blame[0].alpha).toBe(0.7);
+        expect(blame[0].alpha).toBe(0.7, 0.03);
+    });
+
+    it('blames multiple brush events', function() {
+        var buffer = createBuffer(params);
+        var rasterizer = createRasterizer(params);
+        fillBuffer(buffer, rasterizer, 10);
+        var brushEvent = fillingBrushEvent(params.width, params.height,
+                                           [0, 0, 0], 0.7,
+                                           PictureEvent.Mode.normal);
+        buffer.pushEvent(brushEvent, rasterizer);
+        var brushEvent2 = fillingBrushEvent(params.width, params.height,
+                                            [0, 0, 0], 0.7,
+                                            PictureEvent.Mode.normal);
+        buffer.pushEvent(brushEvent2, rasterizer);
+        var blame = buffer.blamePixel(new Vec2(1, 1));
+        expect(blame.length).toBeGreaterThan(1);
+        expect(blame[0].event).toBe(brushEvent2);
+        expect(blame[1].event).toBe(brushEvent);
+        expect(blame[0].alpha).toBeNear(0.7, 0.03);
+        expect(blame[1].alpha).toBeNear(0.7, 0.03);
     });
 };
 
