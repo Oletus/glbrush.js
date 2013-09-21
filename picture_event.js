@@ -82,6 +82,15 @@ PictureEvent.parse = function(arr, i) {
 };
 
 /**
+ * Create an identical copy of the given PictureEvent.
+ * @param {PictureEvent} event Event to copy.
+ * @return {PictureEvent} A copy of the event.
+ */
+PictureEvent.copy = function(event) {
+    return PictureEvent.parse(event.serialize(1.0).split(' '), 0);
+};
+
+/**
  * Determine whether this event's bounding box intersects with the given
  * rectangle. Returns undefined if this event's bounding box is not up to date.
  * @param {Rect} rect The rectangle to intersect with.

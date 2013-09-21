@@ -16,6 +16,13 @@ describe('PictureEvent', function() {
             var parsedEvent = PictureEvent.parse(splitSerialization, 0);
             tester(parsedEvent);
         });
+        
+        it('gets copied', function() {
+            var event = creator();
+            var eventCopy = PictureEvent.copy(event);
+            expect(eventCopy).not.toBe(event);
+            tester(eventCopy);
+        });
     };
 
     describe('BrushEvent', function() {
