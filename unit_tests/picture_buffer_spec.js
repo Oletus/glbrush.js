@@ -381,6 +381,12 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         expect(blame.length).toBe(1);
         expect(blame[0].event).toBe(brushEvent);
         expect(blame[0].alpha).toBe(0.7);
+        // Check blaming the same event twice, there has been a bug related to
+        // this
+        blame = buffer.blamePixel(new Vec2(1, 1));
+        expect(blame.length).toBe(1);
+        expect(blame[0].event).toBe(brushEvent);
+        expect(blame[0].alpha).toBe(0.7);
     });
 };
 

@@ -230,7 +230,6 @@ PictureBuffer.prototype.blamePixel = function(coords) {
         if (!this.events[i].undone && this.events[i].isRasterized()) {
             var boundingBox = this.events[i].getBoundingBox(coordsRect);
             if (boundingBox.containsRoundedOut(coords)) {
-                this.blameRasterizer.clear();
                 this.events[i].drawTo(this.blameRasterizer);
                 if (this.blameRasterizer.getPixel(coords) !== 0) {
                     var blameAlpha = this.blameRasterizer.getPixel(coords) *
