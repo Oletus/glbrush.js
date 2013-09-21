@@ -50,6 +50,16 @@ var doPictureTest = function(mode) {
         expect(pic.findBuffer(123)).toBe(pic.buffers[1]);
     });
 
+    it('determines the id of the top composited buffer', function() {
+        var pic = testPicture();
+        var clearColor = [12, 23, 34];
+        pic.addBuffer(1337, clearColor, false);
+        pic.addBuffer(123, clearColor, false);
+        expect(pic.topCompositedBufferId()).toBe(123);
+        pic.setBufferVisible(123, false);
+        expect(pic.topCompositedBufferId()).toBe(1337);
+    });
+
     it('composits a current event in addition to buffers', function() {
         var pic = testPicture();
         var clearColor = [12, 23, 34];

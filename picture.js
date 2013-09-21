@@ -169,6 +169,20 @@ Picture.prototype.findBuffer = function(id) {
 };
 
 /**
+ * @return {number} Id of the topmost composited buffer.
+ */
+Picture.prototype.topCompositedBufferId = function() {
+    var i = this.buffers.length;
+    while (i > 0) {
+        --i;
+        if (this.buffers[i].isComposited()) {
+            return this.buffers[i].id;
+        }
+    }
+    return -1;
+};
+
+/**
  * Update the current event compositing mode.
  * @protected
  */
