@@ -37,7 +37,7 @@ PictureBuffer.prototype.initializePictureBuffer = function(createEvent,
     if (hasUndoStates) {
         this.undoStates = [];
         this.undoStateInterval = 16;
-        this.maxUndoStates = 5;
+        this.undoStateBudget = 5;
     } else {
         this.undoStates = null;
     }
@@ -325,6 +325,15 @@ PictureBuffer.prototype.saveUndoState = function() {
 };
 
 /**
+ * Remove undo states until within given budget.
+ */
+PictureBuffer.prototype.stayWithinUndoStateBudget = function() {
+    while (this.undoStates.length >= this.undoStateBudget) {
+        this.undoStates.splice(0, 1);
+    }
+};
+
+/**
  * Called after a new event has been pushed and applied. Updates undo states if
  * necessary.
  * @param {BaseRasterizer} rasterizer The rasterizer to use.
@@ -346,9 +355,7 @@ PictureBuffer.prototype.eventsChanged = function(rasterizer) {
             // Time to save a new undo state
             var newUndoState = this.saveUndoState();
             if (newUndoState !== null) {
-                if (this.undoStates.length === this.maxUndoStates) {
-                    this.undoStates.splice(0, 1);
-                }
+                this.stayWithinUndoStateBudget();
                 this.undoStates.push(newUndoState);
             }
         }
