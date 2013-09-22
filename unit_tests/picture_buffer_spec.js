@@ -276,6 +276,116 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         expectBufferCorrect(buffer, rasterizer, 3);
     });
 
+    it('updates undo state index when removing events', function() {
+        var buffer = createBuffer(params);
+        var rasterizer = createRasterizer(params);
+        fillBuffer(buffer, rasterizer, buffer.undoStateInterval + 3);
+        var undoState = buffer.undoStates[0];
+        var undoStateStartIndex = undoState.index;
+        buffer.removeEventIndex(5, rasterizer);
+        expect(undoState.index).toBe(undoStateStartIndex - 1);
+
+        // Corner cases: events near the state border
+        buffer.removeEventIndex(buffer.undoStates[0].index - 1, rasterizer);
+        expect(undoState.index).toBe(undoStateStartIndex - 2);
+        buffer.removeEventIndex(buffer.undoStates[0].index, rasterizer);
+        expect(undoState.index).toBe(undoStateStartIndex - 2);
+
+        expectBufferCorrect(buffer, rasterizer, 3);
+    });
+
+    it('updates undo state index when inserting events', function() {
+        var buffer = createBuffer(params);
+        var rasterizer = createRasterizer(params);
+        fillBuffer(buffer, rasterizer, buffer.undoStateInterval + 3);
+        var undoState = buffer.undoStates[0];
+        var undoStateStartIndex = undoState.index;
+
+        var brushEvent = fillingBrushEvent(params.width, params.height,
+                                           [0.2 * 255, 0.4 * 255, 0.8 * 255],
+                                           0.5, PictureEvent.Mode.normal);
+        buffer.setInsertionPoint(5);
+        buffer.insertEvent(brushEvent, rasterizer);
+        expect(undoState.index).toBe(undoStateStartIndex + 1);
+
+        // Corner cases: events near the state border
+        buffer.setInsertionPoint(undoState.index - 1);
+        brushEvent = fillingBrushEvent(params.width, params.height,
+                                       [0.2 * 255, 0.4 * 255, 0.8 * 255],
+                                       0.5, PictureEvent.Mode.normal);
+        buffer.insertEvent(brushEvent, rasterizer);
+        expect(undoState.index).toBe(undoStateStartIndex + 2);
+
+        buffer.setInsertionPoint(undoState.index);
+        brushEvent = fillingBrushEvent(params.width, params.height,
+                                       [0.2 * 255, 0.4 * 255, 0.8 * 255],
+                                       0.5, PictureEvent.Mode.normal);
+        buffer.insertEvent(brushEvent, rasterizer);
+        expect(undoState.index).toBe(undoStateStartIndex + 2);
+
+        expectBufferCorrect(buffer, rasterizer, 3);
+    });
+
+    it('updates undo state cost when doing operations', function() {
+        var buffer = createBuffer(params);
+        var rasterizer = createRasterizer(params);
+        fillBuffer(buffer, rasterizer, buffer.undoStateInterval + 3);
+        var undoState = buffer.undoStates[0];
+        var undoStateStartCost = undoState.cost;
+
+        // Non-corner cases
+        buffer.undoEventIndex(4, rasterizer);
+        expect(undoState.cost).toBe(undoStateStartCost - 1);
+        buffer.removeEventIndex(5, rasterizer);
+        expect(undoState.cost).toBe(undoStateStartCost - 2);
+        buffer.redoEventIndex(4, rasterizer);
+        expect(undoState.cost).toBe(undoStateStartCost - 1);
+
+        // Corner cases: events near the state border
+        buffer.undoEventIndex(undoState.index - 1, rasterizer);
+        expect(undoState.cost).toBe(undoStateStartCost - 2);
+        buffer.undoEventIndex(undoState.index, rasterizer);
+        expect(undoState.cost).toBe(undoStateStartCost - 2);
+
+        // Remove an already undone event, should have no effect on cost
+        buffer.removeEventIndex(undoState.index - 1, rasterizer);
+        expect(undoState.cost).toBe(undoStateStartCost - 2);
+    });
+
+    it('maintains undo state cost when redoing the last event', function() {
+        var buffer = createBuffer(params);
+        var rasterizer = createRasterizer(params);
+        var events = 1;
+        while (buffer.undoStates.length === 0) {
+            fillBuffer(buffer, rasterizer, events);
+            ++events;
+        }
+        var undoState = buffer.undoStates[0];
+        var undoStateStartCost = undoState.cost;
+        buffer.undoEventIndex(buffer.events.length - 1, rasterizer);
+        expect(undoState.cost).toBe(undoStateStartCost - 1);
+        buffer.redoEventIndex(buffer.events.length - 1, rasterizer);
+        expect(undoState.cost).toBe(undoStateStartCost);
+    });
+
+    it('maintains undo state data when inserting an undone event', function() {
+        var buffer = createBuffer(params);
+        var rasterizer = createRasterizer(params);
+        fillBuffer(buffer, rasterizer, buffer.undoStateInterval + 3);
+        var undoState = buffer.undoStates[0];
+        var undoStateStartIndex = undoState.index;
+        var undoStateStartCost = undoState.cost;
+
+        var brushEvent = fillingBrushEvent(params.width, params.height,
+                                           [0.2 * 255, 0.4 * 255, 0.8 * 255],
+                                           0.5, PictureEvent.Mode.normal);
+        brushEvent.undone = true;
+        buffer.setInsertionPoint(5);
+        buffer.insertEvent(brushEvent, rasterizer);
+        expect(undoState.index).toBe(undoStateStartIndex + 1);
+        expect(undoState.cost).toBe(undoStateStartCost);
+    });
+
     it ('has its contents replaced by an event', function() {
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);

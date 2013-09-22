@@ -84,10 +84,17 @@ PictureBuffer.prototype.playbackAll = function(rasterizer) {
 PictureBuffer.prototype.playbackStartingFrom = function(eventIndex,
                                                         rasterizer) {
     var clipRect = this.getCurrentClipRect();
+    var nextUndoStateIndex = this.previousUndoStateIndex(eventIndex) + 1;
     for (var i = eventIndex; i < this.events.length; i++) {
         if (!this.events[i].undone &&
             this.events[i].boundsIntersectRect(clipRect)) {
             this.applyEvent(this.events[i], rasterizer);
+        }
+        if (nextUndoStateIndex < this.undoStates.length &&
+            this.undoStates[nextUndoStateIndex].index === i + 1 &&
+            this.undoStates[nextUndoStateIndex].invalid) {
+            this.repairUndoState(this.undoStates[nextUndoStateIndex]);
+            ++nextUndoStateIndex;
         }
     }
 };
@@ -136,7 +143,7 @@ PictureBuffer.prototype.pushEvent = function(event, rasterizer) {
         if (event.eventType === 'bufferRemove') {
             ++this.removeCount;
         }
-        this.eventsChanged(rasterizer);
+        this.lastEventChanged(rasterizer);
     }
 };
 
@@ -154,7 +161,7 @@ PictureBuffer.prototype.mergedBufferChanged = function(changedBuffer,
         --i;
         if (this.events[i].eventType === 'bufferMerge' &&
             this.events[i].mergedBuffer === changedBuffer) {
-            this.playbackAfterChange(i, rasterizer);
+            this.playbackAfterChange(i, rasterizer, 0, 0);
             return;
         }
     }
@@ -172,7 +179,9 @@ PictureBuffer.prototype.insertEvent = function(event, rasterizer) {
     } else {
         this.events.splice(this.insertionPoint, 0, event);
         if (!event.undone) {
-            this.playbackAfterChange(this.insertionPoint, rasterizer);
+            this.playbackAfterChange(this.insertionPoint, rasterizer, 1, 1);
+        } else {
+            this.changeUndoStatesFrom(this.insertionPoint, false, 0, 1);
         }
     }
     this.setInsertionPoint(this.insertionPoint + 1);
@@ -207,10 +216,12 @@ PictureBuffer.prototype.replaceWithEvent = function(event, rasterizer) {
         this.popClip();
     }
     this.events.splice(1, this.events.length);
+    while (this.undoStates.length > 0) {
+        this.spliceUndoState(0);
+    }
     if (event !== null) {
         this.pushEvent(event, rasterizer);
     }
-    this.invalidateUndoStatesFrom(1);
 };
 
 /**
@@ -326,6 +337,14 @@ PictureBuffer.prototype.saveUndoState = function(cost) {
 };
 
 /**
+ * Repair an undo state using the current bitmap and clip rect.
+ * @param {Object} undoState The state to repair.
+ */
+PictureBuffer.prototype.repairUndoState = function(undoState) {
+    console.log('Unimplemented repairUndoState in PictureBuffer object');
+};
+
+/**
  * Remove a stored undo state.
  * @param {number} splicedIndex The index of the undo state in the undoStates
  * array.
@@ -367,7 +386,7 @@ PictureBuffer.prototype.stayWithinUndoStateBudget = function() {
  * necessary.
  * @param {BaseRasterizer} rasterizer The rasterizer to use.
  */
-PictureBuffer.prototype.eventsChanged = function(rasterizer) {
+PictureBuffer.prototype.lastEventChanged = function(rasterizer) {
     if (this.undoStates !== null) {
         var previousState = this.previousUndoState(this.events.length);
 
@@ -381,7 +400,10 @@ PictureBuffer.prototype.eventsChanged = function(rasterizer) {
             }
         }
         if (newEvents >= this.undoStateInterval) {
-            // Time to save a new undo state
+            // Time to save a new undo state. Set the regeneration cost to
+            // amount of new events.
+            // TODO: A cost measure that's relative to how much effort the
+            // events really take to regenerate?
             var newUndoState = this.saveUndoState(newEvents);
             if (newUndoState !== null) {
                 this.undoStates.push(newUndoState);
@@ -395,40 +417,69 @@ PictureBuffer.prototype.eventsChanged = function(rasterizer) {
 };
 
 /**
- * @param {number} eventIndex The event that needs to be undone.
- * @return {Object} The latest undo state that is good for undoing the event at
- * the given index.
+ * @param {number} eventIndex The index of the event.
+ * @return {number} The index of the latest undo state in the undoStates array
+ * that is good for undoing the event at the given index, or -1 if no undo state
+ * was found.
+ * @protected
  */
-PictureBuffer.prototype.previousUndoState = function(eventIndex) {
-    // TODO: assert(eventIndex > 0); // event 0 is the buffer add event, undone
-    // at a higher level.
+PictureBuffer.prototype.previousUndoStateIndex = function(eventIndex) {
+    // TODO: assert(eventIndex > 0); // event 0 is the buffer add event, which
+    // is undone at a higher level.
     if (this.undoStates !== null) {
         var i = this.undoStates.length - 1;
         while (i >= 0) {
-            if (this.undoStates[i].index <= eventIndex) {
-                return this.undoStates[i];
+            if (this.undoStates[i].index <= eventIndex &&
+                !this.undoStates[i].invalid) {
+                return i;
             }
             --i;
         }
     }
-    return { index: 0 };
+    return -1;
 };
 
 /**
- * Invalidate undo states that contain unusable data after the given event
- * has been undone.
- * @param {number} eventIndex The event index that was undone.
+ * @param {number} eventIndex The index of the event.
+ * @return {Object} The latest undo state that is good for undoing the event at
+ * the given index.
+ * @protected
  */
-PictureBuffer.prototype.invalidateUndoStatesFrom = function(eventIndex) {
+PictureBuffer.prototype.previousUndoState = function(eventIndex) {
+    var i = this.previousUndoStateIndex(eventIndex);
+    if (i >= 0) {
+        return this.undoStates[i];
+    } else {
+        return { index: 0 };
+    }
+};
+
+/**
+ * Change undo state data for states following a given index.
+ * @param {number} eventIndex The event index where the events array changed.
+ * @param {boolean} invalidate Whether to invalidate following states.
+ * @param {number} costChange How much to change the cost of
+ * undo states that contain the event at eventIndex.
+ * @param {number} indexMove How much to increment the index of undo
+ * states that contain the event at eventIndex.
+ * @protected
+ */
+PictureBuffer.prototype.changeUndoStatesFrom = function(eventIndex, invalidate,
+                                                        costChange, indexMove) {
     if (this.undoStates !== null) {
         var i = this.undoStates.length - 1;
         while (i >= 0) {
-            // TODO: Instead of removing the entire undo state, it might be
-            // worth it to maintain an invalidated rect in some cases if there
-            // still are newer events that are not undone.
             if (this.undoStates[i].index > eventIndex) {
-                this.undoStates[i].free();
-                this.undoStates.splice(i, 1);
+                if (invalidate) {
+                    this.undoStates[i].invalid = true;
+                }
+                this.undoStates[i].cost += costChange;
+                this.undoStates[i].index += indexMove;
+                if (i > 0 &&
+                    this.undoStates[i].index === this.undoStates[i - 1].index) {
+                    // This undo state is useless
+                    this.spliceUndoState(i);
+                }
             }
             --i;
         }
@@ -484,7 +535,11 @@ PictureBuffer.prototype.undoEventIndex = function(eventIndex, rasterizer,
     }
     this.events[eventIndex].undone = true;
     if (this.events[eventIndex].eventType !== 'bufferMove') {
-        this.playbackAfterChange(eventIndex, rasterizer);
+        this.playbackAfterChange(eventIndex, rasterizer, -1, 0);
+    } else {
+        // TODO: Buffer moves or removes don't actually cost anything to
+        // regenerate, so take that into account
+        this.changeUndoStatesFrom(eventIndex, false, -1, 0);
     }
     return this.events[eventIndex];
 };
@@ -494,13 +549,23 @@ PictureBuffer.prototype.undoEventIndex = function(eventIndex, rasterizer,
  * @param {number} eventIndex Index of the first event to play back at minimum.
  * @param {BaseRasterizer} rasterizer The rasterizer to use to update the
  * bitmap.
+ * @param {number} followingStateCostChange How much to change the cost of
+ * undo states that contain the event at eventIndex.
+ * @param {number} followingStateMove How much to increment the index of undo
+ * states that contain the event at eventIndex.
  * @protected
  */
-PictureBuffer.prototype.playbackAfterChange = function(eventIndex, rasterizer) {
+PictureBuffer.prototype.playbackAfterChange = function(eventIndex, rasterizer,
+                                                       followingStateCostChange,
+                                                       followingStateMove) {
     if (!this.events[0].undone) {
         var bBox = this.events[eventIndex].getBoundingBox(this.boundsRect);
         this.pushClipRect(bBox);
-        this.invalidateUndoStatesFrom(eventIndex);
+        // Undo states following the event are invalidated. The invalidated
+        // area is not stored, but it is effectively bBox. playbackStartingFrom
+        // uses the same bBox to repair the invalidated undo states.
+        this.changeUndoStatesFrom(eventIndex, true, followingStateCostChange,
+                                  followingStateMove);
         var undoState = this.previousUndoState(eventIndex);
         this.applyState(undoState);
         this.playbackStartingFrom(undoState.index, rasterizer);
@@ -527,12 +592,14 @@ PictureBuffer.prototype.redoEventIndex = function(eventIndex, rasterizer) {
         ++this.removeCount;
     }
     if (eventIndex === this.events.length - 1) {
-        // TODO: less conservative check for whether there's anything on top of
-        // the event
         this.applyEvent(this.events[eventIndex], rasterizer);
-        this.eventsChanged(rasterizer);
+        if (this.undoStates !== null &&
+            this.undoStates[this.undoStates.length - 1].index > eventIndex) {
+            ++this.undoStates[this.undoStates.length - 1].cost;
+        }
+        this.lastEventChanged(rasterizer);
     } else {
-        this.playbackAfterChange(eventIndex, rasterizer);
+        this.playbackAfterChange(eventIndex, rasterizer, 1, 0);
     }
     return;
 };
@@ -548,6 +615,7 @@ PictureBuffer.prototype.removeEventIndex = function(eventIndex, rasterizer) {
         // TODO: maybe a better way to handle merge events
         if (this.undoEventIndex(eventIndex, rasterizer, false)) {
             this.events.splice(eventIndex, 1);
+            this.changeUndoStatesFrom(eventIndex, false, 0, -1);
         }
     } else {
         this.events.splice(eventIndex, 1);
@@ -634,6 +702,14 @@ CanvasBuffer.prototype.height = function() {
  */
 CanvasBuffer.prototype.saveUndoState = function(cost) {
     return new CanvasUndoState(this.events.length, cost, this.canvas);
+};
+
+/**
+ * Repair an undo state using the current bitmap and clip rect.
+ * @param {CanvasUndoState} undoState The state to repair.
+ */
+CanvasBuffer.prototype.repairUndoState = function(undoState) {
+    undoState.update(this.canvas, this.getCurrentClipRect());
 };
 
 /**
@@ -927,6 +1003,14 @@ GLBuffer.prototype.saveUndoState = function(cost) {
     return new GLUndoState(this.events.length, cost, this.tex, this.gl,
                            this.glManager, this.texBlitProgram,
                            this.w, this.h, this.hasAlpha);
+};
+
+/**
+ * Repair an undo state using the current bitmap and clip rect.
+ * @param {GLUndoState} undoState The state to repair.
+ */
+GLBuffer.prototype.repairUndoState = function(undoState) {
+    undoState.update(this.tex, this.getCurrentClipRect());
 };
 
 /**

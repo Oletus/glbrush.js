@@ -56,6 +56,13 @@ var runTest = function() {
         }
         ++t;
         testPic.pushEvent(0, event);
+        if (Math.random() < Math.sin(t * 0.1)) {
+            var r = 1.0 - Math.pow(Math.random(), 10);
+            var randI = Math.floor(r * (testPic.buffers[0].events.length - 2)) +
+                        1;
+            testPic.undoEventSessionId(testPic.activeSid,
+                testPic.buffers[0].events[randI].sessionEventId);
+        }
         testPic.display();
 
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
@@ -73,20 +80,26 @@ var runTest = function() {
             --i;
             --ei;
             if (ui >= 0 && buffer.undoStates[ui].index === ei + 1) {
-                var barHeight = ctx.canvas.height * buffer.undoStates[ui].cost / maxCost;
+                var barHeight = ctx.canvas.height *
+                                buffer.undoStates[ui].cost / maxCost;
                 --ui;
                 ctx.fillStyle = '#000';
                 ctx.fillRect(i, 0, 1, ctx.canvas.height);
                 ctx.fillStyle = '#f00';
-                ctx.fillRect(i, (ctx.canvas.height - barHeight) * 0.5, 1, barHeight);
+                ctx.fillRect(i, (ctx.canvas.height - barHeight) * 0.5,
+                             1, barHeight);
             } else {
-                ctx.fillStyle = (i % 2 === 0) ? '#ccc' : '#ddd';
-                ctx.fillRect(i, ctx.canvas.height * 0.1, 1, ctx.canvas.height * 0.8);
+                ctx.fillStyle = (ei % 2 === 0) ? '#ccc' : '#ddd';
+                if (buffer.events[ei].undone) {
+                    ctx.fillStyle = '#ff0';
+                }
+                ctx.fillRect(i, ctx.canvas.height * 0.1,
+                             1, ctx.canvas.height * 0.8);
             }
         }
 
         if (buffer.events.length < ctx.canvas.width * 3) {
-            setTimeout(drawFrame, 10);
+            setTimeout(drawFrame, 20);
         } else {
             setTimeout(runTest, 1000);
         }
@@ -104,11 +117,12 @@ var runTest = function() {
 <body onload="runTest()" style="background:#888;">
 <div id="parent" style="width: 256px; height: 256px;">
 </div>
-<canvas id="graph" width="1024" height="32" style="width: 1024px; height: 32px; margin-top: 10px;">
+<canvas id="graph" width="1024" height="32"
+        style="width: 1024px; height: 32px; margin-top: 10px;">
 </canvas>
 <p id="picScale"></p>
 <p id="description">Undo states are visualized as red/black bars in the
-timeline. Grey bars are events. Red bar's length represents the undo state's
-relative regeneration cost.</p>
+timeline. Grey bars are events. Yellow bars are undone events. Red bar's length
+represents the undo state's relative regeneration cost.</p>
 </body>
 </html>
