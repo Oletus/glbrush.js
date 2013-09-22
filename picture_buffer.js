@@ -317,19 +317,36 @@ PictureBuffer.prototype.findLatest = function(sid, canBeUndone) {
 
 /**
  * Save an undo state.
+ * @param {number} cost Regeneration cost of the undo state.
  * @return {Object} The undo state.
  */
-PictureBuffer.prototype.saveUndoState = function() {
+PictureBuffer.prototype.saveUndoState = function(cost) {
     console.log('Unimplemented saveUndoState in PictureBuffer object');
     return null;
 };
 
 /**
+ * Remove a stored undo state.
+ * @param {number} splicedIndex The index of the undo state in the undoStates
+ * array.
+ * @protected
+ */
+PictureBuffer.prototype.spliceUndoState = function(splicedIndex) {
+    // TODO: assert(splicedIndex < this.undoStates.length);
+    if (splicedIndex + 1 < this.undoStates.length) {
+        this.undoStates[splicedIndex + 1].cost +=
+            this.undoStates[splicedIndex].cost;
+    }
+    this.undoStates.splice(splicedIndex, 1);
+};
+
+/**
  * Remove undo states until within given budget.
+ * @protected
  */
 PictureBuffer.prototype.stayWithinUndoStateBudget = function() {
     while (this.undoStates.length >= this.undoStateBudget) {
-        this.undoStates.splice(0, 1);
+        this.spliceUndoState(0);
     }
 };
 
@@ -353,7 +370,7 @@ PictureBuffer.prototype.eventsChanged = function(rasterizer) {
         }
         if (newEvents >= this.undoStateInterval) {
             // Time to save a new undo state
-            var newUndoState = this.saveUndoState();
+            var newUndoState = this.saveUndoState(newEvents);
             if (newUndoState !== null) {
                 this.stayWithinUndoStateBudget();
                 this.undoStates.push(newUndoState);
@@ -600,10 +617,11 @@ CanvasBuffer.prototype.height = function() {
 
 /**
  * Save an undo state.
+ * @param {number} cost Regeneration cost of the undo state.
  * @return {CanvasUndoState} The undo state.
  */
-CanvasBuffer.prototype.saveUndoState = function() {
-    return new CanvasUndoState(this.events.length, this.canvas);
+CanvasBuffer.prototype.saveUndoState = function(cost) {
+    return new CanvasUndoState(this.events.length, cost, this.canvas);
 };
 
 /**
@@ -890,10 +908,11 @@ GLBuffer.prototype.drawBuffer = function(buffer, opacity) {
 
 /**
  * Save an undo state.
+ * @param {number} cost Regeneration cost of the undo state.
  * @return {GLUndoState} The undo state.
  */
-GLBuffer.prototype.saveUndoState = function() {
-    return new GLUndoState(this.events.length, this.tex, this.gl,
+GLBuffer.prototype.saveUndoState = function(cost) {
+    return new GLUndoState(this.events.length, cost, this.tex, this.gl,
                            this.glManager, this.texBlitProgram,
                            this.w, this.h, this.hasAlpha);
 };

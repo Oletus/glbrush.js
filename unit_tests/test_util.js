@@ -123,14 +123,14 @@ function expectBufferCorrect(buffer, rasterizer, tolerance) {
     if (tolerance === undefined) {
         tolerance = 3;
     }
-    var state = buffer.saveUndoState();
+    var state = buffer.saveUndoState(0);
     var clipRect = buffer.getCurrentClipRect();
     expect(clipRect.left).toBe(0);
     expect(clipRect.top).toBe(0);
     expect(clipRect.width()).toBe(buffer.width());
     expect(clipRect.height()).toBe(buffer.height());
     buffer.playbackAll(rasterizer);
-    var correctState = buffer.saveUndoState();
+    var correctState = buffer.saveUndoState(0);
     var stateData;
     var correctData;
     if (state instanceof CanvasUndoState) {

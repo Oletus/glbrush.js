@@ -61,12 +61,22 @@ var runTest = function() {
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
         var ui = 0;
         var buffer = testPic.buffers[0];
-        for (var i = 0; i < buffer.events.length; ++i) {
+        var maxCost = 0;
+        var i;
+        for (i = 0; i < buffer.undoStates.length; ++i) {
+            if (buffer.undoStates[i].cost > maxCost) {
+                maxCost = buffer.undoStates[i].cost;
+            }
+        }
+        for (i = 0; i < buffer.events.length; ++i) {
             if (ui < buffer.undoStates.length &&
                 buffer.undoStates[ui].index === i) {
+                var barHeight = ctx.canvas.height * buffer.undoStates[ui].cost / maxCost;
                 ++ui;
-                ctx.fillStyle = '#f00';
+                ctx.fillStyle = '#000';
                 ctx.fillRect(i, 0, 1, ctx.canvas.height);
+                ctx.fillStyle = '#f00';
+                ctx.fillRect(i, (ctx.canvas.height - barHeight) * 0.5, 1, barHeight);
             } else {
                 ctx.fillStyle = (i % 2 === 0) ? '#ccc' : '#ddd';
                 ctx.fillRect(i, ctx.canvas.height * 0.1, 1, ctx.canvas.height * 0.8);
@@ -95,7 +105,8 @@ var runTest = function() {
 <canvas id="graph" width="1024" height="32" style="width: 1024px; height: 32px; margin-top: 10px;">
 </canvas>
 <p id="picScale"></p>
-<p id="description">Undo states are visualized as red bars in the timeline. Grey
-bars are events.</p>
+<p id="description">Undo states are visualized as red/black bars in the
+timeline. Grey bars are events. Red bar's length represents the undo state's
+relative regeneration cost.</p>
 </body>
 </html>

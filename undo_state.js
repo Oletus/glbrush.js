@@ -7,26 +7,29 @@
  * @constructor
  * @param {number} index The index of the next event in the events array. The
  * last event that takes part in this undo state is events[index - 1].
+ * @param {number} cost Regeneration cost of the undo state.
  * @param {HTMLCanvasElement} srcCanvas Canvas containing the bitmap state
  * corresponding to the given index.
  */
-var CanvasUndoState = function(index, srcCanvas) {
+var CanvasUndoState = function(index, cost, srcCanvas) {
     this.canvas = document.createElement('canvas');
     this.canvas.width = srcCanvas.width;
     this.canvas.height = srcCanvas.height;
     this.ctx = this.canvas.getContext('2d');
-    this.update(index, srcCanvas);
+    this.update(index, cost, srcCanvas);
 };
 
 /**
  * Update this undo state in place.
  * @param {number} index The index of the next event in the events array. The
  * last event that takes part in this undo state is events[index - 1].
+ * @param {number} cost Regeneration cost of the undo state.
  * @param {HTMLCanvasElement} srcCanvas Canvas containing the bitmap state
  * corresponding to the given index.
  */
-CanvasUndoState.prototype.update = function(index, srcCanvas) {
+CanvasUndoState.prototype.update = function(index, cost, srcCanvas) {
     this.index = index;
+    this.cost = cost;
     this.ctx.drawImage(srcCanvas, 0, 0);
 };
 
@@ -53,6 +56,7 @@ CanvasUndoState.prototype.free = function() {};
  * @constructor
  * @param {number} index The index of the next event in the events array. The
  * last event that takes part in this undo state is events[index - 1].
+ * @param {number} cost Regeneration cost of the undo state.
  * @param {WebGLTexture} srcTex A texture containing the bitmap state
  * corresponding to the given index.
  * @param {WebGLRenderingContext} gl The rendering context.
@@ -64,7 +68,7 @@ CanvasUndoState.prototype.free = function() {};
  * @param {number} height Height of the texture to copy.
  * @param {boolean} hasAlpha Must alpha channel data be copied?
  */
-var GLUndoState = function(index, srcTex, gl, glManager, texBlitProgram,
+var GLUndoState = function(index, cost, srcTex, gl, glManager, texBlitProgram,
                            width, height, hasAlpha) {
     this.gl = gl;
     this.glManager = glManager;
@@ -75,18 +79,20 @@ var GLUndoState = function(index, srcTex, gl, glManager, texBlitProgram,
     this.hasAlpha = hasAlpha;
     var format = this.hasAlpha ? gl.RGBA : gl.RGB;
     this.tex = glUtils.createTexture(gl, this.width, this.height, format);
-    this.update(index, srcTex);
+    this.update(index, cost, srcTex);
 };
 
 /**
  * Update this undo state in place.
  * @param {number} index The index of the next event in the events array. The
  * last event that takes part in this undo state is events[index - 1].
+ * @param {number} cost Regeneration cost of the undo state.
  * @param {WebGLTexture} srcTex A texture containing the bitmap state
  * corresponding to the given index.
  */
-GLUndoState.prototype.update = function(index, srcTex) {
+GLUndoState.prototype.update = function(index, cost, srcTex) {
     this.index = index;
+    this.cost = cost;
     this.glManager.useFboTex(this.tex);
     glUtils.updateClip(this.gl, new Rect(0, this.width, 0, this.height),
                        this.height);
