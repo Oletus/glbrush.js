@@ -59,20 +59,22 @@ var runTest = function() {
         testPic.display();
 
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-        var ui = 0;
         var buffer = testPic.buffers[0];
-        var maxCost = 0;
         var i;
+        var maxCost = 0;
         for (i = 0; i < buffer.undoStates.length; ++i) {
             if (buffer.undoStates[i].cost > maxCost) {
                 maxCost = buffer.undoStates[i].cost;
             }
         }
-        for (i = 0; i < buffer.events.length; ++i) {
-            if (ui < buffer.undoStates.length &&
-                buffer.undoStates[ui].index === i) {
+        var ui = buffer.undoStates.length - 1;
+        var ei = buffer.events.length;
+        for (i = ctx.canvas.width; i > 0 && ei > 0;) {
+            --i;
+            --ei;
+            if (ui >= 0 && buffer.undoStates[ui].index === ei + 1) {
                 var barHeight = ctx.canvas.height * buffer.undoStates[ui].cost / maxCost;
-                ++ui;
+                --ui;
                 ctx.fillStyle = '#000';
                 ctx.fillRect(i, 0, 1, ctx.canvas.height);
                 ctx.fillStyle = '#f00';
@@ -83,8 +85,8 @@ var runTest = function() {
             }
         }
 
-        if (buffer.events.length < ctx.canvas.width) {
-            setTimeout(drawFrame, 25);
+        if (buffer.events.length < ctx.canvas.width * 3) {
+            setTimeout(drawFrame, 10);
         } else {
             setTimeout(runTest, 1000);
         }

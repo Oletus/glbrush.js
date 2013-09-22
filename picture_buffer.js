@@ -337,6 +337,7 @@ PictureBuffer.prototype.spliceUndoState = function(splicedIndex) {
         this.undoStates[splicedIndex + 1].cost +=
             this.undoStates[splicedIndex].cost;
     }
+    this.undoStates[splicedIndex].free();
     this.undoStates.splice(splicedIndex, 1);
 };
 
@@ -345,8 +346,19 @@ PictureBuffer.prototype.spliceUndoState = function(splicedIndex) {
  * @protected
  */
 PictureBuffer.prototype.stayWithinUndoStateBudget = function() {
-    while (this.undoStates.length >= this.undoStateBudget) {
-        this.spliceUndoState(0);
+    while (this.undoStates.length > this.undoStateBudget) {
+        var stateToRemove = 0;
+        var stateToRemoveWorth = (1 << 30);
+        // Consider all states for removal except the last one.
+        for (var i = 0; i < this.undoStates.length - 1; ++i) {
+            var distanceFromEnd = this.events.length - this.undoStates[i].index;
+            var worth = this.undoStates[i].cost / (distanceFromEnd + 1);
+            if (worth < stateToRemoveWorth) {
+                stateToRemove = i;
+                stateToRemoveWorth = worth;
+            }
+        }
+        this.spliceUndoState(stateToRemove);
     }
 };
 
@@ -372,8 +384,8 @@ PictureBuffer.prototype.eventsChanged = function(rasterizer) {
             // Time to save a new undo state
             var newUndoState = this.saveUndoState(newEvents);
             if (newUndoState !== null) {
-                this.stayWithinUndoStateBudget();
                 this.undoStates.push(newUndoState);
+                this.stayWithinUndoStateBudget();
             }
         }
     }
