@@ -40,7 +40,7 @@ describe('Rasterizing system', function() {
         if (testFillCircleCalls) {
             expect(testRasterizer.fillCircleCalls.length).toBe(0);
         }
-        
+
         testRasterizer.circleLineTo(0, 0.5, 4);
         expect(testRasterizer.prevX).toBe(0);
         expect(testRasterizer.prevY).toBe(0.5);
@@ -52,7 +52,7 @@ describe('Rasterizing system', function() {
             expect(testRasterizer.fillCircleCalls[0].centerY).toBe(0);
             expect(testRasterizer.fillCircleCalls[0].radius).toBe(1);
         }
-        
+
         testRasterizer.circleLineTo(2, 0.5, 5);
         expect(testRasterizer.prevX).toBe(2);
         expect(testRasterizer.prevY).toBe(0.5);
@@ -60,12 +60,18 @@ describe('Rasterizing system', function() {
         expect(testRasterizer.t).toBeNear(0.5, 0.001);
         if (testFillCircleCalls) {
             expect(testRasterizer.fillCircleCalls.length).toBe(3);
-            expect(testRasterizer.fillCircleCalls[1].centerX).toBeNear(0.5, 0.001);
-            expect(testRasterizer.fillCircleCalls[1].centerY).toBeNear(0.5, 0.001);
-            expect(testRasterizer.fillCircleCalls[1].radius).toBeNear(4.25, 0.001);
-            expect(testRasterizer.fillCircleCalls[2].centerX).toBeNear(1.5, 0.001);
-            expect(testRasterizer.fillCircleCalls[2].centerY).toBeNear(0.5, 0.001);
-            expect(testRasterizer.fillCircleCalls[2].radius).toBeNear(4.75, 0.001);
+            expect(testRasterizer.fillCircleCalls[1].centerX).toBeNear(0.5,
+                                                                       0.001);
+            expect(testRasterizer.fillCircleCalls[1].centerY).toBeNear(0.5,
+                                                                       0.001);
+            expect(testRasterizer.fillCircleCalls[1].radius).toBeNear(4.25,
+                                                                      0.001);
+            expect(testRasterizer.fillCircleCalls[2].centerX).toBeNear(1.5,
+                                                                       0.001);
+            expect(testRasterizer.fillCircleCalls[2].centerY).toBeNear(0.5,
+                                                                       0.001);
+            expect(testRasterizer.fillCircleCalls[2].radius).toBeNear(4.75,
+                                                                      0.001);
         }
     }
 
@@ -76,9 +82,12 @@ describe('Rasterizing system', function() {
         };
 
         TestRasterizer.prototype = new BaseRasterizer();
-        
-        TestRasterizer.prototype.fillCircle = function(centerX, centerY, radius) {
-            this.fillCircleCalls.push({centerX: centerX, centerY: centerY, radius: radius});
+
+        TestRasterizer.prototype.fillCircle = function(centerX, centerY,
+                                                       radius) {
+            this.fillCircleCalls.push({centerX: centerX,
+                                       centerY: centerY,
+                                       radius: radius});
         };
 
         it('initializes', function() {
@@ -98,7 +107,7 @@ describe('Rasterizing system', function() {
             expect(testRasterizer.clipRect).toEqual(clipRect);
         });
     });
-    
+
     var commonRasterizerTests = function(createRasterizer) {
         it('initializes', function() {
             var rasterizer = createRasterizer();
@@ -115,7 +124,7 @@ describe('Rasterizing system', function() {
             var coords0 = new Vec2(0, 0);
             var coords1 = new Vec2(rasterizer.width, rasterizer.height);
             rasterizer.linearGradient(coords1, coords0);
-            for (var i = 0.1; i < 1.0; i += 0.1) { 
+            for (var i = 0.1; i < 1.0; i += 0.1) {
                 var samplePoint = new Vec2(rasterizer.width, rasterizer.height);
                 samplePoint.scale(i);
                 expect(rasterizer.getPixel(samplePoint)).toBeNear(i, 0.05);
@@ -127,7 +136,7 @@ describe('Rasterizing system', function() {
             var coords0 = new Vec2(0, 0);
             var coords1 = new Vec2(0, rasterizer.height);
             rasterizer.linearGradient(coords1, coords0);
-            for (var i = 0.1; i < 1.0; i += 0.1) { 
+            for (var i = 0.1; i < 1.0; i += 0.1) {
                 var samplePoint = new Vec2(0, rasterizer.height);
                 samplePoint.scale(i);
                 expect(rasterizer.getPixel(samplePoint)).toBeNear(i, 0.05);
@@ -144,7 +153,7 @@ describe('Rasterizing system', function() {
             rasterizer.linearGradient(coords1, coords0);
             coords1.x = rasterizer.width;
             rasterizer.linearGradient(coords1, coords0);
-            for (var i = 0.1; i < 1.0; i += 0.1) { 
+            for (var i = 0.1; i < 1.0; i += 0.1) {
                 var samplePoint = new Vec2(0, rasterizer.height);
                 samplePoint.scale(i);
                 expect(rasterizer.getPixel(samplePoint)).toBe(0.0);
@@ -195,7 +204,7 @@ describe('Rasterizing system', function() {
             var glManager = glStateManager(gl);
             return new GLDoubleBufferedRasterizer(gl, glManager, 123, 456);
         };
-        
+
         commonRasterizerTests(createRasterizer);
     });
 

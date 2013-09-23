@@ -86,7 +86,8 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         expect(samplePixel[3]).toBe(0);
     });
 
-    it('blends an event to the bitmap with the normal mode, opacity and flow', function() {
+    it('blends an event to the bitmap with the normal mode, opacity and flow',
+       function() {
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
         var opacity = 0.5;
@@ -98,11 +99,15 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         buffer.pushEvent(brushEvent, rasterizer);
         var samplePixel = buffer.getPixelRGBA(new Vec2(params.width * 0.5,
                                                        params.height * 0.5));
-        expect(samplePixel[0]).toBeNear(params.clearColor[0] * (1.0 - opacity * flow) + 0.2 * 255 * opacity * flow, 10);
-        expect(samplePixel[1]).toBeNear(params.clearColor[1] * (1.0 - opacity * flow) + 0.4 * 255 * opacity * flow, 10);
-        expect(samplePixel[2]).toBeNear(params.clearColor[2] * (1.0 - opacity * flow) + 0.8 * 255 * opacity * flow, 10);
+        var sAlpha = opacity * flow;
+        expect(samplePixel[0]).toBeNear(params.clearColor[0] * (1.0 - sAlpha) +
+                                        0.2 * 255 * sAlpha, 10);
+        expect(samplePixel[1]).toBeNear(params.clearColor[1] * (1.0 - sAlpha) +
+                                        0.4 * 255 * sAlpha, 10);
+        expect(samplePixel[2]).toBeNear(params.clearColor[2] * (1.0 - sAlpha) +
+                                        0.8 * 255 * sAlpha, 10);
         var targetAlpha = params.clearColor[3] / 255;
-        var alpha = (targetAlpha + opacity * flow - targetAlpha * opacity * flow) * 255;
+        var alpha = (targetAlpha + sAlpha - targetAlpha * sAlpha) * 255;
         expect(samplePixel[3]).toBeNear(alpha, 15);
     });
 
@@ -115,9 +120,12 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
                                            opacity, PictureEvent.Mode.multiply);
         buffer.pushEvent(brushEvent, rasterizer);
         var samplePixel = buffer.getPixelRGBA(new Vec2(0, 0));
-        expect(samplePixel[0]).toBeNear(params.clearColor[0] * (0.2 + (1.0 - 0.2) * opacity), 10);
-        expect(samplePixel[1]).toBeNear(params.clearColor[1] * (0.4 + (1.0 - 0.4) * opacity), 10);
-        expect(samplePixel[2]).toBeNear(params.clearColor[2] * (0.8 + (1.0 - 0.8) * opacity), 10);
+        expect(samplePixel[0]).toBeNear(params.clearColor[0] *
+                                        (0.2 + (1.0 - 0.2) * opacity), 10);
+        expect(samplePixel[1]).toBeNear(params.clearColor[1] *
+                                        (0.4 + (1.0 - 0.4) * opacity), 10);
+        expect(samplePixel[2]).toBeNear(params.clearColor[2] *
+                                        (0.8 + (1.0 - 0.8) * opacity), 10);
         var targetAlpha = params.clearColor[3] / 255;
         var alpha = (targetAlpha + opacity - targetAlpha * opacity) * 255;
         expect(samplePixel[3]).toBeNear(alpha, 15);
@@ -132,9 +140,13 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
                                            opacity, PictureEvent.Mode.screen);
         buffer.pushEvent(brushEvent, rasterizer);
         var samplePixel = buffer.getPixelRGBA(new Vec2(0, 0));
-        expect(samplePixel[0]).toBeNear((255 - (255 - params.clearColor[0]) * (1.0 - 0.2)) * opacity + (1.0 - opacity) * params.clearColor[0], 10);
-        expect(samplePixel[1]).toBeNear((255 - (255 - params.clearColor[1]) * (1.0 - 0.4)) * opacity + (1.0 - opacity) * params.clearColor[1], 10);
-        expect(samplePixel[2]).toBeNear((255 - (255 - params.clearColor[2]) * (1.0 - 0.8)) * opacity + (1.0 - opacity) * params.clearColor[2], 10);
+        var cc = params.clearColor;
+        expect(samplePixel[0]).toBeNear((255 - (255 - cc[0]) * (1.0 - 0.2)) *
+                                        opacity + (1.0 - opacity) * cc[0], 10);
+        expect(samplePixel[1]).toBeNear((255 - (255 - cc[1]) * (1.0 - 0.4)) *
+                                        opacity + (1.0 - opacity) * cc[1], 10);
+        expect(samplePixel[2]).toBeNear((255 - (255 - cc[2]) * (1.0 - 0.8)) *
+                                        opacity + (1.0 - opacity) * cc[2], 10);
         var targetAlpha = params.clearColor[3] / 255;
         var alpha = (targetAlpha + opacity - targetAlpha * opacity) * 255;
         expect(samplePixel[3]).toBeNear(alpha, 10);
@@ -181,7 +193,7 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
             fillBuffer(buffer, rasterizer, buffer.undoStateInterval - 1);
 
             // so that the test works as intended:
-            expect(buffer.undoStateInterval).toBeGreaterThan(undoIndex + 1); 
+            expect(buffer.undoStateInterval).toBeGreaterThan(undoIndex + 1);
 
             expect(buffer.undoStates).toEqual([]);
             buffer.undoEventIndex(undoIndex, rasterizer, true);
@@ -206,7 +218,7 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
             expectBufferCorrect(buffer, rasterizer, 3);
         });
 
-        it ('removes ' + specialEventName, function() {
+        it('removes ' + specialEventName, function() {
             var buffer = createBuffer(params);
             var rasterizer = createRasterizer(params);
             var removeIndex = 5;
@@ -223,14 +235,15 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
             expectBufferCorrect(buffer, rasterizer, 3);
         });
 
-        it ('inserts ' + specialEventName, function() {
+        it('inserts ' + specialEventName, function() {
             var buffer = createBuffer(params);
             var rasterizer = createRasterizer(params);
             fillBuffer(buffer, rasterizer, buffer.undoStateInterval - 2);
             buffer.setInsertionPoint(5);
             var event;
             if (createSpecialEvent === null) {
-                event = generateBrushEvent(9001, buffer.width(), buffer.height());
+                event = generateBrushEvent(9001, buffer.width(),
+                                           buffer.height());
             } else {
                 event = createSpecialEvent();
             }
@@ -238,7 +251,7 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
             expectBufferCorrect(buffer, rasterizer, 3);
         });
     };
-    
+
     var createTestMergeEvent = function() {
         var mergedBuffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
@@ -250,7 +263,7 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         var mergeEvent = new BufferMergeEvent(0, 1, false, 0.7, mergedBuffer);
         return mergeEvent;
     };
-    
+
     singleEventTests(null, 'a brush event');
     singleEventTests(createTestMergeEvent, 'a buffer merge event');
 
@@ -267,7 +280,7 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         expectBufferCorrect(buffer, rasterizer, 3);
     });
 
-    it ('removes an event using an undo state', function() {
+    it('removes an event using an undo state', function() {
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
         fillBuffer(buffer, rasterizer, buffer.undoStateInterval + 3);
@@ -386,7 +399,7 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         expect(undoState.cost).toBe(undoStateStartCost);
     });
 
-    it ('has its contents replaced by an event', function() {
+    it('has its contents replaced by an event', function() {
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
         fillBuffer(buffer, rasterizer, buffer.undoStateInterval + 1);
@@ -428,7 +441,7 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         mergeEvent.mergedBuffer.undoEventIndex(1, rasterizer);
         expectBufferCorrect(buffer, rasterizer, 3);
     });
-    
+
     it('does not draw an undone merged buffer', function() {
         var mergeEvent = createTestMergeEvent();
         var buffer = createBuffer(params);

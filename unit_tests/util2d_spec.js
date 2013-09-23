@@ -1,7 +1,7 @@
 /*
  * Copyright Olli Etuaho 2013.
  */
- 
+
 beforeEach(function() {
   this.addMatchers({
     toBeNear: function(expected, tolerance) {
@@ -16,14 +16,16 @@ describe('util2d', function() {
         it('converts arrays of values to CSS RGB colors', function() {
             expect(cssUtil.rgbString([12, 34, 56])).toBe('rgb(12,34,56)');
         });
-        
+
         it('converts arrays of values to CSS RGBA colors', function() {
-            expect(cssUtil.rgbaString([12, 34, 56, 127.5])).toBe('rgba(12,34,56,0.5)');
+            var rgbaString = cssUtil.rgbaString([12, 34, 56, 127.5]);
+            expect(rgbaString).toBe('rgba(12,34,56,0.5)');
         });
 
         it('rounds float values down', function() {
             expect(cssUtil.rgbString([12.3, 45.6, 78.9])).toBe('rgb(12,45,78)');
-            expect(cssUtil.rgbaString([12.3, 45.6, 78.9, 127.5])).toBe('rgba(12,45,78,0.5)');
+            var rgbaString = cssUtil.rgbaString([12.3, 45.6, 78.9, 127.5]);
+            expect(rgbaString).toBe('rgba(12,45,78,0.5)');
         });
     });
 
@@ -82,7 +84,8 @@ describe('util2d', function() {
                 expect(resultA[i]).toBeNear(resultB[i], 5);
             }
         });
-        it('computes the alpha value that results to given alpha with n blends', function() {
+        it('computes the alpha value that results to given alpha with n blends',
+           function() {
             for (var flow = 0.01; flow < 0.99; flow += 0.01) {
                 for (var n = 2; n < 10; ++n) {
                     var alpha = colorUtil.alphaForNBlends(flow, n);
@@ -131,7 +134,8 @@ describe('util2d', function() {
         it('calculates a dot product', function() {
             var vecA = new Vec2(1.2, 3.4);
             var vecB = new Vec2(8.7, 6.5);
-            expect(vecA.dotProduct(vecB)).toBeNear(1.2 * 8.7 + 3.4 * 6.5, 0.001);
+            expect(vecA.dotProduct(vecB)).toBeNear(1.2 * 8.7 + 3.4 * 6.5,
+                                                   0.001);
         });
 
         it('scales', function() {
@@ -146,13 +150,14 @@ describe('util2d', function() {
             var vecB = new Vec2(8.7, 6.5);
             expect(vecA.slope(vecB)).toBeNear((6.5 - 3.4) / (8.7 - 1.2), 0.001);
         });
-        
+
         it('projects to a line', function() {
             var vecA = new Vec2(1.2, 3.4);
             var vecB = new Vec2(8.7, 6.5);
             var vecC = new Vec2(9.0, 1.2);
             vecC.projectToLine(vecA, vecB);
-            expect(vecC.y - vecA.y).toBeNear((vecC.x - vecA.x) * vecA.slope(vecB), 0.001);
+            var deltaY = (vecC.x - vecA.x) * vecA.slope(vecB);
+            expect(vecC.y - vecA.y).toBeNear(deltaY, 0.001);
             var origC = new Vec2(9.0, 1.2);
             expect(vecC.slope(origC)).toBeNear(-1.0 / vecA.slope(vecB), 0.001);
         });
@@ -163,9 +168,11 @@ describe('util2d', function() {
             var center = new Vec2(6.7, 8.9);
             vec.projectToCircle(center.x, center.y, radius);
             expect(vec.distance(center)).toBeNear(radius, 0.00001);
-            expect(Math.atan2(vec.y - center.y, vec.x - center.x)).toBeNear(Math.atan2(3.4 - center.y, 1.2 - center.x), 0.00001);
+            var projectedAngle = Math.atan2(vec.y - center.y, vec.x - center.x);
+            var originalAngle = Math.atan2(3.4 - center.y, 1.2 - center.x);
+            expect(projectedAngle).toBeNear(originalAngle, 0.00001);
         });
-        
+
         it('calculates its distance to a line', function() {
             var vecA = new Vec2(1.2, 3.4);
             var vecB = new Vec2(8.7, 6.5);
@@ -291,19 +298,21 @@ describe('util2d', function() {
             expect(rectA.isEmpty()).toBe(true);
         });
 
-        it('determines whether a circle might intersect it based on its rounded out bounding box', function() {
-            var rectA = testRect();
-            expect(rectA.mightIntersectCircleRoundedOut(1.5, 2, 1)).toBe(false);
-            expect(rectA.mightIntersectCircleRoundedOut(1.5, 2, 1.1)).toBe(true);
-            expect(rectA.mightIntersectCircleRoundedOut(1.5, 6, 1)).toBe(false);
-            expect(rectA.mightIntersectCircleRoundedOut(1.5, 6, 1.1)).toBe(true);
-            expect(rectA.mightIntersectCircleRoundedOut(0, 4, 1)).toBe(false);
-            expect(rectA.mightIntersectCircleRoundedOut(0, 4, 1.1)).toBe(true);
-            expect(rectA.mightIntersectCircleRoundedOut(3, 4, 1)).toBe(false);
-            expect(rectA.mightIntersectCircleRoundedOut(3, 4, 1.1)).toBe(true);
+        it('determines whether a circle might intersect it' +
+           'based on its rounded out bounding box', function() {
+            var rect = testRect();
+            expect(rect.mightIntersectCircleRoundedOut(1.5, 2, 1)).toBe(false);
+            expect(rect.mightIntersectCircleRoundedOut(1.5, 2, 1.1)).toBe(true);
+            expect(rect.mightIntersectCircleRoundedOut(1.5, 6, 1)).toBe(false);
+            expect(rect.mightIntersectCircleRoundedOut(1.5, 6, 1.1)).toBe(true);
+            expect(rect.mightIntersectCircleRoundedOut(0, 4, 1)).toBe(false);
+            expect(rect.mightIntersectCircleRoundedOut(0, 4, 1.1)).toBe(true);
+            expect(rect.mightIntersectCircleRoundedOut(3, 4, 1)).toBe(false);
+            expect(rect.mightIntersectCircleRoundedOut(3, 4, 1.1)).toBe(true);
         });
-        
-        it('determines whether a point is inside it based on its rounded out bounding box', function() {
+
+        it('determines whether a point is inside it' +
+           'based on its rounded out bounding box', function() {
             var rectA = testRect();
             expect(rectA.containsRoundedOut(new Vec2(1, 3))).toBe(true);
             expect(rectA.containsRoundedOut(new Vec2(2, 5))).toBe(true);
@@ -340,7 +349,7 @@ describe('util2d', function() {
             expect(rectA.top).toBe(3);
             expect(rectA.bottom).toBe(8);
         });
-        
+
         it('clips from the top', function() {
             var rectA = testRect();
             rectA.limitTop(1);
@@ -360,7 +369,7 @@ describe('util2d', function() {
             rectA.limitBottom(1);
             expect(rectA.bottom).toBe(3);
         });
-        
+
         it('clips from the left', function() {
             var rectA = testRect();
             rectA.limitLeft(0.5);

@@ -158,8 +158,9 @@ var doPictureTest = function(mode) {
         var pic2 = Picture.resize(pic, pic.maxBitmapScale());
         expect(pic2.width()).toBe(pic.width());
         expect(pic2.height()).toBe(pic.height());
-        expect(pic2.bitmapWidth()).toBeLessThan(glUtils.maxFramebufferSize + 1);
-        expect(pic2.bitmapHeight()).toBeLessThan(glUtils.maxFramebufferSize + 1);
+        var maxWidth = glUtils.maxFramebufferSize;
+        expect(pic2.bitmapWidth()).toBeLessThan(maxWidth + 1);
+        expect(pic2.bitmapHeight()).toBeLessThan(maxWidth + 1);
         var samplePixel = pic2.getPixelRGBA(new Vec2(0, 0));
         expect(samplePixel[0]).toBe(12);
         expect(samplePixel[1]).toBe(23);
@@ -222,7 +223,7 @@ var doPictureTest = function(mode) {
         expect(samplePixel[2]).toBeNear(127, 5);
         expect(samplePixel[3]).toBe(255);
     });
-    
+
     it('serializes buffer merges', function() {
         var pic = testPicture();
         var clearColor = [254, 254, 254];
@@ -259,7 +260,7 @@ var doPictureTest = function(mode) {
         expect(samplePixel[2]).toBe(34);
         expect(samplePixel[3]).toBe(255);
     });
-    
+
     it('removes an event which is already undone', function() {
         var pic = testPicture();
         var clearColor = [12, 23, 34];
@@ -527,7 +528,7 @@ var doPictureTest = function(mode) {
         expect(pic2.buffers[0].insertionPoint).toBe(2);
     });
 };
- 
+
 describe('Picture', function() {
     var modes = ['canvas', 'webgl', 'no-texdata-webgl', 'no-float-webgl'];
     for (var i = 0; i < modes.length; ++i) {

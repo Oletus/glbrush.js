@@ -147,7 +147,7 @@ function expectBufferCorrect(buffer, rasterizer, tolerance) {
             s.draw(clipRect);
             s.gl.readPixels(0, 0, buffer.width(), buffer.height(),
                            s.gl.RGBA, s.gl.UNSIGNED_BYTE, toData);
-        }
+        };
         readState(state, stateData);
         readState(correctState, correctData);
     }
