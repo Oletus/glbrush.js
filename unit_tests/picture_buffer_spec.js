@@ -399,6 +399,21 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         expect(undoState.cost).toBe(undoStateStartCost);
     });
 
+    it('removes redundant undo states', function() {
+        var buffer = createBuffer(params);
+        var rasterizer = createRasterizer(params);
+        fillBuffer(buffer, rasterizer, buffer.undoStateInterval * 2);
+        expect(buffer.undoStates.length).toBe(2);
+        while (buffer.events.length > buffer.undoStateInterval + 1) {
+            buffer.removeEventIndex(buffer.undoStateInterval, rasterizer);
+        }
+        expect(buffer.undoStates.length).toBe(2);
+        expect(buffer.undoStates[1].cost).toBe(1);
+        buffer.removeEventIndex(buffer.undoStateInterval, rasterizer);
+        expect(buffer.undoStates.length).toBe(1);
+        expect(buffer.undoStates[0].cost).toBeGreaterThan(1);
+    });
+
     it('has its contents replaced by an event', function() {
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
