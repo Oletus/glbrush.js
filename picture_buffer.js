@@ -90,7 +90,7 @@ PictureBuffer.prototype.playbackStartingFrom = function(eventIndex,
             this.events[i].boundsIntersectRect(clipRect)) {
             this.applyEvent(this.events[i], rasterizer);
         }
-        if (this.undoStates !== null && 
+        if (this.undoStates !== null &&
             nextUndoStateIndex < this.undoStates.length &&
             this.undoStates[nextUndoStateIndex].index === i + 1 &&
             this.undoStates[nextUndoStateIndex].invalid) {
