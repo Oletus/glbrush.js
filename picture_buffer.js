@@ -90,7 +90,8 @@ PictureBuffer.prototype.playbackStartingFrom = function(eventIndex,
             this.events[i].boundsIntersectRect(clipRect)) {
             this.applyEvent(this.events[i], rasterizer);
         }
-        if (nextUndoStateIndex < this.undoStates.length &&
+        if (this.undoStates !== null && 
+            nextUndoStateIndex < this.undoStates.length &&
             this.undoStates[nextUndoStateIndex].index === i + 1 &&
             this.undoStates[nextUndoStateIndex].invalid) {
             this.repairUndoState(this.undoStates[nextUndoStateIndex]);
@@ -216,7 +217,7 @@ PictureBuffer.prototype.replaceWithEvent = function(event, rasterizer) {
         this.popClip();
     }
     this.events.splice(1, this.events.length);
-    while (this.undoStates.length > 0) {
+    while (this.undoStates !== null && this.undoStates.length > 0) {
         this.spliceUndoState(0);
     }
     if (event !== null) {
