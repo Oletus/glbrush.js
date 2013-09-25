@@ -160,7 +160,7 @@ GLCompositor.prototype.pushBufferTex = function(tex, opacity, isOpaque) {
         this.pending = [];
     }
     if (this.pending.length + 1 >= this.multitexturingLimit) {
-        this.flushInternal();
+        this.flushInternal(this.pending);
         this.pending = [];
     }
     this.pending.push({type: CanvasCompositor.Element.buffer, tex: tex,

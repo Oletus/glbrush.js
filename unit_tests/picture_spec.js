@@ -116,6 +116,22 @@ var doPictureTest = function(mode) {
         expect(samplePixel[3]).toBeNear(blendedPixel[3], 8);
     });
 
+    it('composits more buffers than there are texture units', function() {
+        var pic = testPicture();
+        var clearColor = [60, 120, 240, 45];
+        var id = 0;
+        var blendedPixel = [0, 0, 0, 0];
+        while (pic.buffers.length <= glUtils.maxTextureUnits) {
+            pic.addBuffer(id, clearColor, true);
+            blendedPixel = colorUtil.blend(blendedPixel, clearColor);
+        }
+        var samplePixel = pic.getPixelRGBA(new Vec2(0, 0));
+        expect(samplePixel[0]).toBeNear(blendedPixel[0], 10);
+        expect(samplePixel[1]).toBeNear(blendedPixel[1], 10);
+        expect(samplePixel[2]).toBeNear(blendedPixel[2], 10);
+        expect(samplePixel[3]).toBeNear(blendedPixel[3], 10);
+    });
+
     it('changes the order of two buffers', function() {
         var pic = testPicture();
         var clearColor = [12, 23, 34, 45];
