@@ -635,7 +635,7 @@ PictureBuffer.prototype.redoEventIndex = function(eventIndex, rasterizer) {
     }
     if (eventIndex === this.events.length - 1) {
         this.applyEvent(this.events[eventIndex], rasterizer);
-        if (this.undoStates !== null &&
+        if (this.undoStates !== null && this.undoStates.length > 0 &&
             this.undoStates[this.undoStates.length - 1].index > eventIndex) {
             ++this.undoStates[this.undoStates.length - 1].cost;
         }

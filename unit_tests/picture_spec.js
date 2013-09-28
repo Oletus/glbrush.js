@@ -441,6 +441,21 @@ var doPictureTest = function(mode) {
         expect(samplePixel[3]).toBe(255);
     });
 
+    it('redoes buffer removal', function() {
+        var pic = testPicture();
+        var clearColor = [12, 23, 34];
+        pic.addBuffer(1337, clearColor, false);
+        pic.removeBuffer(1337);
+        pic.undoLatest(); // Undo the buffer removal
+        pic.redoEventSessionId(pic.activeSid, pic.activeSessionEventId - 1);
+        expect(pic.buffers[0].isRemoved()).toBe(true);
+        var samplePixel = pic.getPixelRGBA(new Vec2(0, 0));
+        expect(samplePixel[0]).toBe(0);
+        expect(samplePixel[1]).toBe(0);
+        expect(samplePixel[2]).toBe(0);
+        expect(samplePixel[3]).toBe(0);
+    });
+
     it('serializes buffer removes', function() {
         var pic = testPicture();
         var clearColor = [12, 23, 34];

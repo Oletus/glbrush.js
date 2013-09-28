@@ -1024,6 +1024,7 @@ Picture.prototype.redoEventFromBuffers = function(buffers, sid,
        --j;
         var i = buffers[j].eventIndexBySessionId(sid, sessionEventId);
         if (i >= 0) {
+            var event = buffers[j].events[i];
             if (event.eventType === 'bufferMerge') {
                 if (event.undone) {
                     var mergedBufferIndex =
