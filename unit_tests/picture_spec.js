@@ -543,6 +543,29 @@ var doPictureTest = function(mode) {
         var pic2 = Picture.resize(pic, 1.0);
         expect(pic2.buffers[0].insertionPoint).toBe(2);
     });
+
+    it('calculates its memory usage', function() {
+        var pic = testPicture();
+        var rasterizerUse = pic.currentEventRasterizer.getMemoryBytes() +
+                            pic.genericRasterizer.getMemoryBytes();
+        var compositorUse = pic.bitmapWidth() * pic.bitmapHeight() * 4;
+        expect(pic.memoryUse).toBe(rasterizerUse + compositorUse);
+        var clearColor = [12, 23, 34, 0];
+        pic.addBuffer(1337, clearColor, true);
+        var states = pic.buffers[0].undoStateBudget + 1;
+        var bufferUse = pic.bitmapWidth() * pic.bitmapHeight() * 4 * states;
+        expect(pic.memoryUse).toBe(rasterizerUse + compositorUse + bufferUse);
+    });
+
+    it('limits its memory usage to meet the given budget', function() {
+        var pic = testPicture();
+        var threeStates = pic.bitmapWidth() * pic.bitmapHeight() * 4 * 3;
+        pic.memoryBudget = pic.memoryUse + threeStates;
+        var clearColor = [12, 23, 34, 0];
+        pic.addBuffer(1337, clearColor, true);
+        expect(pic.buffers[0].undoStateBudget).toBeLessThan(3);
+        expect(pic.memoryUse).toBe(pic.memoryBudget);
+    });
 };
 
 describe('Picture', function() {

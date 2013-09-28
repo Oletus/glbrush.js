@@ -238,6 +238,13 @@ var Rasterizer = function(width, height) {
 Rasterizer.prototype = new BaseRasterizer();
 
 /**
+ * @return {number} The GPU memory usage of this rasterizer in bytes.
+ */
+Rasterizer.prototype.getMemoryBytes = function() {
+    return 0;
+};
+
+/**
  * Draw the rasterizer's contents to the given bitmap.
  * @param {ImageData} targetData The buffer to draw to.
  * @param {Uint8Array|Array.<number>} color Color to use for drawing. Channel
@@ -715,6 +722,13 @@ GLDoubleBufferedRasterizer.nFillShader = null;
 GLDoubleBufferedRasterizer.prototype = new BaseRasterizer();
 
 /**
+ * @return {number} The GPU memory usage of this rasterizer in bytes.
+ */
+GLDoubleBufferedRasterizer.prototype.getMemoryBytes = function() {
+    return this.width * this.height * 6;
+};
+
+/**
  * Initialize the WebGL-based rasterizer.
  * @param {WebGLRenderingContext} gl The rendering context.
  * @param {Object} glManager The state manager returned by glStateManager() in
@@ -1114,6 +1128,13 @@ GLFloatRasterizer.nSoftShader = null;
 
 GLFloatRasterizer.prototype = new BaseRasterizer();
 
+/**
+ * @return {number} The GPU memory usage of this rasterizer in bytes.
+ */
+GLFloatRasterizer.prototype.getMemoryBytes = function() {
+    return this.width * this.height * 16;
+};
+
 // TODO: Is this use of inheritDoc correct?
 /** @inheritDoc */
 GLFloatRasterizer.prototype.initGLRasterizer =
@@ -1278,6 +1299,13 @@ var GLFloatTexDataRasterizer = function(gl, glManager, width, height) {
 GLFloatTexDataRasterizer.maxCircles = 32;
 
 GLFloatTexDataRasterizer.prototype = new BaseRasterizer();
+
+/**
+ * @return {number} The GPU memory usage of this rasterizer in bytes.
+ */
+GLFloatTexDataRasterizer.prototype.getMemoryBytes = function() {
+    return this.width * this.height * 16;
+};
 
 /** @inheritDoc */
 GLFloatTexDataRasterizer.prototype.initGLRasterizer =

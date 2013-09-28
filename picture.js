@@ -36,6 +36,13 @@ var Picture = function(id, boundsRect, bitmapScale, mode) {
     var bitmapHeight = Math.floor(this.boundsRect.height() * this.bitmapScale);
     this.bitmapRect = new Rect(0, bitmapWidth, 0, bitmapHeight);
 
+    // Shouldn't use more GPU memory than this for buffers and rasterizers
+    // combined. Just guessing for a good generic limit, since WebGL won't give
+    // out an exact one. Assuming that 2D canvas elements count towards this.
+    this.memoryBudget = 256 * 1024 * 1024;
+    // Allocate space for the compositing buffer
+    this.memoryUse = this.bitmapWidth() * this.bitmapHeight() * 4;
+
     this.container = null;
     this.canvas = document.createElement('canvas');
     this.canvas.width = this.bitmapWidth();
@@ -547,7 +554,90 @@ Picture.prototype.initRasterizers = function() {
         return false;
     }
     this.genericRasterizer = this.createRasterizer();
+    this.memoryUse += this.currentEventRasterizer.getMemoryBytes();
+    this.memoryUse += this.genericRasterizer.getMemoryBytes();
     return true;
+};
+
+/**
+ * @param {GLBuffer|CanvasBuffer} buffer The buffer to consider.
+ * @return {number} The priority for selecting this buffer for reducing memory
+ * budget. Higher priority means that the buffer's memory is more likely to be
+ * reduced.
+ */
+Picture.prototype.bufferFreeingPriority = function(buffer) {
+    var priority = buffer.undoStateBudget;
+    if ((buffer.isRemoved() || buffer.mergedTo !== null) &&
+        buffer.undoStateBudget > 1) {
+        priority += buffer.undoStateBudget - 1.5;
+    }
+    priority -= buffer.undoStates.length * 0.1;
+    // TODO: Spice this up with a LRU scheme?
+    return priority;
+};
+
+/**
+ * Attempt to stay within the given memory budget.
+ * @param {number} requestedFreeBytes how much space to leave free.
+ */
+Picture.prototype.stayWithinMemoryBudget = function(requestedFreeBytes) {
+    var available = this.memoryBudget - requestedFreeBytes;
+    var needToFree = this.memoryUse - available;
+    var freeingPossible = true;
+    while (needToFree > 0 && freeingPossible) {
+        freeingPossible = false;
+        var selectedBuffer = null;
+        var selectedPriority = 0;
+        var i;
+        for (i = 0; i < this.buffers.length; ++i) {
+            if (this.buffers[i].undoStateBudget > 1) {
+                freeingPossible = true;
+                var priority = this.bufferFreeingPriority(this.buffers[i]);
+                if (priority > selectedPriority) {
+                    selectedBuffer = this.buffers[i];
+                    selectedPriority = priority;
+                }
+            }
+        }
+        for (i = 0; i < this.mergedBuffers.length; ++i) {
+            if (this.mergedBuffers[i].undoStateBudget > 1) {
+                freeingPossible = true;
+                var priority =
+                    this.bufferFreeingPriority(this.mergedBuffers[i]);
+                if (priority > selectedPriority) {
+                    selectedBuffer = this.mergedBuffers[i];
+                    selectedPriority = priority;
+                }
+            }
+        }
+        if (selectedBuffer !== null) {
+            var newBudget = selectedBuffer.undoStateBudget - 1;
+            selectedBuffer.setUndoStateBudget(newBudget);
+            this.memoryUse -= selectedBuffer.getStateMemoryBytes();
+        }
+        needToFree = this.memoryUse - available;
+    }
+    return;
+};
+
+/**
+ * @return {number} The average undo state budget of buffers that are not
+ * removed or merged.
+ */
+Picture.prototype.averageUndoStateBudgetOfActiveBuffers = function() {
+    var n = 0;
+    var sum = 0;
+    for (var i = 0; i < this.buffers.length; ++i) {
+        if (!this.buffers[i].isRemoved()) {
+            sum += this.buffers[i].undoStateBudget;
+            ++n;
+        }
+    }
+    if (n > 0) {
+        return sum / n;
+    } else {
+        return 5;
+    }
 };
 
 /**
@@ -558,15 +648,46 @@ Picture.prototype.initRasterizers = function() {
  * @protected
  */
 Picture.prototype.createBuffer = function(createEvent, hasUndoStates) {
+    var buffer;
     if (this.usesWebGl()) {
-        return new GLBuffer(this.gl, this.glManager, this.compositor,
-                            this.texBlitProgram, createEvent,
-                            this.bitmapWidth(), this.bitmapHeight(),
-                            hasUndoStates);
+        buffer = new GLBuffer(this.gl, this.glManager, this.compositor,
+                              this.texBlitProgram, createEvent,
+                              this.bitmapWidth(), this.bitmapHeight(),
+                              hasUndoStates);
     } else if (this.mode === 'canvas') {
-        return new CanvasBuffer(createEvent, this.bitmapWidth(),
-                                this.bitmapHeight(), hasUndoStates);
+        buffer = new CanvasBuffer(createEvent, this.bitmapWidth(),
+                                  this.bitmapHeight(), hasUndoStates);
     }
+    if (hasUndoStates) {
+        // Buffers always store their current state
+        this.memoryUse += buffer.getStateMemoryBytes();
+        var avgBudget = this.averageUndoStateBudgetOfActiveBuffers();
+        avgBudget = Math.floor(avgBudget);
+        // Request free space for current average amount of undo states.
+        this.stayWithinMemoryBudget(buffer.getStateMemoryBytes() * avgBudget);
+        var spaceLeftStates = Math.floor((this.memoryBudget - this.memoryUse) /
+                                         buffer.getStateMemoryBytes());
+        if (spaceLeftStates < 0) {
+            console.log('Running out of GPU memory, budget set at ' +
+                        (this.memoryBudget / (1024 * 1024)) + ' MB');
+            spaceLeftStates = 0;
+        }
+        if (spaceLeftStates > 5) {
+            spaceLeftStates = 5; // More is a waste for a new buffer
+        }
+        buffer.setUndoStateBudget(spaceLeftStates);
+        this.memoryUse += spaceLeftStates * buffer.getStateMemoryBytes();
+        if (false) { // Debug logging
+            console.log('Undo state budgets');
+            for (var i = 0; i < this.buffers.length; ++i) {
+                console.log(this.buffers[i].undoStateBudget);
+            }
+            console.log(buffer.undoStateBudget);
+            console.log('GPU memory use ' +
+                        (this.memoryUse / (1024 * 1024)) + ' MB');
+        }
+    }
+    return buffer;
 };
 
 /**

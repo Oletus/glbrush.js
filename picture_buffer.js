@@ -383,6 +383,38 @@ PictureBuffer.prototype.stayWithinUndoStateBudget = function() {
 };
 
 /**
+ * Adjust the undo state budget allocated for this buffer.
+ * @param {number} undoStateBudget How many undo states this buffer can use at
+ * maximum. Minimum is 1, recommended at least 3 if events in this buffer are
+ * being undone. Using more memory will make undo faster especially for older
+ * operations.
+ */
+PictureBuffer.prototype.setUndoStateBudget = function(undoStateBudget) {
+    // TODO: assert(undoStateBudget >= 1);
+    if (this.undoStates !== null) {
+        this.undoStateBudget = undoStateBudget;
+        this.stayWithinUndoStateBudget();
+    }
+};
+
+/**
+ * @return {number} Bytes per pixel used for storing the state of this buffer's
+ * bitmap.
+ * @protected
+ */
+PictureBuffer.prototype.bytesPerPixel = function() {
+    return this.hasAlpha ? 4 : 3;
+};
+
+/**
+ * @return {number} Amount of memory required for storing a single state of this
+ * buffer's bitmap, either the current state or an undo state, in bytes.
+ */
+PictureBuffer.prototype.getStateMemoryBytes = function() {
+    return this.width() * this.height() * this.bytesPerPixel();
+};
+
+/**
  * Called after a new event has been pushed and applied. Updates undo states if
  * necessary.
  * @param {BaseRasterizer} rasterizer The rasterizer to use.
@@ -840,6 +872,15 @@ CanvasBuffer.prototype.drawBuffer = function(buffer, opacity) {
     this.ctx.drawImage(buffer.canvas, br.x, br.y, br.w, br.h,
                        br.x, br.y, br.w, br.h);
     this.ctx.globalAlpha = 1.0;
+};
+
+/**
+ * @return {number} Bytes per pixel used for storing the state of this buffer's
+ * bitmap.
+ * @protected
+ */
+CanvasBuffer.prototype.bytesPerPixel = function() {
+    return 4;
 };
 
 
