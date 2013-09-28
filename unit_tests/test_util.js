@@ -113,6 +113,26 @@ function expectTestBufferMoveEvent(bufferMoveEvent) {
 }
 
 /**
+ * Check an array for correct values.
+ * @param {ArrayBufferView|Array.<number>} array Array to test.
+ * @param {ArrayBufferView|Array.<number>} ref Array containing correct values.
+ * Can be shorter than array, in which case the reference index is the array
+ * index modulo reference length.
+ * @param {number} tolerance Tolerance for correct values.
+ * @return {number} Amount of incorrect values.
+ */
+function expectArrayCorrect(array, ref, tolerance) {
+    var incorrectValues = 0;
+    for (var i = 0; i < array.length; ++i) {
+        if (Math.abs(array[i] - ref[i % ref.length]) > tolerance) {
+            ++incorrectValues;
+        }
+    }
+    expect(incorrectValues).toBe(0);
+    return incorrectValues;
+}
+
+/**
  * Check a buffer for correctness by replaying it.
  * @param {PictureBuffer} buffer The buffer to check for correctness.
  * @param {BaseRasterizer} rasterizer The rasterizer to use for playback.
@@ -152,12 +172,7 @@ function expectBufferCorrect(buffer, rasterizer, tolerance) {
         readState(correctState, correctData);
     }
     expect(stateData.length).toBe(correctData.length);
-    var incorrectPixels = 0;
-    for (var i = 0; i < stateData.length; ++i) {
-        if (Math.abs(stateData[i] - correctData[i]) > tolerance) {
-            ++incorrectPixels;
-        }
-    }
+    var incorrectPixels = expectArrayCorrect(stateData, correctData, tolerance);
     if (incorrectPixels > 0) {
         var displayData = function(data, w, h) {
             var canvas = document.createElement('canvas');
@@ -174,5 +189,4 @@ function expectBufferCorrect(buffer, rasterizer, tolerance) {
         displayData(stateData, buffer.width(), buffer.height());
         displayData(correctData, buffer.width(), buffer.height());
     }
-    expect(incorrectPixels).toBe(0);
 }
