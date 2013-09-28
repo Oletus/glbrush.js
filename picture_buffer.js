@@ -932,6 +932,11 @@ GLBuffer.prototype = new PictureBuffer();
  */
 GLBuffer.prototype.free = function() {
     this.gl.deleteTexture(this.tex);
+    if (this.undoStates !== null) {
+        for (var i = 0; i < this.undoStates.length; ++i) {
+            this.undoStates[i].free();
+        }
+    }
 };
 
 /**
