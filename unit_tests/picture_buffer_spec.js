@@ -546,6 +546,17 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         expect(blame[0].alpha).toBeNear(0.7, 0.03);
         expect(blame[1].alpha).toBeNear(0.7, 0.03);
     });
+
+    it('regenerates after freeing', function() {
+        var buffer = createBuffer(params);
+        var rasterizer = createRasterizer(params);
+        fillBuffer(buffer, rasterizer, buffer.undoStateInterval + 1);
+        buffer.free();
+        expect(buffer.undoStates[0].invalid).toBe(true);
+        buffer.regenerate(true, rasterizer);
+        expect(buffer.undoStates[0].invalid).toBe(false);
+        expectBufferCorrect(buffer, rasterizer, 3);
+    });
 };
 
 describe('CanvasBuffer', function() {

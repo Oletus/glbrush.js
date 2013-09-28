@@ -12,14 +12,26 @@
  * corresponding to the given index.
  */
 var CanvasUndoState = function(index, cost, srcCanvas) {
-    this.canvas = document.createElement('canvas');
-    this.canvas.width = srcCanvas.width;
-    this.canvas.height = srcCanvas.height;
-    this.ctx = this.canvas.getContext('2d');
+    this.width = srcCanvas.width;
+    this.height = srcCanvas.height;
+    this.canvas = null;
     this.update(srcCanvas, new Rect(0, this.width, 0, this.height));
     this.index = index;
     this.cost = cost;
     this.invalid = false;
+};
+
+/**
+ * Ensure that the undo state has a canvas to use.
+ * @protected
+ */
+CanvasUndoState.prototype.ensureCanvas = function() {
+    if (this.canvas === null) {
+        this.canvas = document.createElement('canvas');
+        this.canvas.width = this.width;
+        this.canvas.height = this.height;
+        this.ctx = this.canvas.getContext('2d');
+    }
 };
 
 /**
@@ -29,6 +41,7 @@ var CanvasUndoState = function(index, cost, srcCanvas) {
  * @param {Rect} clipRect Area to update.
  */
 CanvasUndoState.prototype.update = function(srcCanvas, clipRect) {
+    this.ensureCanvas();
     var br = clipRect.getXYWH();
     this.ctx.clearRect(br.x, br.y, br.w, br.h);
     this.ctx.drawImage(srcCanvas, br.x, br.y, br.w, br.h,
@@ -43,15 +56,21 @@ CanvasUndoState.prototype.update = function(srcCanvas, clipRect) {
  * rounded outwards.
  */
 CanvasUndoState.prototype.draw = function(ctx, clipRect) {
+    // TODO: assert(!this.invalid);
     var r = clipRect.getXYWH();
     ctx.clearRect(r.x, r.y, r.w, r.h);
     ctx.drawImage(this.canvas, r.x, r.y, r.w, r.h, r.x, r.y, r.w, r.h);
 };
 
 /**
- * Clean up any allocated resources. The undo state is not usable after this.
+ * Clean up any allocated resources. The undo state will become invalid, but can
+ * be restored by calling update().
  */
-CanvasUndoState.prototype.free = function() {};
+CanvasUndoState.prototype.free = function() {
+    this.ctx = null;
+    this.canvas = null;
+    this.invalid = true;
+};
 
 
 /**
@@ -80,11 +99,22 @@ var GLUndoState = function(index, cost, srcTex, gl, glManager, texBlitProgram,
     this.width = width;
     this.height = height;
     this.hasAlpha = hasAlpha;
-    var format = this.hasAlpha ? gl.RGBA : gl.RGB;
-    this.tex = glUtils.createTexture(gl, this.width, this.height, format);
+    this.tex = null;
     this.update(srcTex, new Rect(0, this.width, 0, this.height));
     this.index = index;
     this.cost = cost;
+};
+
+/**
+ * Ensure that the undo state has a texture to use.
+ * @protected
+ */
+GLUndoState.prototype.ensureTexture = function() {
+    if (this.tex === null) {
+        var format = this.hasAlpha ? this.gl.RGBA : this.gl.RGB;
+        this.tex = glUtils.createTexture(this.gl, this.width, this.height,
+                                         format);
+    }
 };
 
 /**
@@ -94,6 +124,7 @@ var GLUndoState = function(index, cost, srcTex, gl, glManager, texBlitProgram,
  * @param {Rect} clipRect Area to update.
  */
 GLUndoState.prototype.update = function(srcTex, clipRect) {
+    this.ensureTexture();
     this.glManager.useFboTex(this.tex);
     glUtils.updateClip(this.gl, clipRect, this.height);
     this.texBlitUniforms.uSrcTex = srcTex;
@@ -110,6 +141,7 @@ GLUndoState.prototype.update = function(srcTex, clipRect) {
  * rounded outwards.
  */
 GLUndoState.prototype.draw = function(clipRect) {
+    // TODO: assert(!this.invalid);
     this.texBlitUniforms.uSrcTex = this.tex;
     glUtils.updateClip(this.gl, clipRect, this.height);
     this.gl.clearColor(0, 0, 0, 0);
@@ -119,8 +151,13 @@ GLUndoState.prototype.draw = function(clipRect) {
 };
 
 /**
- * Clean up any allocated resources. The undo state is not usable after this.
+ * Clean up any allocated resources. The undo state will become invalid, but can
+ * be restored by calling update().
  */
 GLUndoState.prototype.free = function() {
-    this.gl.deleteTexture(this.tex);
+    if (this.tex !== null) {
+        this.gl.deleteTexture(this.tex);
+        this.tex = null;
+        this.invalid = true;
+    }
 };

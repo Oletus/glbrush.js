@@ -25,6 +25,8 @@ PictureBuffer.prototype.initializePictureBuffer = function(createEvent,
                                                            hasUndoStates) {
     this.hasAlpha = createEvent.hasAlpha;
     this.id = createEvent.bufferId;
+    this.ww = width;
+    this.hh = height;
     this.events = [];
     this.isDummy = false;
     this.mergedTo = null;
@@ -51,17 +53,24 @@ PictureBuffer.prototype.initializePictureBuffer = function(createEvent,
 };
 
 /**
+ * @return {number} The width of the buffer in pixels.
+ */
+PictureBuffer.prototype.width = function() {
+    return this.ww;
+};
+
+/**
+ * @return {number} The height of the buffer in pixels.
+ */
+PictureBuffer.prototype.height = function() {
+    return this.hh;
+};
+
+/**
  * @return {number} The compositing opacity for this buffer.
  */
 PictureBuffer.prototype.opacity = function() {
     return this.events[0].opacity;
-};
-
-/**
- * Clean up any allocated resources. The picture buffer is not usable after
- * this.
- */
-PictureBuffer.prototype.free = function() {
 };
 
 /**
@@ -703,10 +712,8 @@ PictureBuffer.prototype.isComposited = function() {
  */
 var CanvasBuffer = function(createEvent, width, height, hasUndoStates) {
     this.initializePictureBuffer(createEvent, width, height, hasUndoStates);
-    this.canvas = document.createElement('canvas');
-    this.canvas.width = width;
-    this.canvas.height = height;
-    this.ctx = this.canvas.getContext('2d');
+    this.canvas = null;
+    this.createCanvas();
 
     this.blameRasterizer = new Rasterizer(width, height);
     this.insertEvent(createEvent, null); // will clear the buffer
@@ -715,17 +722,42 @@ var CanvasBuffer = function(createEvent, width, height, hasUndoStates) {
 CanvasBuffer.prototype = new PictureBuffer();
 
 /**
- * @return {number} The width of the buffer in pixels.
+ * Create a canvas for storing this buffer's current state.
+ * @protected
  */
-CanvasBuffer.prototype.width = function() {
-    return this.canvas.width;
+CanvasBuffer.prototype.createCanvas = function() {
+    // TODO: assert(!this.canvas);
+    this.canvas = document.createElement('canvas');
+    this.canvas.width = this.width();
+    this.canvas.height = this.height();
+    this.ctx = this.canvas.getContext('2d');
 };
 
 /**
- * @return {number} The height of the buffer in pixels.
+ * Clean up any allocated resources. To make the buffer usable again after this,
+ * call regenerate.
  */
-CanvasBuffer.prototype.height = function() {
-    return this.canvas.height;
+CanvasBuffer.prototype.free = function() {
+    this.ctx = null;
+    this.canvas = null;
+    if (this.undoStates !== null) {
+        for (var i = 0; i < this.undoStates.length; ++i) {
+            this.undoStates[i].free();
+        }
+    }
+};
+
+/**
+ * Call after freeing to restore bitmaps.
+ * @param {boolean} regenerateUndoStates Whether to regenerate undo states.
+ * @param {Rasterizer} rasterizer Rasterizer to use.
+ */
+CanvasBuffer.prototype.regenerate = function(regenerateUndoStates, rasterizer) {
+    this.createCanvas();
+    if (!regenerateUndoStates) {
+        this.undoStates = [];
+    }
+    this.playbackAll(rasterizer);
 };
 
 /**
@@ -909,29 +941,34 @@ var GLBuffer = function(gl, glManager, compositor, texBlitProgram, createEvent,
     this.gl = gl;
     this.glManager = glManager;
     this.compositor = compositor;
-    this.w = width;
-    this.h = height;
 
-    var format = this.hasAlpha ? gl.RGBA : gl.RGB;
-    this.tex = glUtils.createTexture(this.gl, width, height, format);
+    this.tex = null;
+    this.createTex();
 
-    if (this.gl.checkFramebufferStatus(this.gl.FRAMEBUFFER) !==
-        this.gl.FRAMEBUFFER_COMPLETE) {
-        console.log('Error: Unable to create WebGL FBO!');
-    }
-
-    this.blameRasterizer = new Rasterizer(this.w, this.h);
+    this.blameRasterizer = new Rasterizer(this.width(), this.height());
     this.insertEvent(createEvent, null); // will clear the buffer
 };
 
 GLBuffer.prototype = new PictureBuffer();
 
 /**
- * Clean up any allocated resources. The picture buffer is not usable after
- * this.
+ * Create a texture for storing this buffer's current state.
+ * @protected
+ */
+GLBuffer.prototype.createTex = function() {
+    // TODO: assert(!this.tex);
+    var format = this.hasAlpha ? this.gl.RGBA : this.gl.RGB;
+    this.tex = glUtils.createTexture(this.gl, this.width(), this.height(),
+                                     format);
+};
+
+/**
+ * Clean up any allocated resources. To make the buffer usable again after this,
+ * call regenerate.
  */
 GLBuffer.prototype.free = function() {
     this.gl.deleteTexture(this.tex);
+    this.tex = null;
     if (this.undoStates !== null) {
         for (var i = 0; i < this.undoStates.length; ++i) {
             this.undoStates[i].free();
@@ -940,17 +977,16 @@ GLBuffer.prototype.free = function() {
 };
 
 /**
- * @return {number} The width of the buffer in pixels.
+ * Call after freeing to restore bitmaps.
+ * @param {boolean} regenerateUndoStates Whether to regenerate undo states.
+ * @param {BaseRasterizer} rasterizer Rasterizer to use.
  */
-GLBuffer.prototype.width = function() {
-    return this.w;
-};
-
-/**
- * @return {number} The height of the buffer in pixels.
- */
-GLBuffer.prototype.height = function() {
-    return this.h;
+GLBuffer.prototype.regenerate = function(regenerateUndoStates, rasterizer) {
+    this.createTex();
+    if (!regenerateUndoStates) {
+        this.undoStates = [];
+    }
+    this.playbackAll(rasterizer);
 };
 
 /**
@@ -1005,7 +1041,8 @@ GLBuffer.prototype.drawRasterizerWithColor = function(raster, color, opacity,
     } else {
         // Copy into helper texture from this.tex, then use compositor to render
         // that blended with the contents of the rasterizer back to this.tex.
-        var helper = glUtils.createTexture(this.gl, this.w, this.h);
+        var helper = glUtils.createTexture(this.gl, this.width(),
+                                           this.height());
         this.glManager.useFboTex(helper);
         this.texBlitUniforms.uSrcTex = this.tex;
         this.glManager.drawFullscreenQuad(this.texBlitProgram,
@@ -1029,7 +1066,7 @@ GLBuffer.prototype.drawBuffer = function(buffer, opacity) {
     this.updateClip();
     // Copy into helper texture from this.tex, then use compositor to render
     // that blended with the contents of the buffer back to this.tex.
-    var helper = glUtils.createTexture(this.gl, this.w, this.h);
+    var helper = glUtils.createTexture(this.gl, this.width(), this.height());
     this.glManager.useFboTex(helper);
     this.texBlitUniforms.uSrcTex = this.tex;
     this.glManager.drawFullscreenQuad(this.texBlitProgram,
@@ -1049,7 +1086,7 @@ GLBuffer.prototype.drawBuffer = function(buffer, opacity) {
 GLBuffer.prototype.saveUndoState = function(cost) {
     return new GLUndoState(this.events.length, cost, this.tex, this.gl,
                            this.glManager, this.texBlitProgram,
-                           this.w, this.h, this.hasAlpha);
+                           this.width(), this.height(), this.hasAlpha);
 };
 
 /**
