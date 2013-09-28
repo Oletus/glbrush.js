@@ -8,17 +8,20 @@
  * @param {number} index The index of the next event in the events array. The
  * last event that takes part in this undo state is events[index - 1].
  * @param {number} cost Regeneration cost of the undo state.
+ * @param {number} width Width of the undo state in pixels.
+ * @param {number} height Height of the undo state in pixels.
  * @param {HTMLCanvasElement} srcCanvas Canvas containing the bitmap state
- * corresponding to the given index.
+ * corresponding to the given index. May be null to create an invalid state.
  */
-var CanvasUndoState = function(index, cost, srcCanvas) {
-    this.width = srcCanvas.width;
-    this.height = srcCanvas.height;
+var CanvasUndoState = function(index, cost, width, height, srcCanvas) {
+    this.width = width;
+    this.height = height;
     this.canvas = null;
+    this.ctx = null;
+    this.invalid = true;
     this.update(srcCanvas, new Rect(0, this.width, 0, this.height));
     this.index = index;
     this.cost = cost;
-    this.invalid = false;
 };
 
 /**
@@ -41,6 +44,9 @@ CanvasUndoState.prototype.ensureCanvas = function() {
  * @param {Rect} clipRect Area to update.
  */
 CanvasUndoState.prototype.update = function(srcCanvas, clipRect) {
+    if (srcCanvas === null) {
+        return;
+    }
     this.ensureCanvas();
     var br = clipRect.getXYWH();
     this.ctx.clearRect(br.x, br.y, br.w, br.h);
@@ -80,7 +86,7 @@ CanvasUndoState.prototype.free = function() {
  * last event that takes part in this undo state is events[index - 1].
  * @param {number} cost Regeneration cost of the undo state.
  * @param {WebGLTexture} srcTex A texture containing the bitmap state
- * corresponding to the given index.
+ * corresponding to the given index. May be null to create an invalid state.
  * @param {WebGLRenderingContext} gl The rendering context.
  * @param {Object} glManager The state manager returned by glStateManager() in
  * utilgl.
@@ -100,6 +106,7 @@ var GLUndoState = function(index, cost, srcTex, gl, glManager, texBlitProgram,
     this.height = height;
     this.hasAlpha = hasAlpha;
     this.tex = null;
+    this.invalid = true;
     this.update(srcTex, new Rect(0, this.width, 0, this.height));
     this.index = index;
     this.cost = cost;
@@ -124,6 +131,9 @@ GLUndoState.prototype.ensureTexture = function() {
  * @param {Rect} clipRect Area to update.
  */
 GLUndoState.prototype.update = function(srcTex, clipRect) {
+    if (srcTex === null) {
+        return;
+    }
     this.ensureTexture();
     this.glManager.useFboTex(this.tex);
     glUtils.updateClip(this.gl, clipRect, this.height);

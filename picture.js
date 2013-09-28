@@ -922,7 +922,8 @@ Picture.prototype.undoLatest = function(keepLastBuffer) {
 
 /**
  * Undo the event specified by the given index from the given buffer. Will
- * handle events that change the buffer stack.
+ * handle events that change the buffer stack. All undo operations go through
+ * here.
  * @param {PictureBuffer} buffer Buffer to undo from.
  * @param {number} eventIndex Index of the event in the buffer.
  * @param {boolean} isBufferMerged Is the buffer in mergedBuffers?
@@ -937,7 +938,10 @@ Picture.prototype.undoEventIndex = function(buffer, eventIndex,
     var undone = buffer.undoEventIndex(eventIndex, this.genericRasterizer,
                                        allowUndoMerge);
     if (undone) {
-        if (undone.eventType === 'bufferMerge') {
+        if (eventIndex === 0) {
+            // TODO: assert(undone.eventType === 'bufferAdd');
+            buffer.free();
+        } else if (undone.eventType === 'bufferMerge') {
             // TODO: assert(allowUndoMerge);
             var bufferIndex = this.findBufferIndex(this.buffers, buffer.id);
             this.buffers.splice(bufferIndex + 1, 0, undone.mergedBuffer);
@@ -1037,6 +1041,10 @@ Picture.prototype.redoEventFromBuffers = function(buffers, sid,
                     this.mergedBuffers.push(event.mergedBuffer);
                 }
             } else {
+                if (i === 0) {
+                    // TODO: assert(event.eventType === 'bufferAdd');
+                    buffers[j].regenerate(true, this.genericRasterizer);
+                }
                 buffers[j].redoEventIndex(i, this.genericRasterizer);
             }
             return true;

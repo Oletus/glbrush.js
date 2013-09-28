@@ -50,6 +50,7 @@ PictureBuffer.prototype.initializePictureBuffer = function(createEvent,
 
     this.visible = true;
     this.insertionPoint = 0;
+    this.freed = false;
 };
 
 /**
@@ -99,7 +100,7 @@ PictureBuffer.prototype.playbackStartingFrom = function(eventIndex,
             this.events[i].boundsIntersectRect(clipRect)) {
             this.applyEvent(this.events[i], rasterizer);
         }
-        if (this.undoStates !== null &&
+        if (this.undoStates !== null && !this.freed &&
             nextUndoStateIndex < this.undoStates.length &&
             this.undoStates[nextUndoStateIndex].index === i + 1 &&
             this.undoStates[nextUndoStateIndex].invalid) {
@@ -117,7 +118,9 @@ PictureBuffer.prototype.playbackStartingFrom = function(eventIndex,
  * @protected
  */
 PictureBuffer.prototype.applyEvent = function(event, rasterizer) {
-    if (event.isRasterized()) {
+    if (this.freed) {
+        return;
+    } else if (event.isRasterized()) {
         var boundingBox = event.getBoundingBox(this.boundsRect);
         this.pushClipRect(boundingBox);
         if (this.getCurrentClipRect().isEmpty()) {
@@ -535,7 +538,7 @@ PictureBuffer.prototype.changeUndoStatesFrom = function(eventIndex, invalidate,
  * @protected
  */
 PictureBuffer.prototype.applyState = function(undoState) {
-    if (undoState.index !== 0) {
+    if (undoState.index !== 0 && !this.freed) {
         this.applyStateObject(undoState);
     }
 };
@@ -738,6 +741,7 @@ CanvasBuffer.prototype.createCanvas = function() {
  * call regenerate.
  */
 CanvasBuffer.prototype.free = function() {
+    this.freed = true;
     this.ctx = null;
     this.canvas = null;
     if (this.undoStates !== null) {
@@ -753,6 +757,7 @@ CanvasBuffer.prototype.free = function() {
  * @param {Rasterizer} rasterizer Rasterizer to use.
  */
 CanvasBuffer.prototype.regenerate = function(regenerateUndoStates, rasterizer) {
+    this.freed = false;
     this.createCanvas();
     if (!regenerateUndoStates) {
         this.undoStates = [];
@@ -766,7 +771,8 @@ CanvasBuffer.prototype.regenerate = function(regenerateUndoStates, rasterizer) {
  * @return {CanvasUndoState} The undo state.
  */
 CanvasBuffer.prototype.saveUndoState = function(cost) {
-    return new CanvasUndoState(this.events.length, cost, this.canvas);
+    return new CanvasUndoState(this.events.length, cost, this.width(),
+                               this.height(), this.canvas);
 };
 
 /**
@@ -967,6 +973,7 @@ GLBuffer.prototype.createTex = function() {
  * call regenerate.
  */
 GLBuffer.prototype.free = function() {
+    this.freed = true;
     this.gl.deleteTexture(this.tex);
     this.tex = null;
     if (this.undoStates !== null) {
@@ -982,6 +989,7 @@ GLBuffer.prototype.free = function() {
  * @param {BaseRasterizer} rasterizer Rasterizer to use.
  */
 GLBuffer.prototype.regenerate = function(regenerateUndoStates, rasterizer) {
+    this.freed = false;
     this.createTex();
     if (!regenerateUndoStates) {
         this.undoStates = [];

@@ -1,3 +1,6 @@
+/*
+ * Copyright Olli Etuaho 2013.
+ */
 
 describe('CanvasUndoState', function() {
     var createTestCanvas = function() {
@@ -22,7 +25,8 @@ describe('CanvasUndoState', function() {
     it('initializes', function() {
         var canvas = createTestCanvas();
         var ctx = canvas.getContext('2d');
-        var state = new CanvasUndoState(3, 2, canvas);
+        var state = new CanvasUndoState(3, 2, canvas.width, canvas.height,
+                                        canvas);
         expect(state.index).toBe(3);
         expect(state.cost).toBe(2);
         expect(state.width).toBe(canvas.width);
@@ -31,11 +35,22 @@ describe('CanvasUndoState', function() {
         state.free();
     });
 
+    it('initializes as invalid', function() {
+        var state = new CanvasUndoState(3, 2, 123, 345,
+                                        null);
+        expect(state.index).toBe(3);
+        expect(state.cost).toBe(2);
+        expect(state.width).toBe(123);
+        expect(state.height).toBe(345);
+        expect(state.invalid).toBe(true);
+    });
+
     it('stores a state', function() {
         var canvas = createTestCanvas();
         var ctx = canvas.getContext('2d');
         fillTestCanvas(ctx);
-        var state = new CanvasUndoState(3, 2, canvas);
+        var state = new CanvasUndoState(3, 2, canvas.width, canvas.height,
+                                        canvas);
         expectFilledCanvas(state.ctx);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         state.draw(ctx, new Rect(0, canvas.width, 0, canvas.height));
@@ -47,7 +62,8 @@ describe('CanvasUndoState', function() {
         var canvas = createTestCanvas();
         var ctx = canvas.getContext('2d');
         fillTestCanvas(ctx);
-        var state = new CanvasUndoState(3, 2, canvas);
+        var state = new CanvasUndoState(3, 2, canvas.width, canvas.height,
+                                        canvas);
         state.free();
         // Test that freeing twice is not a problem
         state.free();
@@ -119,6 +135,17 @@ describe('GLUndoState', function() {
 
         state.free();
         gl.deleteTexture(tex);
+    });
+
+    it('initializes as invalid', function() {
+        var state = new GLUndoState(3, 2, null, gl, glManager, texBlitProgram,
+                                    123, 345, true);
+        expect(state.index).toBe(3);
+        expect(state.cost).toBe(2);
+        expect(state.width).toBe(123);
+        expect(state.height).toBe(345);
+        expect(state.invalid).toBe(true);
+        expect(state.hasAlpha).toBe(true);
     });
 
     it('stores a state', function() {

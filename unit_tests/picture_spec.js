@@ -487,6 +487,31 @@ var doPictureTest = function(mode) {
         expect(pic.buffers[0].events[0].undone).toBe(true);
     });
 
+    it('frees buffers whose creation has been undone and replays them if ' +
+       'creation is redone', function() {
+        var pic = testPicture();
+        var clearColor = [12, 23, 34];
+        pic.addBuffer(1337, clearColor, false);
+        var undone = pic.undoEventSessionId(pic.activeSid,
+                                            pic.activeSessionEventId - 1);
+        expect(undone).toBe(pic.buffers[0].events[0]);
+        expect(pic.buffers[0].events[0].undone).toBe(true);
+        expect(pic.buffers[0].freed).toBe(true);
+        // Freed buffers' contents may still be changed, test that:
+        var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 10, 0,
+                                              PictureEvent.Mode.normal);
+        brushEvent.pushCoordTriplet(0, 0, 1.0);
+        brushEvent.pushCoordTriplet(pic.bitmapWidth(), pic.bitmapHeight(), 1.0);
+        pic.pushEvent(1337, brushEvent);
+        pic.redoEventSessionId(pic.activeSid, pic.activeSessionEventId - 2);
+        expect(pic.buffers[0].freed).toBe(false);
+        var samplePixel = pic.getPixelRGBA(new Vec2(0, 0));
+        expect(samplePixel[0]).toBe(56);
+        expect(samplePixel[1]).toBe(67);
+        expect(samplePixel[2]).toBe(78);
+        expect(samplePixel[3]).toBe(255);
+    });
+
     it('undoes an event according to session id from a merged buffer',
        function() {
         var pic = testPicture();
