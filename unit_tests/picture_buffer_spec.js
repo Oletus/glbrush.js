@@ -561,9 +561,9 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
 
 describe('CanvasBuffer', function() {
     var createBuffer = function(params) {
-    var createEvent = new BufferAddEvent(-1, -1, false, params.id,
-                                         params.hasAlpha, params.clearColor,
-                                         1.0, 0);
+        var createEvent = new BufferAddEvent(-1, -1, false, params.id,
+                                             params.hasAlpha, params.clearColor,
+                                             1.0, 0);
         return new CanvasBuffer(createEvent, params.width, params.height,
                                 params.hasUndoStates);
     };
