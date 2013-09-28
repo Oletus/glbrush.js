@@ -117,6 +117,8 @@ describe('Rasterizing system', function() {
         it('passes the sanity test', function() {
             var rasterizer = createRasterizer();
             expect(rasterizer.checkSanity()).toBe(true);
+
+            rasterizer.free();
         });
 
         it('draws a linear gradient', function() {
@@ -129,6 +131,8 @@ describe('Rasterizing system', function() {
                 samplePoint.scale(i);
                 expect(rasterizer.getPixel(samplePoint)).toBeNear(i, 0.05);
             }
+
+            rasterizer.free();
         });
 
         it('draws a vertical gradient', function() {
@@ -141,6 +145,8 @@ describe('Rasterizing system', function() {
                 samplePoint.scale(i);
                 expect(rasterizer.getPixel(samplePoint)).toBeNear(i, 0.05);
             }
+
+            rasterizer.free();
         });
 
         it('clips gradients', function() {
@@ -162,6 +168,8 @@ describe('Rasterizing system', function() {
                 expect(rasterizer.getPixel(samplePoint)).toBe(0.0);
             }
             expect(rasterizer.getPixel(clipPoint)).not.toBe(0.0);
+
+            rasterizer.free();
         });
     };
 

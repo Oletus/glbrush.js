@@ -20,6 +20,8 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         expect(buffer.events[0].clearColor).toBe(params.clearColor);
         expect(buffer.hasAlpha).toBe(params.hasAlpha);
         expect(buffer.undoStates).toEqual([]);
+
+        buffer.free();
     });
 
     it('is cleared during initialization and playback', function() {
@@ -28,6 +30,9 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         expectBufferCorrect(buffer, rasterizer, 0);
         buffer.clear(buffer.events[0].clearColor);
         expectBufferCorrect(buffer, rasterizer, 0);
+
+        rasterizer.free();
+        buffer.free();
     });
 
     it('clamps a pushed clip rect', function() {
@@ -39,6 +44,8 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         expect(currentClip.top).toBe(0);
         expect(currentClip.right).toBe(buffer.width());
         expect(currentClip.bottom).toBe(buffer.height());
+
+        buffer.free();
     });
 
     it('clamps the clip rect after popping', function() {
@@ -51,6 +58,8 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         expect(currentClip.top).toBe(0);
         expect(currentClip.right).toBe(45);
         expect(currentClip.bottom).toBe(56);
+
+        buffer.free();
     });
 
     it('gives the color of one pixel', function() {
@@ -60,6 +69,8 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         expect(samplePixel[1]).toBeNear(params.clearColor[1], 8);
         expect(samplePixel[2]).toBeNear(params.clearColor[2], 8);
         expect(samplePixel[3]).toBe(params.clearColor[3]);
+
+        buffer.free();
     });
 
     it('plays back one event', function() {
@@ -70,6 +81,9 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         brushEvent.pushCoordTriplet(buffer.width(), buffer.height(), 0.5);
         buffer.pushEvent(brushEvent, rasterizer);
         expectBufferCorrect(buffer, rasterizer, 0);
+
+        rasterizer.free();
+        buffer.free();
     });
 
     it('erases from the bitmap', function() {
@@ -84,6 +98,9 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         expect(samplePixel[1]).toBe(0);
         expect(samplePixel[2]).toBe(0);
         expect(samplePixel[3]).toBe(0);
+
+        rasterizer.free();
+        buffer.free();
     });
 
     it('blends an event to the bitmap with the normal mode, opacity and flow',
@@ -109,6 +126,9 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         var targetAlpha = params.clearColor[3] / 255;
         var alpha = (targetAlpha + sAlpha - targetAlpha * sAlpha) * 255;
         expect(samplePixel[3]).toBeNear(alpha, 15);
+
+        rasterizer.free();
+        buffer.free();
     });
 
     it('blends an event to the bitmap with the multiply mode', function() {
@@ -129,6 +149,9 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         var targetAlpha = params.clearColor[3] / 255;
         var alpha = (targetAlpha + opacity - targetAlpha * opacity) * 255;
         expect(samplePixel[3]).toBeNear(alpha, 15);
+
+        rasterizer.free();
+        buffer.free();
     });
 
     it('blends an event to the bitmap with the screen mode', function() {
@@ -150,6 +173,9 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         var targetAlpha = params.clearColor[3] / 255;
         var alpha = (targetAlpha + opacity - targetAlpha * opacity) * 255;
         expect(samplePixel[3]).toBeNear(alpha, 10);
+
+        rasterizer.free();
+        buffer.free();
     });
 
     var generateBrushEvent = function(seed, width, height) {
@@ -179,6 +205,9 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         var rasterizer = createRasterizer(params);
         fillBuffer(buffer, rasterizer, 10);
         expectBufferCorrect(buffer, rasterizer, 0);
+
+        rasterizer.free();
+        buffer.free();
     });
 
     var singleEventTests = function(createSpecialEvent, specialEventName) {
@@ -200,6 +229,9 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
             expectBufferCorrect(buffer, rasterizer, 3);
             buffer.events.splice(undoIndex, 1);
             expectBufferCorrect(buffer, rasterizer, 3);
+
+            rasterizer.free();
+            buffer.free();
         });
 
         it('undoes ' + specialEventName + ' using an undo state', function() {
@@ -216,6 +248,9 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
             expectBufferCorrect(buffer, rasterizer, 3);
             buffer.events.splice(undoIndex, 1);
             expectBufferCorrect(buffer, rasterizer, 3);
+
+            rasterizer.free();
+            buffer.free();
         });
 
         it('removes ' + specialEventName, function() {
@@ -233,6 +268,9 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
             buffer.removeEventIndex(removeIndex, rasterizer);
             expect(buffer.events.length).toBe(buffer.undoStateInterval - 2);
             expectBufferCorrect(buffer, rasterizer, 3);
+
+            rasterizer.free();
+            buffer.free();
         });
 
         it('inserts ' + specialEventName, function() {
@@ -249,6 +287,9 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
             }
             buffer.insertEvent(event, rasterizer);
             expectBufferCorrect(buffer, rasterizer, 3);
+
+            rasterizer.free();
+            buffer.free();
         });
     };
 
@@ -278,6 +319,9 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         buffer.events.splice(buffer.undoStateInterval - 2, 1);
         buffer.events.splice(buffer.events.length - 2, 1);
         expectBufferCorrect(buffer, rasterizer, 3);
+
+        rasterizer.free();
+        buffer.free();
     });
 
     it('removes an event using an undo state', function() {
@@ -287,6 +331,9 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         buffer.removeEventIndex(buffer.events.length - 2, rasterizer);
         expect(buffer.events.length).toBe(buffer.undoStateInterval + 2);
         expectBufferCorrect(buffer, rasterizer, 3);
+
+        rasterizer.free();
+        buffer.free();
     });
 
     it('updates undo state index when removing events', function() {
@@ -305,6 +352,9 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         expect(undoState.index).toBe(undoStateStartIndex - 2);
 
         expectBufferCorrect(buffer, rasterizer, 3);
+
+        rasterizer.free();
+        buffer.free();
     });
 
     it('updates undo state index when inserting events', function() {
@@ -337,6 +387,9 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         expect(undoState.index).toBe(undoStateStartIndex + 2);
 
         expectBufferCorrect(buffer, rasterizer, 3);
+
+        rasterizer.free();
+        buffer.free();
     });
 
     it('updates undo state cost when doing operations', function() {
@@ -363,6 +416,9 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         // Remove an already undone event, should have no effect on cost
         buffer.removeEventIndex(undoState.index - 1, rasterizer);
         expect(undoState.cost).toBe(undoStateStartCost - 2);
+
+        rasterizer.free();
+        buffer.free();
     });
 
     it('maintains undo state cost when redoing the last event', function() {
@@ -379,6 +435,9 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         expect(undoState.cost).toBe(undoStateStartCost - 1);
         buffer.redoEventIndex(buffer.events.length - 1, rasterizer);
         expect(undoState.cost).toBe(undoStateStartCost);
+
+        rasterizer.free();
+        buffer.free();
     });
 
     it('maintains undo state data when inserting an undone event', function() {
@@ -397,6 +456,9 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         buffer.insertEvent(brushEvent, rasterizer);
         expect(undoState.index).toBe(undoStateStartIndex + 1);
         expect(undoState.cost).toBe(undoStateStartCost);
+
+        rasterizer.free();
+        buffer.free();
     });
 
     it('removes redundant undo states', function() {
@@ -412,6 +474,9 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         buffer.removeEventIndex(buffer.undoStateInterval, rasterizer);
         expect(buffer.undoStates.length).toBe(1);
         expect(buffer.undoStates[0].cost).toBeGreaterThan(1);
+
+        rasterizer.free();
+        buffer.free();
     });
 
     it('has its contents replaced by an event', function() {
@@ -425,6 +490,9 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         if (buffer.undoStateInterval > 2) {
             expect(buffer.undoStates.length).toBe(0);
         }
+
+        rasterizer.free();
+        buffer.free();
     });
 
     it('updates if an event is pushed to a merged buffer', function() {
@@ -435,6 +503,9 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         var event = generateBrushEvent(9001, params.width, params.height);
         mergeEvent.mergedBuffer.pushEvent(event, rasterizer);
         expectBufferCorrect(buffer, rasterizer, 3);
+
+        rasterizer.free();
+        buffer.free();
     });
 
     it('updates if an event is inserted into a merged buffer', function() {
@@ -446,6 +517,9 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         mergeEvent.mergedBuffer.insertEvent(event, rasterizer);
         expect(mergeEvent.mergedBuffer.events[1]).toBe(event);
         expectBufferCorrect(buffer, rasterizer, 3);
+
+        rasterizer.free();
+        buffer.free();
     });
 
     it('updates if an event is undone in a merged buffer', function() {
@@ -455,6 +529,9 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         buffer.pushEvent(mergeEvent);
         mergeEvent.mergedBuffer.undoEventIndex(1, rasterizer);
         expectBufferCorrect(buffer, rasterizer, 3);
+
+        rasterizer.free();
+        buffer.free();
     });
 
     it('does not draw an undone merged buffer', function() {
@@ -474,11 +551,16 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         expect(samplePixel[1]).toBeNear(120, 5);
         expect(samplePixel[2]).toBeNear(180, 5);
         expect(samplePixel[3]).toBeNear(150, 5);
+
+        rasterizer.free();
+        buffer.free();
     });
 
     it('does not blame its creator', function() {
         var buffer = createBuffer(params);
         expect(buffer.blamePixel(new Vec2(1, 1)).length).toBe(0);
+
+        buffer.free();
     });
 
     it('does not blame its removal', function() {
@@ -486,6 +568,8 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         var removal = new BufferRemoveEvent(0, 2, false, buffer.id);
         buffer.pushEvent(removal);
         expect(buffer.blamePixel(new Vec2(1, 1)).length).toBe(0);
+
+        buffer.free();
     });
 
     it('can be removed multiple times through redo', function() {
@@ -506,6 +590,8 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         buffer.undoEventIndex(1, null, false);
         expect(buffer.removeCount).toBe(0);
         expect(buffer.isRemoved()).toBe(false);
+
+        buffer.free();
     });
 
     it('blames a brush event', function() {
@@ -525,6 +611,9 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         expect(blame.length).toBe(1);
         expect(blame[0].event).toBe(brushEvent);
         expect(blame[0].alpha).toBe(0.7, 0.03);
+
+        rasterizer.free();
+        buffer.free();
     });
 
     it('blames multiple brush events', function() {
@@ -545,6 +634,9 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         expect(blame[1].event).toBe(brushEvent);
         expect(blame[0].alpha).toBeNear(0.7, 0.03);
         expect(blame[1].alpha).toBeNear(0.7, 0.03);
+
+        rasterizer.free();
+        buffer.free();
     });
 
     it('regenerates after freeing', function() {
@@ -556,6 +648,9 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         buffer.regenerate(true, rasterizer);
         expect(buffer.undoStates[0].invalid).toBe(false);
         expectBufferCorrect(buffer, rasterizer, 3);
+
+        rasterizer.free();
+        buffer.free();
     });
 };
 
