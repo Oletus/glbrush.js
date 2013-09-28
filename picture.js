@@ -590,7 +590,7 @@ Picture.prototype.stayWithinMemoryBudget = function(requestedFreeBytes) {
         var selectedPriority = 0;
         var i;
         for (i = 0; i < this.buffers.length; ++i) {
-            if (this.buffers[i].undoStateBudget > 1) {
+            if (this.buffers[i].undoStateBudget > 1 && !this.buffers[i].freed) {
                 freeingPossible = true;
                 var priority = this.bufferFreeingPriority(this.buffers[i]);
                 if (priority > selectedPriority) {
@@ -600,7 +600,8 @@ Picture.prototype.stayWithinMemoryBudget = function(requestedFreeBytes) {
             }
         }
         for (i = 0; i < this.mergedBuffers.length; ++i) {
-            if (this.mergedBuffers[i].undoStateBudget > 1) {
+            if (this.mergedBuffers[i].undoStateBudget > 1 &&
+                !this.buffers[i].freed) {
                 freeingPossible = true;
                 var priority =
                     this.bufferFreeingPriority(this.mergedBuffers[i]);
@@ -941,6 +942,7 @@ Picture.prototype.undoEventIndex = function(buffer, eventIndex,
         if (eventIndex === 0) {
             // TODO: assert(undone.eventType === 'bufferAdd');
             buffer.free();
+            this.memoryUse -= buffer.getMemoryNeededForReservingStates();
         } else if (undone.eventType === 'bufferMerge') {
             // TODO: assert(allowUndoMerge);
             var bufferIndex = this.findBufferIndex(this.buffers, buffer.id);
@@ -1043,7 +1045,11 @@ Picture.prototype.redoEventFromBuffers = function(buffers, sid,
             } else {
                 if (i === 0) {
                     // TODO: assert(event.eventType === 'bufferAdd');
+                    var memIncrease =
+                        buffers[j].getMemoryNeededForReservingStates();
+                    this.stayWithinMemoryBudget(memIncrease);
                     buffers[j].regenerate(true, this.genericRasterizer);
+                    this.memoryUse += memIncrease;
                 }
                 buffers[j].redoEventIndex(i, this.genericRasterizer);
             }

@@ -490,13 +490,16 @@ var doPictureTest = function(mode) {
     it('frees buffers whose creation has been undone and replays them if ' +
        'creation is redone', function() {
         var pic = testPicture();
+        var memoryUseBeforeBuffers = pic.memoryUse;
         var clearColor = [12, 23, 34];
         pic.addBuffer(1337, clearColor, false);
+        var memoryUseWas = pic.memoryUse;
         var undone = pic.undoEventSessionId(pic.activeSid,
                                             pic.activeSessionEventId - 1);
-        expect(undone).toBe(pic.buffers[0].events[0]);
         expect(pic.buffers[0].events[0].undone).toBe(true);
         expect(pic.buffers[0].freed).toBe(true);
+        expect(pic.memoryUse).toBeLessThan(memoryUseWas);
+        expect(pic.memoryUse).toBe(memoryUseBeforeBuffers);
         // Freed buffers' contents may still be changed, test that:
         var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 10, 0,
                                               PictureEvent.Mode.normal);
@@ -505,6 +508,7 @@ var doPictureTest = function(mode) {
         pic.pushEvent(1337, brushEvent);
         pic.redoEventSessionId(pic.activeSid, pic.activeSessionEventId - 2);
         expect(pic.buffers[0].freed).toBe(false);
+        expect(pic.memoryUse).toBe(memoryUseWas);
         var samplePixel = pic.getPixelRGBA(new Vec2(0, 0));
         expect(samplePixel[0]).toBe(56);
         expect(samplePixel[1]).toBe(67);

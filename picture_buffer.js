@@ -427,6 +427,15 @@ PictureBuffer.prototype.getStateMemoryBytes = function() {
 };
 
 /**
+ * @return {number} Amount of memory needed for reserving this buffer's undo
+ * states and current state. Does not take into account whether the buffer is
+ * actually freed or not at the moment!
+ */
+PictureBuffer.prototype.getMemoryNeededForReservingStates = function() {
+    return this.getStateMemoryBytes() * (this.undoStateBudget + 1);
+};
+
+/**
  * Called after a new event has been pushed and applied. Updates undo states if
  * necessary.
  * @param {BaseRasterizer} rasterizer The rasterizer to use.
