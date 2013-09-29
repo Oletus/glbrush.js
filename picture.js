@@ -1051,7 +1051,7 @@ Picture.prototype.undoEventFromBuffers = function(buffers, sid,
  * Redo the specified event applied to this picture by marking it not undone.
  * @param {number} sid The session id of the event.
  * @param {number} sessionEventId The session-specific event id of the event.
- * @return {boolean} True on success.
+ * @return {boolean} True if the event was found.
  */
 Picture.prototype.redoEventSessionId = function(sid, sessionEventId) {
     if (this.redoEventFromBuffers(this.buffers, sid, sessionEventId)) {
@@ -1065,7 +1065,7 @@ Picture.prototype.redoEventSessionId = function(sid, sessionEventId) {
  * @param {Array.<PictureBuffer>} buffers Buffers to search from.
  * @param {number} sid The session id of the event.
  * @param {number} sessionEventId The session-specific event id of the event.
- * @return {boolean} True on success.
+ * @return {boolean} True if the event was found from the given buffers.
  * @protected
  */
 Picture.prototype.redoEventFromBuffers = function(buffers, sid,
@@ -1076,31 +1076,31 @@ Picture.prototype.redoEventFromBuffers = function(buffers, sid,
         var i = buffers[j].eventIndexBySessionId(sid, sessionEventId);
         if (i >= 0) {
             var event = buffers[j].events[i];
-            // TODO: Maybe this logic should be refactored so that it can be
-            // shared with pushEvent
-            if (event.eventType === 'bufferMerge') {
-                if (event.undone) {
+            if (event.undone) {
+                // TODO: Maybe this logic should be refactored so that it can be
+                // shared with pushEvent
+                if (event.eventType === 'bufferMerge') {
                     var mergedBufferIndex =
                         this.findBufferIndex(this.buffers,
                                              event.mergedBuffer.id);
-                    // TODO: assert(mergedBufferIndex !== targetBuffer);
+                    // TODO: assert(mergedBufferIndex !== j);
                     // TODO: assert(!event.mergedBuffer.isDummy);
                     buffers[j].redoEventIndex(i, this.genericRasterizer);
                     this.buffers.splice(mergedBufferIndex, 1);
                     this.mergedBuffers.push(event.mergedBuffer);
+                } else if (event.eventType === 'bufferRemove') {
+                    buffers[j].redoEventIndex(i, this.genericRasterizer);
+                    if (buffers[j].events.length <
+                        buffers[j].undoStateInterval * 2) {
+                        this.freeBuffer(buffers[j]);
+                    }
+                } else {
+                    if (i === 0) {
+                        // TODO: assert(event.eventType === 'bufferAdd');
+                        this.regenerateBuffer(buffers[j]);
+                    }
+                    buffers[j].redoEventIndex(i, this.genericRasterizer);
                 }
-            } else if (event.eventType === 'bufferRemove') {
-                buffers[j].redoEventIndex(i, this.genericRasterizer);
-                if (buffers[j].events.length <
-                    buffers[j].undoStateInterval * 2) {
-                    this.freeBuffer(buffers[j]);
-                }
-            } else {
-                if (i === 0) {
-                    // TODO: assert(event.eventType === 'bufferAdd');
-                    this.regenerateBuffer(buffers[j]);
-                }
-                buffers[j].redoEventIndex(i, this.genericRasterizer);
             }
             return true;
         }

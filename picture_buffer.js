@@ -570,8 +570,7 @@ PictureBuffer.prototype.applyStateObject = function(undoState) {
  * @param {BaseRasterizer} rasterizer The rasterizer to use to update the
  * bitmap.
  * @param {boolean} allowUndoMerge Allow undoing merge events.
- * @return {PictureEvent} The index of the undone event or null if nothing was
- * undone.
+ * @return {PictureEvent} The undone event or null if nothing was undone.
  */
 PictureBuffer.prototype.undoEventIndex = function(eventIndex, rasterizer,
                                                   allowUndoMerge) {
