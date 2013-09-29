@@ -815,7 +815,9 @@ Picture.prototype.pushEvent = function(targetBufferId, event) {
         } else if (event.eventType === 'bufferMove') {
             var fromIndex = this.findBufferIndex(this.buffers, event.movedId);
             this.buffers[fromIndex].pushEvent(event);
-            this.moveBufferInternal(fromIndex, event.toIndex);
+            if (!event.undone) {
+                this.moveBufferInternal(fromIndex, event.toIndex);
+            }
             return;
         }
     }

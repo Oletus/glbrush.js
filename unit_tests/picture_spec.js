@@ -177,6 +177,25 @@ var doPictureTest = function(mode) {
         expect(samplePixel[3]).toBeNear(blendedPixel[3], 8);
     });
 
+    it('handles pushing an undone buffer move event', function() {
+        var pic = testPicture();
+        var clearColor = [12, 23, 34, 45];
+        pic.addBuffer(1337, clearColor, true);
+        var clearColor2 = [35, 46, 57, 68];
+        pic.addBuffer(1338, clearColor2, true);
+        var moveEvent = pic.createBufferMoveEvent(1338, 0);
+        moveEvent.undone = true;
+        pic.pushEvent(1338, moveEvent);
+        expect(pic.buffers[0].id).toBe(1337);
+        expect(pic.buffers[1].id).toBe(1338);
+        var blendedPixel = colorUtil.blend(clearColor, clearColor2);
+        var samplePixel = pic.getPixelRGBA(new Vec2(0, 0));
+        expect(samplePixel[0]).toBeNear(blendedPixel[0], 8);
+        expect(samplePixel[1]).toBeNear(blendedPixel[1], 8);
+        expect(samplePixel[2]).toBeNear(blendedPixel[2], 8);
+        expect(samplePixel[3]).toBeNear(blendedPixel[3], 8);
+    });
+
     it('resizes', function() {
         var pic = testPicture();
         var clearColor = [12, 23, 34];
