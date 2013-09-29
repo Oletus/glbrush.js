@@ -50,6 +50,34 @@ var doPictureTest = function(mode) {
         expect(pic.findBuffer(123)).toBe(pic.buffers[1]);
     });
 
+    it('handles pushing an undone buffer add event', function() {
+        var pic = testPicture();
+        var memoryUseWas = pic.memoryUse;
+        var clearColor = [12, 23, 34];
+        var addEvent = pic.createBufferAddEvent(1337, false, clearColor);
+        addEvent.undone = true;
+        pic.pushEvent(1337, addEvent);
+        expect(pic.buffers[0].id).toBe(1337);
+        expect(pic.buffers[0].events[0].clearColor[0]).toBe(12);
+        expect(pic.buffers[0].events[0].clearColor[1]).toBe(23);
+        expect(pic.buffers[0].events[0].clearColor[2]).toBe(34);
+        expect(pic.buffers[0].events[0].clearColor.length).toBe(3);
+        expect(pic.buffers[0].hasAlpha).toBe(false);
+        expect(pic.buffers[0].width()).toBe(pic.bitmapWidth());
+        expect(pic.buffers[0].height()).toBe(pic.bitmapHeight());
+
+        expect(pic.buffers[0].events[0].undone).toBe(true);
+        expect(pic.buffers[0].isRemoved()).toBe(true);
+        expect(pic.buffers[0].freed).toBe(true);
+        expect(pic.memoryUse).toBe(memoryUseWas);
+
+        var samplePixel = pic.getPixelRGBA(new Vec2(0, 0));
+        expect(samplePixel[0]).toBe(0);
+        expect(samplePixel[1]).toBe(0);
+        expect(samplePixel[2]).toBe(0);
+        expect(samplePixel[3]).toBe(0);
+    });
+
     it('determines the id of the top composited buffer', function() {
         var pic = testPicture();
         var clearColor = [12, 23, 34];

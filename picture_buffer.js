@@ -50,7 +50,7 @@ PictureBuffer.prototype.initializePictureBuffer = function(createEvent,
 
     this.visible = true;
     this.insertionPoint = 0;
-    this.freed = false;
+    this.freed = createEvent.undone;
 };
 
 /**
@@ -725,7 +725,10 @@ PictureBuffer.prototype.isComposited = function() {
 var CanvasBuffer = function(createEvent, width, height, hasUndoStates) {
     this.initializePictureBuffer(createEvent, width, height, hasUndoStates);
     this.canvas = null;
-    this.createCanvas();
+    this.ctx = null;
+    if (!this.freed) {
+        this.createCanvas();
+    }
 
     this.blameRasterizer = new Rasterizer(width, height);
     this.insertEvent(createEvent, null); // will clear the buffer
@@ -958,7 +961,9 @@ var GLBuffer = function(gl, glManager, compositor, texBlitProgram, createEvent,
     this.compositor = compositor;
 
     this.tex = null;
-    this.createTex();
+    if (!this.freed) {
+        this.createTex();
+    }
 
     this.blameRasterizer = new Rasterizer(this.width(), this.height());
     this.insertEvent(createEvent, null); // will clear the buffer

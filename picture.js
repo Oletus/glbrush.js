@@ -688,6 +688,11 @@ Picture.prototype.createBuffer = function(createEvent, hasUndoStates) {
                                   this.bitmapHeight(), hasUndoStates);
     }
     if (hasUndoStates) {
+        if (buffer.events[0].undone) {
+            var avgBudget = this.averageUndoStateBudgetOfActiveBuffers();
+            buffer.setUndoStateBudget(avgBudget);
+            return buffer;
+        }
         // Buffers always store their current state
         this.memoryUse += buffer.getStateMemoryBytes();
         var avgBudget = this.averageUndoStateBudgetOfActiveBuffers();
