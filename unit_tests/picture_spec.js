@@ -420,6 +420,8 @@ var doPictureTest = function(mode) {
         expect(samplePixel[3]).toBe(255);
         pic.removeBuffer(1337);
         expect(pic.buffers[0].isRemoved()).toBe(true);
+        // The buffer didn't have many events, so it should have been freed
+        expect(pic.buffers[0].freed).toBe(true);
         var samplePixel = pic.getPixelRGBA(new Vec2(0, 0));
         expect(samplePixel[0]).toBe(0);
         expect(samplePixel[1]).toBe(0);
@@ -432,8 +434,11 @@ var doPictureTest = function(mode) {
         var clearColor = [12, 23, 34];
         pic.addBuffer(1337, clearColor, false);
         pic.removeBuffer(1337);
+        expect(pic.buffers[0].isRemoved()).toBe(true);
+        expect(pic.buffers[0].freed).toBe(true);
         pic.undoLatest(); // Undo the buffer removal
         expect(pic.buffers[0].isRemoved()).toBe(false);
+        expect(pic.buffers[0].freed).toBe(false);
         var samplePixel = pic.getPixelRGBA(new Vec2(0, 0));
         expect(samplePixel[0]).toBe(12);
         expect(samplePixel[1]).toBe(23);
@@ -449,6 +454,7 @@ var doPictureTest = function(mode) {
         pic.undoLatest(); // Undo the buffer removal
         pic.redoEventSessionId(pic.activeSid, pic.activeSessionEventId - 1);
         expect(pic.buffers[0].isRemoved()).toBe(true);
+        expect(pic.buffers[0].freed).toBe(true);
         var samplePixel = pic.getPixelRGBA(new Vec2(0, 0));
         expect(samplePixel[0]).toBe(0);
         expect(samplePixel[1]).toBe(0);

@@ -642,6 +642,34 @@ Picture.prototype.averageUndoStateBudgetOfActiveBuffers = function() {
 };
 
 /**
+ * Free a buffer and do the related memory accounting. Can be called on a buffer
+ * that is already freed, in which case the function has no effect.
+ * @param {CanvasBuffer|GLBuffer} buffer Buffer to regenerate.
+ * @protected
+ */
+Picture.prototype.freeBuffer = function(buffer) {
+    if (!buffer.freed) {
+        buffer.free();
+        this.memoryUse -= buffer.getMemoryNeededForReservingStates();
+    }
+};
+
+/**
+ * Regenerate a buffer and do the related memory accounting. Can be called on a
+ * buffer that is not freed, in which case the function has no effect.
+ * @param {CanvasBuffer|GLBuffer} buffer Buffer to regenerate.
+ * @protected
+ */
+Picture.prototype.regenerateBuffer = function(buffer) {
+    if (buffer.freed) {
+        var memIncrease = buffer.getMemoryNeededForReservingStates();
+        this.stayWithinMemoryBudget(memIncrease);
+        buffer.regenerate(true, this.genericRasterizer);
+        this.memoryUse += memIncrease;
+    }
+};
+
+/**
  * Create a single buffer using the mode specified for this picture.
  * @param {BufferAddEvent} createEvent Event that initializes the buffer.
  * @param {boolean} hasUndoStates Does the buffer store undo states?
@@ -771,6 +799,13 @@ Picture.prototype.pushEvent = function(targetBufferId, event) {
                                                    event.bufferId);
             // TODO: assert(bufferIndex >= 0);
             this.buffers[bufferIndex].pushEvent(event, this.genericRasterizer);
+            if (this.buffers[bufferIndex].events.length <
+                this.buffers[bufferIndex].undoStateInterval * 2 &&
+                !event.undone) {
+                // The buffer's bitmap isn't very costly to regenerate, so it
+                // can be freed.
+                this.freeBuffer(this.buffers[bufferIndex]);
+            }
             return;
         } else if (event.eventType === 'bufferMove') {
             var fromIndex = this.findBufferIndex(this.buffers, event.movedId);
@@ -941,8 +976,11 @@ Picture.prototype.undoEventIndex = function(buffer, eventIndex,
     if (undone) {
         if (eventIndex === 0) {
             // TODO: assert(undone.eventType === 'bufferAdd');
-            buffer.free();
-            this.memoryUse -= buffer.getMemoryNeededForReservingStates();
+            this.freeBuffer(buffer);
+        } else if (undone.eventType === 'bufferRemove') {
+            if (!buffer.isRemoved()) { // Removed buffers can be freed
+                this.regenerateBuffer(buffer);
+            }
         } else if (undone.eventType === 'bufferMerge') {
             // TODO: assert(allowUndoMerge);
             var bufferIndex = this.findBufferIndex(this.buffers, buffer.id);
@@ -1031,6 +1069,8 @@ Picture.prototype.redoEventFromBuffers = function(buffers, sid,
         var i = buffers[j].eventIndexBySessionId(sid, sessionEventId);
         if (i >= 0) {
             var event = buffers[j].events[i];
+            // TODO: Maybe this logic should be refactored so that it can be
+            // shared with pushEvent
             if (event.eventType === 'bufferMerge') {
                 if (event.undone) {
                     var mergedBufferIndex =
@@ -1042,14 +1082,16 @@ Picture.prototype.redoEventFromBuffers = function(buffers, sid,
                     this.buffers.splice(mergedBufferIndex, 1);
                     this.mergedBuffers.push(event.mergedBuffer);
                 }
+            } else if (event.eventType === 'bufferRemove') {
+                buffers[j].redoEventIndex(i, this.genericRasterizer);
+                if (buffers[j].events.length <
+                    buffers[j].undoStateInterval * 2) {
+                    this.freeBuffer(buffers[j]);
+                }
             } else {
                 if (i === 0) {
                     // TODO: assert(event.eventType === 'bufferAdd');
-                    var memIncrease =
-                        buffers[j].getMemoryNeededForReservingStates();
-                    this.stayWithinMemoryBudget(memIncrease);
-                    buffers[j].regenerate(true, this.genericRasterizer);
-                    this.memoryUse += memIncrease;
+                    this.regenerateBuffer(buffers[j]);
                 }
                 buffers[j].redoEventIndex(i, this.genericRasterizer);
             }
