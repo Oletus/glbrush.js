@@ -923,7 +923,11 @@ BufferMoveEvent.prototype.getBoundingBox = function(clipRect) {
 
 
 /**
- * Event that merges a buffer into another.
+ * Event that draws a merged buffer's contents to a target buffer, and also
+ * removes the merged buffer from the main buffer stack. This is different from
+ * simply pushing the merged buffer's events on top of the target buffer, rather
+ * the merged buffer's contents are first composited together independent of the
+ * target buffer.
  * @constructor
  * @param {number} sid Session identifier. Must be an integer.
  * @param {number} sessionEventId An event/session specific identifier. The idea
