@@ -302,6 +302,10 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry) {
             ++i;
         }
     }
+    var metadata = [];
+    if (i < eventStrings.length && eventStrings[i] === 'metadata') {
+        metadata = eventStrings.slice(i);
+    }
     for (i = 0; i < pic.buffers.length; ++i) {
         pic.buffers[i].insertionPoint = pic.buffers[i].events[0].insertionPoint;
     }
@@ -310,10 +314,6 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry) {
             pic.mergedBuffers[i].events[0].insertionPoint;
     }
     delete pic.moveBufferInternal; // switch back to prototype's move function
-    var metadata = [];
-    if (i < eventStrings.length && eventStrings[i] === 'metadata') {
-        metadata = eventStrings.slice(i);
-    }
     pic.generationTime = new Date().getTime() - startTime;
     return {picture: pic, metadata: metadata};
 };

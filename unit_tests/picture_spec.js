@@ -641,6 +641,15 @@ var doPictureTest = function(mode) {
         expect(pic2.buffers[0].insertionPoint).toBe(2);
     });
 
+    it('places app-specific metadata into an array when parsing', function() {
+        var pic = testPicture();
+        var serialization = pic.serialize();
+        serialization += '\nmetadata\nappdata';
+        var pic2 = Picture.parse(0, serialization, 1.0, [pic.mode]);
+        expect(pic2.metadata[0]).toBe('metadata');
+        expect(pic2.metadata[1]).toBe('appdata');
+    });
+
     it('calculates its memory usage', function() {
         var pic = testPicture();
         var rasterizerUse = pic.currentEventRasterizer.getMemoryBytes() +
