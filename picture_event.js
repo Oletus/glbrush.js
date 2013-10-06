@@ -234,6 +234,9 @@ BrushEvent.parse = function(arr, i, sid, sessionEventId, undone) {
  * point. Must be larger than zero.
  */
 BrushEvent.prototype.pushCoordTriplet = function(x, y, pressure) {
+    // Limit pressure to 5 decimals to cut on file size a bit. This rounding
+    // method should be okay as long as pressure stays within reasonable bounds.
+    pressure = Math.round(pressure * 100000) / 100000;
     if (this.coords.length > 0) {
         if (x === this.coords[this.coords.length - BrushEvent.coordsStride] &&
           y === this.coords[this.coords.length - BrushEvent.coordsStride - 1]) {
