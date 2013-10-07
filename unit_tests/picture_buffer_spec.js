@@ -178,6 +178,37 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         buffer.free();
     });
 
+    it('erases from an opaque buffer', function() {
+        var hadAlpha = params.hasAlpha;
+        var oldClearAlpha = params.clearColor[3];
+        params.hasAlpha = false;
+        params.clearColor[3] = 255;
+        var buffer = createBuffer(params);
+        var rasterizer = createRasterizer(params);
+        var opacity = 1.0;
+        var brushEvent = fillingBrushEvent(params.width, params.height,
+                                           [0.2 * 255, 0.4 * 255, 0.8 * 255],
+                                           opacity, PictureEvent.Mode.normal);
+        buffer.pushEvent(brushEvent, rasterizer);
+        // The erase event color should be ignored and clear color should be
+        // used instead.
+        brushEvent = fillingBrushEvent(params.width, params.height,
+                                       [255, 255, 255], opacity,
+                                       PictureEvent.Mode.erase);
+        buffer.pushEvent(brushEvent, rasterizer);
+        var samplePixel = buffer.getPixelRGBA(new Vec2(0, 0));
+        var cc = params.clearColor;
+        expect(samplePixel[0]).toBeNear(cc[0], 5);
+        expect(samplePixel[1]).toBeNear(cc[1], 5);
+        expect(samplePixel[2]).toBeNear(cc[2], 5);
+        expect(samplePixel[3]).toBe(255);
+
+        rasterizer.free();
+        buffer.free();
+        params.hasAlpha = hadAlpha;
+        params.clearColor[3] = oldClearAlpha;
+    });
+
     var generateBrushEvent = function(seed, width, height) {
         var event = testBrushEvent();
         for (var j = 0; j < 10; ++j) {

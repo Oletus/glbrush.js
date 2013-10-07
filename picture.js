@@ -29,6 +29,7 @@ var Picture = function(id, boundsRect, bitmapScale, mode) {
     this.currentEventAttachment = -1;
     this.currentEvent = null;
     this.currentEventMode = PictureEvent.Mode.normal;
+    this.currentEventColor = [255, 255, 255];
 
     this.boundsRect = boundsRect;
     this.bitmapScale = bitmapScale;
@@ -190,17 +191,19 @@ Picture.prototype.topCompositedBufferId = function() {
 };
 
 /**
- * Update the current event compositing mode.
+ * Update the current event compositing mode and color.
  * @protected
  */
 Picture.prototype.updateCurrentEventMode = function() {
     if (this.currentEvent !== null && this.currentEventAttachment >= 0) {
         this.currentEventMode = this.currentEvent.mode;
+        this.currentEventColor = this.currentEvent.color;
         var buffer = this.findBuffer(this.currentEventAttachment);
         // TODO: assert(buffer !== null)
         if (this.currentEventMode === PictureEvent.Mode.erase &&
             !buffer.hasAlpha) {
             this.currentEventMode = PictureEvent.Mode.normal;
+            this.currentEventColor = buffer.events[0].clearColor;
         }
     }
 };
@@ -1204,7 +1207,7 @@ Picture.prototype.display = function() {
             if (this.currentEventAttachment === this.buffers[i].id) {
                 if (this.currentEvent) {
                     this.compositor.pushRasterizer(this.currentEventRasterizer,
-                                                   this.currentEvent.color,
+                                                   this.currentEventColor,
                                                    this.currentEvent.opacity,
                                                    this.currentEventMode,
                              this.currentEvent.getBoundingBox(this.bitmapRect));

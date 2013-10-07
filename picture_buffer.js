@@ -23,6 +23,7 @@ var PictureBuffer = function() {};
 PictureBuffer.prototype.initializePictureBuffer = function(createEvent,
                                                            width, height,
                                                            hasUndoStates) {
+    // TODO: assert(createEvent.hasAlpha || createEvent.clearColor[3] === 255);
     this.hasAlpha = createEvent.hasAlpha;
     this.id = createEvent.bufferId;
     this.ww = width;
@@ -813,10 +814,6 @@ CanvasBuffer.prototype.clear = function(clearColor) {
     var br = this.getCurrentClipRect().getXYWH();
     if (clearColor.length === 4 && clearColor[3] < 255) {
         this.ctx.clearRect(br.x, br.y, br.w, br.h);
-        this.opaque = false;
-    } else if (br.w === this.width() && br.h === this.height() &&
-               br.x === 0 && br.y === 0) {
-        this.opaque = true;
     }
     if (clearColor.length === 4) {
         if (clearColor[3] !== 0) {
@@ -840,7 +837,8 @@ CanvasBuffer.prototype.getPixelRGBA = function(coords) {
 
 /**
  * Draw the given rasterizer's contents with the given color to the buffer's
- * bitmap.
+ * bitmap. If the event would erase from a buffer with no alpha channel, draws
+ * with the background color instead.
  * @param {Rasterizer} raster The rasterizer to draw.
  * @param {Uint8Array|Array.<number>} color Color to use for drawing. Channel
  * values should be 0-255.
@@ -852,9 +850,13 @@ CanvasBuffer.prototype.getPixelRGBA = function(coords) {
  */
 CanvasBuffer.prototype.drawRasterizerWithColor = function(raster, color,
                                                           opacity, mode) {
+    if (mode === PictureEvent.Mode.erase && !this.hasAlpha) {
+        mode = PictureEvent.Mode.normal;
+        color = this.events[0].clearColor;
+    }
     CanvasBuffer.drawRasterizer(this.ctx, this.ctx, raster,
                                 this.getCurrentClipRect(),
-                                this.opaque, color, opacity, mode);
+                                !this.hasAlpha, color, opacity, mode);
 };
 
 /**
@@ -1043,7 +1045,8 @@ GLBuffer.prototype.updateClip = function() {
 
 /**
  * Draw the given rasterizer's contents with the given color to the buffer's
- * bitmap.
+ * bitmap. If the event would erase from a buffer with no alpha channel, draws
+ * with the background color instead.
  * @param {BaseRasterizer} raster The rasterizer to draw.
  * @param {Uint8Array|Array.<number>} color Color to use for drawing. Channel
  * values should be 0-255.
@@ -1058,6 +1061,10 @@ GLBuffer.prototype.drawRasterizerWithColor = function(raster, color, opacity,
     this.updateClip();
     if (mode === PictureEvent.Mode.normal || mode === PictureEvent.Mode.erase) {
         this.glManager.useFboTex(this.tex);
+        if (!this.hasAlpha && mode === PictureEvent.Mode.erase) {
+            mode = PictureEvent.Mode.normal;
+            color = this.events[0].clearColor;
+        }
         raster.drawWithColor(color, opacity, mode);
     } else {
         // Copy into helper texture from this.tex, then use compositor to render
