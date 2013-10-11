@@ -325,6 +325,14 @@ BrushEvent.BBRasterizer = function() {
 };
 
 /**
+ * Clear the bounding box.
+ */
+BrushEvent.BBRasterizer.prototype.clearDirty = function() {
+    this.state = null;
+    this.boundingBox = null;
+};
+
+/**
  * Get draw event state for the given event.
  * @param {BrushEvent} event The event to be rasterized.
  * @param {function()} stateConstructor Constructor for creating a new draw
@@ -400,7 +408,7 @@ BrushEvent.prototype.drawTo = function(rasterizer, untilCoord) {
     } else {
         if (drawState.coordsInd + BrushEvent.coordsStride > untilCoord) {
             rasterizer.clearDirty();
-            drawState = new BrushEventState();
+            drawState = rasterizer.getDrawEventState(this, BrushEventState);
         }
     }
     // TODO: assert(untilCoord % BrushEvent.coordsStride === 0);
@@ -567,13 +575,20 @@ ScatterEvent.prototype.getBoundingBox = BrushEvent.prototype.getBoundingBox;
  */
 ScatterEvent.prototype.drawTo = function(rasterizer, untilCoord) {
     var drawState = rasterizer.getDrawEventState(this, BrushEventState);
+    var needsClear = false;
     if (untilCoord === undefined) {
         untilCoord = this.coords.length;
     } else {
         if (drawState.coordsInd + BrushEvent.coordsStride > untilCoord) {
-            rasterizer.clearDirty();
-            drawState = new BrushEventState();
+            needsClear = true;
         }
+    }
+    // TODO: Maybe make it possible to change arbitrary parameters in the event
+    // and be able to determine if the rasterizer state is the same.
+    if (needsClear || drawState.radius !== this.radius) {
+        rasterizer.clearDirty();
+        drawState = rasterizer.getDrawEventState(this, BrushEventState);
+        drawState.radius = this.radius;
     }
     var i = drawState.coordsInd;
     if (i === 0) {
@@ -776,11 +791,12 @@ GradientEvent.prototype.drawTo = function(rasterizer) {
         drawState.coords1.y === this.coords1.y) {
         return;
     }
+    rasterizer.clearDirty();
+    drawState = rasterizer.getDrawEventState(this, GradientEventState);
     drawState.coords0.x = this.coords0.x;
     drawState.coords0.y = this.coords0.y;
     drawState.coords1.x = this.coords1.x;
     drawState.coords1.y = this.coords1.y;
-    rasterizer.clearDirty();
     rasterizer.linearGradient(this.coords1, this.coords0);
 };
 

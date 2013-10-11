@@ -62,6 +62,7 @@ BaseRasterizer.prototype.clearDirty = function() {
         this.setClip(restoreClip);
         this.dirtyArea.makeEmpty();
     }
+    this.drawEvent = null;
 };
 
 /**
