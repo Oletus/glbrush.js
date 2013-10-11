@@ -29,6 +29,10 @@ describe('PictureEvent', function() {
         commonEventTests(testBrushEvent, expectTestBrushEvent);
     });
 
+    describe('ScatterEvent', function() {
+        commonEventTests(testScatterEvent, expectTestScatterEvent);
+    });
+
     describe('GradientEvent', function() {
         commonEventTests(testGradientEvent, expectTestGradientEvent);
     });

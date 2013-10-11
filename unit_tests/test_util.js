@@ -47,6 +47,13 @@ function expectTestBrushEvent(brushEvent) {
     expect(brushEvent.mode).toBe(PictureEvent.Mode.normal);
 }
 
+function testScatterEvent() {
+    return new ScatterEvent(0, 1, false, testRGB(), 0.78, 0.9, 25, 1.0,
+                            PictureEvent.Mode.normal);
+}
+
+var expectTestScatterEvent = expectTestBrushEvent;
+
 function testGradientEvent() {
     return new GradientEvent(0, 1, false, testRGB(), 0.78,
                              PictureEvent.Mode.normal);

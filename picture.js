@@ -375,8 +375,9 @@ Picture.prototype.serialize = function() {
 
 /**
  * Set the session with the given sid active for purposes of createBrushEvent,
- * createGradientEvent, createMergeEvent, createBufferAddEvent, addBuffer,
- * createBufferRemoveEvent, createBufferMoveEvent, removeBuffer and undoLatest.
+ * createScatterEvent, createGradientEvent, createMergeEvent,
+ * createBufferAddEvent, addBuffer, createBufferRemoveEvent,
+ * createBufferMoveEvent, removeBuffer and undoLatest.
  * @param {number} sid The session id to activate. Must be a positive integer.
  */
 Picture.prototype.setActiveSession = function(sid) {
@@ -408,6 +409,29 @@ Picture.prototype.createBrushEvent = function(color, flow, opacity, radius,
                                               softness, mode) {
     var event = new BrushEvent(this.activeSid, this.activeSessionEventId, false,
                                color, flow, opacity, radius, softness, mode);
+    this.activeSessionEventId++;
+    return event;
+};
+
+/**
+ * Create a scatter event using the current active session. The event is marked
+ * as not undone.
+ * @param {Uint8Array|Array.<number>} color The RGB color of the event. Channel
+ * values are between 0-255.
+ * @param {number} flow Alpha value controlling blending individual brush
+ * samples (circles) to each other in the rasterizer. Range 0 to 1.
+ * @param {number} opacity Alpha value controlling blending the rasterizer data
+ * to the target buffer. Range 0 to 1.
+ * @param {number} radius The circle radius in pixels.
+ * @param {number} softness Value controlling the softness. Range 0 to 1.
+ * @param {PictureEvent.Mode} mode Blending mode to use.
+ * @return {BrushEvent} The created brush event.
+ */
+Picture.prototype.createScatterEvent = function(color, flow, opacity, radius,
+                                                softness, mode) {
+    var event = new ScatterEvent(this.activeSid, this.activeSessionEventId,
+                                 false, color, flow, opacity, radius, softness,
+                                 mode);
     this.activeSessionEventId++;
     return event;
 };

@@ -209,6 +209,45 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         params.clearColor[3] = oldClearAlpha;
     });
 
+    it('blends a scatter event', function() {
+        var buffer = createBuffer(params);
+        var rasterizer = createRasterizer(params);
+        var scatterEvent = testScatterEvent();
+        // Assumptions this test makes:
+        expect(scatterEvent.radius).toBeLessThan(params.width / 2);
+
+        scatterEvent.pushCoordTriplet(0, 0, 1);
+        scatterEvent.pushCoordTriplet(params.width, params.height, 1);
+        buffer.pushEvent(scatterEvent, rasterizer);
+        var scatterEventColor = [scatterEvent.color[0], scatterEvent.color[1],
+                                 scatterEvent.color[2], scatterEvent.flow *
+                                 scatterEvent.opacity * 255];
+        var blendedColor = colorUtil.blend(params.clearColor,
+                                           scatterEventColor);
+        var samplePixel = buffer.getPixelRGBA(new Vec2(0, 0));
+        expect(samplePixel[0]).toBeNear(blendedColor[0], 10);
+        expect(samplePixel[1]).toBeNear(blendedColor[1], 10);
+        expect(samplePixel[2]).toBeNear(blendedColor[2], 10);
+        expect(samplePixel[3]).toBeNear(blendedColor[3], 10);
+
+        samplePixel = buffer.getPixelRGBA(new Vec2(params.width / 2,
+                                                   params.height / 2));
+        expect(samplePixel[0]).toBeNear(params.clearColor[0], 5);
+        expect(samplePixel[1]).toBeNear(params.clearColor[1], 5);
+        expect(samplePixel[2]).toBeNear(params.clearColor[2], 5);
+        expect(samplePixel[3]).toBeNear(params.clearColor[3], 5);
+
+        samplePixel = buffer.getPixelRGBA(new Vec2(params.width - 1,
+                                                   params.height - 1));
+        expect(samplePixel[0]).toBeNear(blendedColor[0], 10);
+        expect(samplePixel[1]).toBeNear(blendedColor[1], 10);
+        expect(samplePixel[2]).toBeNear(blendedColor[2], 10);
+        expect(samplePixel[3]).toBeNear(blendedColor[3], 10);
+
+        rasterizer.free();
+        buffer.free();
+    });
+
     var generateBrushEvent = function(seed, width, height) {
         var event = testBrushEvent();
         for (var j = 0; j < 10; ++j) {

@@ -65,6 +65,8 @@ PictureEvent.parse = function(arr, i) {
     var undone = (parseInt(arr[i++]) !== 0);
     if (eventType === 'brush') {
         return BrushEvent.parse(arr, i, sid, sessionEventId, undone);
+    } else if (eventType === 'scatter') {
+        return ScatterEvent.parse(arr, i, sid, sessionEventId, undone);
     } else if (eventType === 'gradient') {
         return GradientEvent.parse(arr, i, sid, sessionEventId, undone);
     } else if (eventType === 'bufferMerge') {
@@ -125,6 +127,29 @@ PictureEvent.Mode = {
 };
 
 /**
+ * Generate a constructor for an event conforming to the brush event format.
+ * @return {function(number, number, boolean, Uint8Array|Array.<number>, number,
+ * number, number, number, PictureEvent.Mode)} Constructor for the event.
+ */
+var brushEventConstructor = function() {
+    return function(sid, sessionEventId, undone, color, flow, opacity, radius,
+                    softness, mode) {
+        // TODO: assert(color.length == 3);
+        this.undone = undone;
+        this.sid = sid;
+        this.sessionEventId = sessionEventId;
+        this.color = color;
+        this.flow = flow;
+        this.opacity = opacity;
+        this.radius = radius;
+        this.coords = []; // holding x,y,pressure triplets
+        this.boundingBoxRasterizer = new BrushEvent.BBRasterizer();
+        this.soft = softness > 0.5;
+        this.mode = mode;
+    };
+};
+
+/**
  * A PictureEvent representing a brush stroke.
  * @constructor
  * @param {number} sid Session identifier. Must be an integer.
@@ -144,21 +169,7 @@ PictureEvent.Mode = {
  * @param {number} softness Value controlling the softness. Range 0 to 1.
  * @param {PictureEvent.Mode} mode Blending mode to use.
  */
-var BrushEvent = function(sid, sessionEventId, undone, color, flow, opacity,
-                          radius, softness, mode) {
-    // TODO: assert(color.length == 3);
-    this.undone = undone;
-    this.sid = sid;
-    this.sessionEventId = sessionEventId;
-    this.color = color;
-    this.flow = flow;
-    this.opacity = opacity;
-    this.radius = radius;
-    this.coords = []; // holding x,y,pressure triplets
-    this.boundingBoxRasterizer = new BrushEvent.BBRasterizer();
-    this.soft = softness > 0.5;
-    this.mode = mode;
-};
+var BrushEvent = brushEventConstructor();
 
 BrushEvent.prototype = new PictureEvent('brush');
 
@@ -193,6 +204,38 @@ BrushEvent.prototype.serialize = function(scale) {
 };
 
 /**
+ * Generate a parser for an event conforming to the brush event format.
+ * @param {function(number, number, boolean, Uint8Array|Array.<number>, number,
+ * number, number, number, PictureEvent.Mode)} constructor Constructor for the
+ * parsed object.
+ * @return {function(Array.<string>, number, number, number, boolean)} Parse
+ * function.
+ */
+var brushEventParser = function(constructor) {
+    return function(arr, i, sid, sessionEventId, undone) {
+        var color = [];
+        color[0] = parseInt(arr[i++]);
+        color[1] = parseInt(arr[i++]);
+        color[2] = parseInt(arr[i++]);
+        var flow = parseFloat(arr[i++]);
+        var opacity = parseFloat(arr[i++]);
+        var radius = parseFloat(arr[i++]);
+        var softness = parseFloat(arr[i++]);
+        var mode = parseInt(arr[i++]);
+        var pictureEvent = new constructor(sid, sessionEventId, undone, color,
+                                           flow, opacity, radius, softness,
+                                           mode);
+        while (i <= arr.length - BrushEvent.coordsStride) {
+            var x = parseFloat(arr[i++]);
+            var y = parseFloat(arr[i++]);
+            var pressure = parseFloat(arr[i++]);
+            pictureEvent.pushCoordTriplet(x, y, pressure);
+        }
+        return pictureEvent;
+    };
+};
+
+/**
  * Parse a BrushEvent from a tokenized serialization.
  * @param {Array.<string>} arr Array containing the tokens, split at spaces from
  * the original serialization.
@@ -204,26 +247,7 @@ BrushEvent.prototype.serialize = function(scale) {
  * @param {boolean} undone Whether this event is undone.
  * @return {BrushEvent} The parsed event or null.
  */
-BrushEvent.parse = function(arr, i, sid, sessionEventId, undone) {
-    var color = [];
-    color[0] = parseInt(arr[i++]);
-    color[1] = parseInt(arr[i++]);
-    color[2] = parseInt(arr[i++]);
-    var flow = parseFloat(arr[i++]);
-    var opacity = parseFloat(arr[i++]);
-    var radius = parseFloat(arr[i++]);
-    var softness = parseFloat(arr[i++]);
-    var mode = parseInt(arr[i++]);
-    var pictureEvent = new BrushEvent(sid, sessionEventId, undone, color, flow,
-                                      opacity, radius, softness, mode);
-    while (i <= arr.length - BrushEvent.coordsStride) {
-        var x = parseFloat(arr[i++]);
-        var y = parseFloat(arr[i++]);
-        var pressure = parseFloat(arr[i++]);
-        pictureEvent.pushCoordTriplet(x, y, pressure);
-    }
-    return pictureEvent;
-};
+BrushEvent.parse = brushEventParser(BrushEvent);
 
 /**
  * Add a triplet of coordinates to the brush stroke. The stroke will travel
@@ -332,6 +356,17 @@ BrushEvent.BBRasterizer.prototype.beginCircleLines = function() {};
  */
 BrushEvent.BBRasterizer.prototype.circleLineTo = function(centerX, centerY,
                                                           radius) {
+    this.boundingBox.unionCircle(centerX, centerY, Math.max(radius, 1.0) + 1.0);
+};
+
+/**
+ * Add a circle to the bounding box.
+ * @param {number} centerX The x coordinate of the center of the circle.
+ * @param {number} centerY The y coordinate of the center of the circle.
+ * @param {number} radius The radius of the circle.
+ */
+BrushEvent.BBRasterizer.prototype.fillCircle = function(centerX, centerY,
+                                                        radius) {
     this.boundingBox.unionCircle(centerX, centerY, Math.max(radius, 1.0) + 1.0);
 };
 
@@ -474,6 +509,107 @@ BrushEvent.prototype.getBoundingBox = function(clipRect) {
  */
 BrushEvent.prototype.isRasterized = function() {
     return true;
+};
+
+
+/**
+ * A PictureEvent representing a bunch of individually positioned circles.
+ * @constructor
+ * @param {number} sid Session identifier. Must be an integer.
+ * @param {number} sessionEventId An event/session specific identifier. The idea
+ * is that the sid/sessionEventId pair is unique for this event, and that newer
+ * events will have greater sessionEventIds. Must be an integer.
+ * @param {boolean} undone Whether this event is undone.
+ * @param {Uint8Array|Array.<number>} color The RGB color of the event. Channel
+ * values are between 0-255.
+ * @param {number} flow Alpha value controlling blending individual brush
+ * samples (circles) to each other in the rasterizer. Range 0 to 1.
+ * @param {number} opacity Alpha value controlling blending the rasterizer
+ * data to the target buffer. Range 0 to 1.
+ * @param {number} radius The stroke radius in pixels.
+ * @param {number} softness Value controlling the softness. Range 0 to 1.
+ * @param {PictureEvent.Mode} mode Blending mode to use.
+ */
+var ScatterEvent = brushEventConstructor();
+
+ScatterEvent.prototype = new PictureEvent('scatter');
+
+/** @inheritDoc */
+ScatterEvent.prototype.serialize = BrushEvent.prototype.serialize;
+
+/**
+ * Parse a ScatterEvent from a tokenized serialization.
+ * @param {Array.<string>} arr Array containing the tokens, split at spaces from
+ * the original serialization.
+ * @param {number} i Index of the first token to deserialize.
+ * @param {number} sid Session identifier. Must be an integer.
+ * @param {number} sessionEventId An event/session specific identifier. The idea
+ * is that the sid/sessionEventId pair is unique for this event. Must be an
+ * integer.
+ * @param {boolean} undone Whether this event is undone.
+ * @return {ScatterEvent} The parsed event or null.
+ */
+ScatterEvent.parse = brushEventParser(ScatterEvent);
+
+/** @inheritDoc */
+ScatterEvent.prototype.scale = BrushEvent.prototype.scale;
+
+/** @inheritDoc */
+ScatterEvent.prototype.translate = BrushEvent.prototype.translate;
+
+/** @inheritDoc */
+ScatterEvent.prototype.getBoundingBox = BrushEvent.prototype.getBoundingBox;
+
+/**
+ * Draw the brush event to the given rasterizer's bitmap.
+ * @param {BaseRasterizer} rasterizer The rasterizer to use.
+ * @param {number} untilCoord Maximum coordinate index to draw + 1.
+ */
+ScatterEvent.prototype.drawTo = function(rasterizer, untilCoord) {
+    var drawState = rasterizer.getDrawEventState(this, BrushEventState);
+    if (untilCoord === undefined) {
+        untilCoord = this.coords.length;
+    } else {
+        if (drawState.coordsInd + BrushEvent.coordsStride > untilCoord) {
+            rasterizer.clearDirty();
+            drawState = new BrushEventState();
+        }
+    }
+    var i = drawState.coordsInd;
+    if (i === 0) {
+        rasterizer.beginCircleLines(this.soft, this.flow);
+    }
+    while (i + BrushEvent.coordsStride <= untilCoord) {
+        var x = this.coords[i++];
+        var y = this.coords[i++];
+        var p = this.coords[i++];
+        rasterizer.fillCircle(x, y, p * this.radius);
+    }
+    drawState.coordsInd = i;
+    rasterizer.flushCircles();
+};
+
+/**
+ * @return {boolean} Is the event drawn using a rasterizer?
+ */
+ScatterEvent.prototype.isRasterized = function() {
+    return true;
+};
+
+/**
+ * Add a triplet of coordinates for a circle.
+ * @param {number} x The x center of the circle.
+ * @param {number} y The y center of the circle.
+ * @param {number} pressure Used as a multiplier for the circle radius. Must be
+ * larger than zero.
+ */
+ScatterEvent.prototype.pushCoordTriplet = function(x, y, pressure) {
+    // Limit pressure to 5 decimals to cut on file size a bit. This rounding
+    // method should be okay as long as pressure stays within reasonable bounds.
+    pressure = Math.round(pressure * 100000) / 100000;
+    this.coords.push(x);
+    this.coords.push(y);
+    this.coords.push(pressure);
 };
 
 
