@@ -374,6 +374,17 @@ Picture.prototype.serialize = function() {
 };
 
 /**
+ * @return {number} The total event count in all buffers, undone or not.
+ */
+Picture.prototype.getEventCount = function() {
+    var count = 0;
+    for (var i = 0; i < this.buffers.length; ++i) {
+        count += this.buffers[i].events.length;
+    }
+    return count;
+};
+
+/**
  * Set the session with the given sid active for purposes of createBrushEvent,
  * createScatterEvent, createGradientEvent, createMergeEvent,
  * createBufferAddEvent, addBuffer, createBufferRemoveEvent,

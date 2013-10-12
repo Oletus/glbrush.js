@@ -50,6 +50,19 @@ var doPictureTest = function(mode) {
         expect(pic.findBuffer(123)).toBe(pic.buffers[1]);
     });
 
+    it('counts the events it contains', function() {
+        var pic = testPicture();
+        var clearColor = [12, 23, 34];
+        pic.addBuffer(1337, clearColor, false);
+        expect(pic.getEventCount()).toBe(1);
+        var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 1, 0,
+                                          PictureEvent.Mode.normal);
+        brushEvent.pushCoordTriplet(0, 0, 1.0);
+        brushEvent.pushCoordTriplet(width, height, 1.0);
+        pic.pushEvent(1337, brushEvent);
+        expect(pic.getEventCount()).toBe(2);
+    });
+
     it('handles pushing an undone buffer add event', function() {
         var pic = testPicture();
         var memoryUseWas = pic.memoryUse;
