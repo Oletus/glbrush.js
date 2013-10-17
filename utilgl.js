@@ -56,40 +56,34 @@ glUtils.getShaderSource = function(id) {
         console.log('Shader script not found ' + id);
         return null;
     }
-    var theSource = '';
+    var shaderSource = '';
     var currentChild = shaderScript.firstChild;
     while (currentChild) {
         if (currentChild.nodeType == currentChild.TEXT_NODE) {
-            theSource += currentChild.textContent;
+            shaderSource += currentChild.textContent;
         }
         currentChild = currentChild.nextSibling;
     }
-    return theSource;
+    return shaderSource;
 };
 
 /**
  * Compile a shader from source.
  * @param {WebGLRenderingContext} gl The WebGL context.
- * @param {string} type Type of the shader. Must be 'fragment' or 'vertex'.
- * @param {string} theSource The shader source.
+ * @param {GLenum} type Type of the shader. Must be gl.FRAGMENT_SHADER or
+ * gl.VERTEX_SHADER.
+ * @param {string} shaderSource The shader source.
  * @return {WebGLShader} The created shader.
  */
-glUtils.compileShaderSource = function(gl, type, theSource) {
-    var shader;
-    if (type == 'fragment') {
-        shader = gl.createShader(gl.FRAGMENT_SHADER);
-    } else if (type == 'vertex') {
-        shader = gl.createShader(gl.VERTEX_SHADER);
-    } else {
-        return null;
-    }
+glUtils.compileShaderSource = function(gl, type, shaderSource) {
+    var shader = gl.createShader(type);
 
-    gl.shaderSource(shader, theSource);
+    gl.shaderSource(shader, shaderSource);
     gl.compileShader(shader);
     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-        console.log('An error occurred compiling ' + type + ' : ' +
+        console.log('An error occurred compiling a shader:' +
                     gl.getShaderInfoLog(shader));
-        console.log(theSource);
+        console.log(shaderSource);
         return null;
     }
 
@@ -177,12 +171,15 @@ var Uniform = function(gltype, location) {
  */
 var ShaderProgram = function(gl, fragmentShaderSource, vertexShaderSource,
                              uniforms) {
-    var fragmentShader = glUtils.compileShaderSource(gl, 'fragment',
-                                                     fragmentShaderSource);
-    var vertexShader = glUtils.compileShaderSource(gl, 'vertex',
-                                                   vertexShaderSource);
-
     this.gl = gl;
+    this.uniforms = {};
+
+    var vertexShader = glUtils.compileShaderSource(this.gl,
+                                                   this.gl.VERTEX_SHADER,
+                                                   vertexShaderSource);
+    var fragmentShader = glUtils.compileShaderSource(this.gl,
+                                                     this.gl.FRAGMENT_SHADER,
+                                                     fragmentShaderSource);
 
     this.shaderProgram = this.gl.createProgram();
     this.gl.attachShader(this.shaderProgram, vertexShader);
@@ -190,13 +187,11 @@ var ShaderProgram = function(gl, fragmentShaderSource, vertexShaderSource,
     this.gl.linkProgram(this.shaderProgram);
 
     if (!this.gl.getProgramParameter(this.shaderProgram, this.gl.LINK_STATUS)) {
-        console.log('Unable to initialize shader program from shaders: ' +
-                    fragmentShaderSource + ', ' + vertexShaderSource + ' ' +
-                    this.gl.getProgramInfoLog(this.shaderProgram));
+        console.log('Unable to initialize shader program from shaders:\nINFO:' +
+                    '\n' + this.gl.getProgramInfoLog(this.shaderProgram) +
+                    '\nVERTEX:\n' + vertexShaderSource +
+                    '\nFRAGMENT:\n' + fragmentShaderSource);
     }
-
-    this.uniforms = {};
-
     for (var key in uniforms) {
         if (uniforms.hasOwnProperty(key)) {
             var gltype = uniforms[key];
