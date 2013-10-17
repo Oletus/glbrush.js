@@ -63,7 +63,6 @@ var Picture = function(id, boundsRect, bitmapScale, mode) {
         this.mode = undefined;
         return;
     }
-    this.generationTime = 0;
 };
 
 /**
@@ -276,8 +275,9 @@ Picture.create = function(id, width, height, bitmapScale, modesToTry) {
  * @param {Array.<string>} modesToTry Modes to try to initialize the picture.
  * Can contain either 'webgl', 'no-texdata-webgl', 'no-float-webgl' or 'canvas'.
  * Modes are tried in the order they are in the array.
- * @return {Object} Object containing key 'picture' for the created picture and
- * key 'metadata' for the metadata lines or null if picture couldn't be created.
+ * @return {Object} Object containing key 'picture' for the created picture, key
+ * 'metadata' for the metadata lines, and 'generationTime' for generation time
+ * in milliseconds, or null if picture couldn't be created.
  */
 Picture.parse = function(id, serialization, bitmapScale, modesToTry) {
     var startTime = new Date().getTime();
@@ -317,8 +317,8 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry) {
             pic.mergedBuffers[i].events[0].insertionPoint;
     }
     delete pic.moveBufferInternal; // switch back to prototype's move function
-    pic.generationTime = new Date().getTime() - startTime;
-    return {picture: pic, metadata: metadata};
+    var generationTime = new Date().getTime() - startTime;
+    return {picture: pic, metadata: metadata, generationTime: generationTime};
 };
 
 /**
