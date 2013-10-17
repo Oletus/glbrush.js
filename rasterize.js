@@ -10,7 +10,7 @@
  * flushCircles() and free().
  * @constructor
  */
-BaseRasterizer = function() {};
+var BaseRasterizer = function() {};
 
 /**
  * Initialize the generic rasterizer data.
@@ -701,7 +701,7 @@ var GLDoubleBufferedRasterizer = function(gl, glManager, width, height) {
     this.convUniformParameters = new blitShader.ConversionUniformParameters();
     this.conversionProgram = this.glManager.shaderProgram(
         blitShader.convertRedGreenSrc, blitShader.blitVertSrc,
-        {uSrcTex: 'tex2d', uColor: '4fv'});
+        {'uSrcTex': 'tex2d', 'uColor': '4fv'});
 };
 
 /** @const */
@@ -838,11 +838,11 @@ GLDoubleBufferedRasterizer.prototype.drawWithColor = function(color, opacity,
     if (mode === PictureEvent.Mode.erase) {
         this.gl.blendFunc(this.gl.ZERO, this.gl.ONE_MINUS_SRC_ALPHA);
     }
-    this.convUniformParameters.uSrcTex = this.getTex();
+    this.convUniformParameters['uSrcTex'] = this.getTex();
     for (var i = 0; i < 3; ++i) {
-        this.convUniformParameters.uColor[i] = color[i] / 255.0;
+        this.convUniformParameters['uColor'][i] = color[i] / 255.0;
     }
-    this.convUniformParameters.uColor[3] = opacity;
+    this.convUniformParameters['uColor'][3] = opacity;
     this.glManager.drawFullscreenQuad(this.conversionProgram,
                                       this.convUniformParameters);
     if (mode === PictureEvent.Mode.erase) {
@@ -931,8 +931,8 @@ GLDoubleBufferedRasterizer.prototype.getDrawRect = function(invalRect) {
 GLDoubleBufferedRasterizer.prototype.preDraw = function(uniformParameters) {
     this.glManager.useFboTex(this.getTargetTex());
     if (uniformParameters !== null) {
-        uniformParameters.uFlowAlpha = this.flowAlpha;
-        uniformParameters.uSrcTex = this.getTex();
+        uniformParameters['uFlowAlpha'] = this.flowAlpha;
+        uniformParameters['uSrcTex'] = this.getTex();
     }
 };
 
@@ -1108,7 +1108,7 @@ var GLFloatRasterizer = function(gl, glManager, width, height) {
     this.convUniformParameters = new blitShader.ConversionUniformParameters();
     this.conversionProgram = this.glManager.shaderProgram(
         blitShader.convertSimpleSrc, blitShader.blitVertSrc,
-        {uSrcTex: 'tex2d', uColor: '4fv'});
+        {'uSrcTex': 'tex2d', 'uColor': '4fv'});
 };
 
 /** @const */
@@ -1183,7 +1183,7 @@ GLFloatRasterizer.prototype.getDrawRect = function(invalRect) {
 GLFloatRasterizer.prototype.preDraw = function(uniformParameters) {
     this.glManager.useFboTex(this.tex);
     if (uniformParameters !== null) {
-        uniformParameters.uFlowAlpha = this.flowAlpha;
+        uniformParameters['uFlowAlpha'] = this.flowAlpha;
     }
 };
 
@@ -1279,7 +1279,7 @@ var GLFloatTexDataRasterizer = function(gl, glManager, width, height) {
     // The uniforms are the same for the soft and fill shaders
     this.uniformParameters =
         GLFloatTexDataRasterizer.fillShader.uniformParameters(width, height);
-    this.uniformParameters.uCircleParameters = this.parameterTex;
+    this.uniformParameters['uCircleParameters'] = this.parameterTex;
 
     this.linearGradientProgram =
         GLFloatRasterizer.linearGradientShader.programInstance(this.gl);
@@ -1293,7 +1293,7 @@ var GLFloatTexDataRasterizer = function(gl, glManager, width, height) {
     this.conversionProgram =
         this.glManager.shaderProgram(blitShader.convertSimpleSrc,
                                      blitShader.blitVertSrc,
-                                     {uSrcTex: 'tex2d', uColor: '4fv'});
+                                     {'uSrcTex': 'tex2d', 'uColor': '4fv'});
 };
 
 /** @const */
@@ -1349,8 +1349,8 @@ GLFloatTexDataRasterizer.prototype.flushCircles = function() {
         return;
     }
     this.glManager.useFboTex(this.tex);
-    this.uniformParameters.uCircleCount = this.circleInd;
-    this.uniformParameters.uFlowAlpha = this.flowAlpha;
+    this.uniformParameters['uCircleCount'] = this.circleInd;
+    this.uniformParameters['uFlowAlpha'] = this.flowAlpha;
     this.gl.bindTexture(this.gl.TEXTURE_2D, this.parameterTex);
     this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.maxCircles, 1,
                        0, this.gl.RGBA, this.gl.FLOAT, this.params);

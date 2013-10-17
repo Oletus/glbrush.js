@@ -90,7 +90,7 @@ Picture.prototype.setupGLState = function() {
 
     this.texBlitProgram = this.glManager.shaderProgram(blitShader.blitSrc,
                                                        blitShader.blitVertSrc,
-                                                       {uSrcTex: 'tex2d'});
+                                                       {'uSrcTex': 'tex2d'});
     this.texBlitUniforms = {
         uSrcTex: null
     };

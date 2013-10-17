@@ -58,6 +58,6 @@ blitShader.blitVertSrc = '  precision highp float;\n' +
  * @constructor
  */
 blitShader.ConversionUniformParameters = function() {
-    this.uSrcTex = null;
-    this.uColor = new Float32Array([0.0, 0.0, 0.0, 0.0]);
+    this['uSrcTex'] = null;
+    this['uColor'] = new Float32Array([0.0, 0.0, 0.0, 0.0]);
 };

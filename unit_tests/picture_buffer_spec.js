@@ -748,7 +748,7 @@ describe('GLBuffer', function() {
     var compositor = new GLCompositor(glManager, gl, 8);
     var texBlitProgram = glManager.shaderProgram(blitShader.blitSrc,
                                                  blitShader.blitVertSrc,
-                                                 {uSrcTex: 'tex2d'});
+                                                 {'uSrcTex': 'tex2d'});
     var texBlitUniforms = {
         uSrcTex: null
     };
