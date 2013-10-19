@@ -96,7 +96,7 @@ describe('GLUndoState', function() {
                                                  blitShader.blitVertSrc,
                                                  {'uSrcTex': 'tex2d'});
     var texBlitUniforms = {
-        uSrcTex: null
+        'uSrcTex': null
     };
 
     var createTestTexture = function() {

@@ -1072,7 +1072,7 @@ GLBuffer.prototype.drawRasterizerWithColor = function(raster, color, opacity,
         var helper = glUtils.createTexture(this.gl, this.width(),
                                            this.height());
         this.glManager.useFboTex(helper);
-        this.texBlitUniforms.uSrcTex = this.tex;
+        this.texBlitUniforms['uSrcTex'] = this.tex;
         this.glManager.drawFullscreenQuad(this.texBlitProgram,
                                           this.texBlitUniforms);
 
@@ -1096,7 +1096,7 @@ GLBuffer.prototype.drawBuffer = function(buffer, opacity) {
     // that blended with the contents of the buffer back to this.tex.
     var helper = glUtils.createTexture(this.gl, this.width(), this.height());
     this.glManager.useFboTex(helper);
-    this.texBlitUniforms.uSrcTex = this.tex;
+    this.texBlitUniforms['uSrcTex'] = this.tex;
     this.glManager.drawFullscreenQuad(this.texBlitProgram,
                                       this.texBlitUniforms);
     this.glManager.useFboTex(this.tex);

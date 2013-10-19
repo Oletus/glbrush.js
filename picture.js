@@ -91,7 +91,7 @@ Picture.prototype.setupGLState = function() {
                                                        blitShader.blitVertSrc,
                                                        {'uSrcTex': 'tex2d'});
     this.texBlitUniforms = {
-        uSrcTex: null
+        'uSrcTex': null
     };
 
     if (!this.initRasterizers()) {

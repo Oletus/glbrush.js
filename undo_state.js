@@ -137,7 +137,7 @@ GLUndoState.prototype.update = function(srcTex, clipRect) {
     this.ensureTexture();
     this.glManager.useFboTex(this.tex);
     glUtils.updateClip(this.gl, clipRect, this.height);
-    this.texBlitUniforms.uSrcTex = srcTex;
+    this.texBlitUniforms['uSrcTex'] = srcTex;
     this.gl.clearColor(0, 0, 0, 0);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
     this.glManager.drawFullscreenQuad(this.texBlitProgram,
@@ -152,7 +152,7 @@ GLUndoState.prototype.update = function(srcTex, clipRect) {
  */
 GLUndoState.prototype.draw = function(clipRect) {
     // TODO: assert(!this.invalid);
-    this.texBlitUniforms.uSrcTex = this.tex;
+    this.texBlitUniforms['uSrcTex'] = this.tex;
     glUtils.updateClip(this.gl, clipRect, this.height);
     this.gl.clearColor(0, 0, 0, 0);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);

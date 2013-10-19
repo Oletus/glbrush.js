@@ -750,7 +750,7 @@ describe('GLBuffer', function() {
                                                  blitShader.blitVertSrc,
                                                  {'uSrcTex': 'tex2d'});
     var texBlitUniforms = {
-        uSrcTex: null
+        'uSrcTex': null
     };
 
     var createBuffer = function(params) {
