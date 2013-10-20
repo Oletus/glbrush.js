@@ -622,11 +622,12 @@ PictureBuffer.prototype.undoEventIndex = function(eventIndex, rasterizer,
         }
     }
     this.events[eventIndex].undone = true;
-    if (this.events[eventIndex].eventType !== 'bufferMove') {
+    if (this.events[eventIndex].eventType !== 'bufferMove' &&
+        this.events[eventIndex].eventType !== 'eventHide') {
         this.playbackAfterChange(eventIndex, rasterizer, -1, 0);
     } else {
-        // TODO: Buffer moves or removes don't actually cost anything to
-        // regenerate, so take that into account
+        // TODO: Buffer moves or removes and event hides don't actually cost
+        // anything to regenerate, so take that into account
         this.changeUndoStatesFrom(eventIndex, false, -1, 0);
     }
     return this.events[eventIndex];
