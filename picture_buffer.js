@@ -112,9 +112,9 @@ PictureBuffer.prototype.playbackStartingFrom = function(eventIndex,
 };
 
 /**
- * Rasterize an event to the picture buffer. Subject to the current clipping
+ * Apply an event to the picture buffer. Subject to the current clipping
  * rectangle.
- * @param {PictureEvent} event The event to rasterize.
+ * @param {PictureEvent} event The event to rasterize and apply.
  * @param {BaseRasterizer} rasterizer The rasterizer to use.
  * @protected
  */
@@ -122,6 +122,9 @@ PictureBuffer.prototype.applyEvent = function(event, rasterizer) {
     if (this.freed) {
         return;
     } else if (event.isRasterized()) {
+        if (event.hideCount > 0) {
+            return;
+        }
         var boundingBox = event.getBoundingBox(this.boundsRect);
         this.pushClipRect(boundingBox);
         if (this.getCurrentClipRect().isEmpty()) {
@@ -142,7 +145,29 @@ PictureBuffer.prototype.applyEvent = function(event, rasterizer) {
         }
     } else if (event.eventType === 'bufferAdd') {
         this.clear(event.clearColor);
-    } // Nothing to be done on remove
+    } // Nothing to be done on remove or eventHideEvent
+};
+
+/**
+ * Apply an event that should not be re-applied on playback.
+ * @param {PictureEvent} event The event to apply.
+ * @param {BaseRasterizer} rasterizer The rasterizer to use.
+ * @protected
+ */
+PictureBuffer.prototype.applyCountingEvent = function(event, rasterizer) {
+    if (event.eventType === 'bufferRemove') {
+        ++this.removeCount;
+    } else if (event.eventType === 'eventHide') {
+        var i = this.eventIndexBySessionId(event.hiddenSid,
+                                           event.hiddenSessionEventId);
+        if (i >= 0) {
+            // TODO: assert(this.events[i].isRasterized());
+            ++this.events[i].hideCount;
+            if (this.events[i].hideCount === 1) {
+                this.playbackAfterChange(i, rasterizer, 0, 0);
+            }
+        }
+    }
 };
 
 /**
@@ -154,9 +179,7 @@ PictureBuffer.prototype.pushEvent = function(event, rasterizer) {
     this.events.push(event);
     if (!event.undone) {
         this.applyEvent(event, rasterizer);
-        if (event.eventType === 'bufferRemove') {
-            ++this.removeCount;
-        }
+        this.applyCountingEvent(event, rasterizer);
         this.lastEventChanged(rasterizer);
     }
 };
@@ -193,6 +216,7 @@ PictureBuffer.prototype.insertEvent = function(event, rasterizer) {
     } else {
         this.events.splice(this.insertionPoint, 0, event);
         if (!event.undone) {
+            this.applyCountingEvent(event, rasterizer);
             this.playbackAfterChange(this.insertionPoint, rasterizer, 1, 1);
         } else {
             this.changeUndoStatesFrom(this.insertionPoint, false, 0, 1);
@@ -252,7 +276,8 @@ PictureBuffer.prototype.blamePixel = function(coords) {
     this.blameRasterizer.setClip(coordsRect);
     var blame = [];
     while (i >= 1) {
-        if (!this.events[i].undone && this.events[i].isRasterized()) {
+        if (!this.events[i].undone && this.events[i].isRasterized() &&
+            this.events[i].hideCount === 0) {
             var boundingBox = this.events[i].getBoundingBox(coordsRect);
             if (boundingBox.containsRoundedOut(coords)) {
                 this.events[i].drawTo(this.blameRasterizer);
@@ -586,6 +611,15 @@ PictureBuffer.prototype.undoEventIndex = function(eventIndex, rasterizer,
         this.events[eventIndex].mergedBuffer.mergedTo = null;
     } else if (this.events[eventIndex].eventType === 'bufferRemove') {
         --this.removeCount;
+    } else if (this.events[eventIndex].eventType === 'eventHide') {
+        var i = this.eventIndexBySessionId(this.events[eventIndex].hiddenSid,
+                                  this.events[eventIndex].hiddenSessionEventId);
+        if (i >= 0) {
+            --this.events[i].hideCount;
+            if (this.events[i].hideCount === 0) {
+                this.playbackAfterChange(i, rasterizer, 0, 0);
+            }
+        }
     }
     this.events[eventIndex].undone = true;
     if (this.events[eventIndex].eventType !== 'bufferMove') {
@@ -642,9 +676,7 @@ PictureBuffer.prototype.redoEventIndex = function(eventIndex, rasterizer) {
         return;
     }
     this.events[eventIndex].undone = false;
-    if (this.events[eventIndex].eventType === 'bufferRemove') {
-        ++this.removeCount;
-    }
+    this.applyCountingEvent(this.events[eventIndex], rasterizer);
     if (eventIndex === this.events.length - 1) {
         this.applyEvent(this.events[eventIndex], rasterizer);
         if (this.undoStates !== null && this.undoStates.length > 0 &&

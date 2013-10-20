@@ -265,6 +265,7 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         for (var i = eventCountStart; i < eventCountTarget; ++i) {
             var brushEvent = generateBrushEvent(i, buffer.width(),
                                                 buffer.height());
+            brushEvent.sessionEventId = i;
             buffer.pushEvent(brushEvent, rasterizer);
         }
         expect(buffer.events.length).toBe(eventCountTarget);
@@ -287,7 +288,7 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
             var rasterizer = createRasterizer(params);
             if (createSpecialEvent !== null) {
                 fillBuffer(buffer, rasterizer, undoIndex);
-                buffer.pushEvent(createSpecialEvent(), rasterizer);
+                buffer.pushEvent(createSpecialEvent(buffer), rasterizer);
             }
             fillBuffer(buffer, rasterizer, buffer.undoStateInterval - 1);
 
@@ -310,7 +311,7 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
             var undoIndex = buffer.undoStateInterval + 1;
             if (createSpecialEvent !== null) {
                 fillBuffer(buffer, rasterizer, undoIndex);
-                buffer.pushEvent(createSpecialEvent(), rasterizer);
+                buffer.pushEvent(createSpecialEvent(buffer), rasterizer);
             }
             fillBuffer(buffer, rasterizer, buffer.undoStateInterval + 3);
             expect(buffer.undoStates.length).toBe(1);
@@ -329,7 +330,7 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
             var removeIndex = 5;
             if (createSpecialEvent !== null) {
                 fillBuffer(buffer, rasterizer, removeIndex);
-                buffer.pushEvent(createSpecialEvent(), rasterizer);
+                buffer.pushEvent(createSpecialEvent(buffer), rasterizer);
             }
             fillBuffer(buffer, rasterizer, buffer.undoStateInterval - 1);
             if (buffer.events[removeIndex].eventType === 'bufferMerge') {
@@ -353,7 +354,7 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
                 event = generateBrushEvent(9001, buffer.width(),
                                            buffer.height());
             } else {
-                event = createSpecialEvent();
+                event = createSpecialEvent(buffer);
             }
             buffer.insertEvent(event, rasterizer);
             expectBufferCorrect(buffer, rasterizer, 3);
@@ -363,20 +364,33 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         });
     };
 
-    var createTestMergeEvent = function() {
+    var createTestMergeEvent = function(buffer) {
         var mergedBuffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
         var event = fillingBrushEvent(params.width, params.height, [12, 23, 34],
                                       1.0);
         mergedBuffer.pushEvent(event, rasterizer);
-        // TODO: using this sessionEventId value is not actually correct,
-        // and same goes for events generated in fillBuffer().
-        var mergeEvent = new BufferMergeEvent(0, 1, false, 0.7, mergedBuffer);
+        // Create the event with a different sid to not mess up event order when
+        // inserting.
+        var mergeEvent = new BufferMergeEvent(1338, 0, false, 0.7,
+                                              mergedBuffer);
         return mergeEvent;
+    };
+
+    var createTestRemoveEvent = function(buffer) {
+        return new BufferRemoveEvent(1338, 0, false, buffer.id);
+    };
+
+    var createTestHideEvent = function(buffer) {
+        var lastEvent = buffer.events[buffer.events.length - 1];
+        return new EventHideEvent(1338, 0, false,
+                                  lastEvent.sid, lastEvent.sessionEventId);
     };
 
     singleEventTests(null, 'a brush event');
     singleEventTests(createTestMergeEvent, 'a buffer merge event');
+    singleEventTests(createTestRemoveEvent, 'a buffer remove event');
+    singleEventTests(createTestHideEvent, 'an event hiding event');
 
     it('does not use an invalid undo state', function() {
         var buffer = createBuffer(params);
@@ -566,9 +580,9 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
     });
 
     it('updates if an event is pushed to a merged buffer', function() {
-        var mergeEvent = createTestMergeEvent();
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
+        var mergeEvent = createTestMergeEvent(buffer);
         buffer.pushEvent(mergeEvent);
         var event = generateBrushEvent(9001, params.width, params.height);
         mergeEvent.mergedBuffer.pushEvent(event, rasterizer);
@@ -579,9 +593,9 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
     });
 
     it('updates if an event is inserted into a merged buffer', function() {
-        var mergeEvent = createTestMergeEvent();
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
+        var mergeEvent = createTestMergeEvent(buffer);
         buffer.pushEvent(mergeEvent);
         var event = generateBrushEvent(9001, params.width, params.height);
         mergeEvent.mergedBuffer.insertEvent(event, rasterizer);
@@ -593,9 +607,9 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
     });
 
     it('updates if an event is undone in a merged buffer', function() {
-        var mergeEvent = createTestMergeEvent();
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
+        var mergeEvent = createTestMergeEvent(buffer);
         buffer.pushEvent(mergeEvent);
         mergeEvent.mergedBuffer.undoEventIndex(1, rasterizer);
         expectBufferCorrect(buffer, rasterizer, 3);
@@ -605,9 +619,9 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
     });
 
     it('does not draw an undone merged buffer', function() {
-        var mergeEvent = createTestMergeEvent();
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
+        var mergeEvent = createTestMergeEvent(buffer);
         buffer.pushEvent(mergeEvent);
         var samplePixel = buffer.getPixelRGBA(new Vec2(0, 0));
         expect(samplePixel[0]).not.toBeNear(60, 5);

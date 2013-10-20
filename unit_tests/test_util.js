@@ -119,6 +119,19 @@ function expectTestBufferMoveEvent(bufferMoveEvent) {
     expect(bufferMoveEvent.toIndex).toBe(4);
 }
 
+
+function testEventHideEvent() {
+    return new EventHideEvent(0, 1, false, 12, 123);
+}
+
+function expectTestEventHideEvent(event) {
+    expect(event.sid).toBe(0);
+    expect(event.sessionEventId).toBe(1);
+    expect(event.undone).toBe(false);
+    expect(event.hiddenSid).toBe(12);
+    expect(event.hiddenSessionEventId).toBe(123);
+}
+
 /**
  * Check an array for correct values.
  * @param {ArrayBufferView|Array.<number>} array Array to test.
@@ -151,12 +164,49 @@ function expectBufferCorrect(buffer, rasterizer, tolerance) {
         tolerance = 3;
     }
     var state = buffer.saveUndoState(0);
+    var removeCount = buffer.removeCount;
+    var i;
+    var j;
+
+    // TODO: Maybe check event session id ordering, though that puts an extra
+    // burden on the tests.
+
+    // Check event hide counts
+    for (i = 0; i < buffer.events.length; ++i) {
+        if (buffer.events[i].isRasterized()) {
+            expect(typeof buffer.events[i].hideCount).toBe(typeof 0);
+            var hiderCount = 0;
+            for (j = 0; j < buffer.events.length; ++j) {
+                if (buffer.events[j].eventType === 'eventHide' &&
+                    !buffer.events[j].undone &&
+                    buffer.events[j].hiddenSid === buffer.events[i].sid &&
+                    buffer.events[j].hiddenSessionEventId ===
+                    buffer.events[i].sessionEventId) {
+                    ++hiderCount;
+                }
+            }
+            expect(hiderCount).toBe(buffer.events[i].hideCount);
+        }
+    }
+
     var clipRect = buffer.getCurrentClipRect();
     expect(clipRect.left).toBe(0);
     expect(clipRect.top).toBe(0);
     expect(clipRect.width()).toBe(buffer.width());
     expect(clipRect.height()).toBe(buffer.height());
     buffer.playbackAll(rasterizer);
+
+    // Check remove count
+    var correctRemoveCount = 0;
+    for (i = 0; i < buffer.events.length; ++i) {
+        if (buffer.events[i].eventType === 'bufferRemove' &&
+            !buffer.events[i].undone) {
+            ++correctRemoveCount;
+        }
+    }
+    expect(removeCount).toBe(correctRemoveCount);
+
+    // Check bitmap state
     var correctState = buffer.saveUndoState(0);
     var stateData;
     var correctData;
@@ -187,7 +237,7 @@ function expectBufferCorrect(buffer, rasterizer, tolerance) {
             canvas.height = h;
             var ctx = canvas.getContext('2d');
             var imgData = ctx.createImageData(w, h);
-            for (var i = 0; i < data.length; ++i) {
+            for (i = 0; i < data.length; ++i) {
                 imgData.data[i] = data[i];
             }
             ctx.putImageData(imgData, 0, 0);

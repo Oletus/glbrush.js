@@ -83,6 +83,9 @@ PictureEvent.parse = function(arr, i, version) {
     } else if (eventType === 'bufferMove') {
         return BufferMoveEvent.parse(arr, i, version, sid, sessionEventId,
                                      undone);
+    } else if (eventType === 'eventHide') {
+        return EventHideEvent.parse(arr, i, version, sid, sessionEventId,
+                                    undone);
     } else {
         console.log('Unexpected picture event type ' + eventType);
         return null;
@@ -153,6 +156,7 @@ var brushEventConstructor = function() {
         this.boundingBoxRasterizer = new BrushEvent.BBRasterizer();
         this.soft = softness > 0.5;
         this.mode = mode;
+        this.hideCount = 0;
     };
 };
 
@@ -662,6 +666,7 @@ var GradientEvent = function(sid, sessionEventId, undone, color, opacity,
     this.coords0 = new Vec2(0, 0);
     this.coords1 = new Vec2(1, 1);
     this.mode = mode;
+    this.hideCount = 0;
 };
 
 GradientEvent.prototype = new PictureEvent('gradient');
@@ -1173,6 +1178,80 @@ BufferMergeEvent.prototype.serialize = function(scale) {
  * change its earlier return values as a side effect.
  */
 BufferMergeEvent.prototype.getBoundingBox = function(clipRect) {
+    return new Rect(clipRect.left, clipRect.right,
+                    clipRect.top, clipRect.bottom);
+};
+
+
+/**
+ * Event that hides an another event in an undoable way.
+ * @constructor
+ * @param {number} sid Session identifier. Must be an integer.
+ * @param {number} sessionEventId An event/session specific identifier. The idea
+ * is that the sid/sessionEventId pair is unique for this event, and that newer
+ * events will have greater sessionEventIds. Must be an integer.
+ * @param {boolean} undone Whether this event is undone.
+ * @param {number} hiddenSid The session identifier of the hidden event.
+ * @param {number} hiddenSessionEventId Event/session specific identifier of the
+ * hidden event.
+ */
+var EventHideEvent = function(sid, sessionEventId, undone, hiddenSid,
+                              hiddenSessionEventId) {
+    this.undone = undone;
+    this.sid = sid;
+    this.sessionEventId = sessionEventId;
+    this.hiddenSid = hiddenSid;
+    this.hiddenSessionEventId = hiddenSessionEventId;
+};
+
+EventHideEvent.prototype = new PictureEvent('eventHide');
+
+/**
+ * @return {boolean} Is the event drawn using a rasterizer?
+ */
+EventHideEvent.prototype.isRasterized = function() {
+    return false;
+};
+
+/**
+ * Parse an EventHideEvent from a tokenized serialization.
+ * @param {Array.<string>} arr Array containing the tokens, split at spaces from
+ * the original serialization.
+ * @param {number} i Index of the first token to deserialize.
+ * @param {number} version Version number of the serialization format.
+ * @param {number} sid Session identifier. Must be an integer.
+ * @param {number} sessionEventId An event/session specific identifier. The idea
+ * is that the sid/sessionEventId pair is unique for this event. Must be an
+ * integer.
+ * @param {boolean} undone Whether this event is undone.
+ * @return {EventHideEvent} The parsed event or null.
+ */
+EventHideEvent.parse = function(arr, i, version, sid, sessionEventId, undone) {
+    var hiddenSid = parseInt(arr[i++]);
+    var hiddenSessionEventId = parseInt(arr[i++]);
+    var pictureEvent = new EventHideEvent(sid, sessionEventId, undone,
+                                          hiddenSid, hiddenSessionEventId);
+    return pictureEvent;
+};
+
+/**
+ * @param {number} scale Scale to multiply serialized coordinates with.
+ * @return {string} A serialization of the event.
+ */
+EventHideEvent.prototype.serialize = function(scale) {
+    var eventMessage = this.serializePictureEvent();
+    eventMessage += ' ' + this.hiddenSid;
+    eventMessage += ' ' + this.hiddenSessionEventId;
+    return eventMessage;
+};
+
+/**
+ * @param {Rect} clipRect Canvas bounds that can be used to intersect the
+ * bounding box against, though this is not mandatory.
+ * @return {Rect} The event's bounding box. This function is not allowed to
+ * change its earlier return values as a side effect.
+ */
+EventHideEvent.prototype.getBoundingBox = function(clipRect) {
     return new Rect(clipRect.left, clipRect.right,
                     clipRect.top, clipRect.bottom);
 };

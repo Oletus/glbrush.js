@@ -177,6 +177,21 @@ Picture.prototype.findBuffer = function(id) {
 };
 
 /**
+ * Find the buffer that contains the given event.
+ * @param {PictureEvent} The event to look for.
+ * @return {number} The buffer's id or -1 if not found.
+ */
+Picture.prototype.findBufferContainingEvent = function(event) {
+    for (var i = 0; i < this.buffers.length; ++i) {
+        if (this.buffers[i].eventIndexBySessionId(event.sid,
+            event.sessionEventId) >= 0) {
+            return this.buffers[i].id;
+        }
+    }
+    return -1;
+};
+
+/**
  * @return {number} Id of the topmost composited buffer.
  */
 Picture.prototype.topCompositedBufferId = function() {
@@ -546,6 +561,21 @@ Picture.prototype.createMergeEvent = function(mergedBufferIndex, opacity) {
 };
 
 /**
+ * Create an event that hides the specified event.
+ * @param {number} hiddenSid The session identifier of the hidden event.
+ * @param {number} hiddenSessionEventId Event/session specific identifier of the
+ * hidden event.
+ * @return {EventHideEvent} The created hide event.
+ */
+Picture.prototype.createEventHideEvent = function(hiddenSid,
+                                                  hiddenSessionEventId) {
+    var event = new EventHideEvent(this.activeSid, this.activeSessionEventId,
+                                   false, hiddenSid, hiddenSessionEventId);
+    this.activeSessionEventId++;
+    return event;
+};
+
+/**
  * @param {HTMLCanvasElement} canvas Canvas to use for rasterization.
  * @return {WebGLRenderingContext} Context to use or null if unsuccessful.
  */
@@ -841,6 +871,22 @@ Picture.prototype.scaleParsedEvent = function(event) {
 };
 
 /**
+ * Do memory management after adding/redoing a remove event to a buffer.
+ * @param {PictureBuffer} buffer The buffer that the remove event was applied
+ * to. The event is allowed to be undone, which can cause the buffer to be not
+ * actually removed.
+ * @protected
+ */
+Picture.prototype.afterRemove = function(buffer) {
+    if (buffer.events.length < buffer.undoStateInterval * 2 &&
+        buffer.isRemoved()) {
+        // The buffer's bitmap isn't very costly to regenerate, so it
+        // can be freed.
+        this.freeBuffer(buffer);
+    }
+};
+
+/**
  * Add an event to the top of one of this picture's buffers.
  * @param {number} targetBufferId The id of the buffer to apply the event to. In
  * case the event is a buffer add event, the id is ignored.
@@ -857,13 +903,7 @@ Picture.prototype.pushEvent = function(targetBufferId, event) {
                                                    event.bufferId);
             // TODO: assert(bufferIndex >= 0);
             this.buffers[bufferIndex].pushEvent(event, this.genericRasterizer);
-            if (this.buffers[bufferIndex].events.length <
-                this.buffers[bufferIndex].undoStateInterval * 2 &&
-                !event.undone) {
-                // The buffer's bitmap isn't very costly to regenerate, so it
-                // can be freed.
-                this.freeBuffer(this.buffers[bufferIndex]);
-            }
+            this.afterRemove(this.buffers[bufferIndex]);
             return;
         } else if (event.eventType === 'bufferMove') {
             var fromIndex = this.findBufferIndex(this.buffers, event.movedId);
@@ -900,9 +940,19 @@ Picture.prototype.pushEvent = function(targetBufferId, event) {
  * Add an event to the insertion point of one of this picture's buffers and
  * increment the insertion point.
  * @param {number} targetBufferId The id of the buffer to insert the event to.
- * @param {PictureEvent} event Event to insert.
+ * @param {PictureEvent} event Event to insert. Can not be a BufferAddEvent or
+ * a BufferMoveEvent. TODO: Fix this for BufferMoveEvent.
  */
 Picture.prototype.insertEvent = function(targetBufferId, event) {
+    // TODO: assert(event.eventType !== 'bufferAdd' &&
+    //              event.eventType !== 'bufferMove');
+    if (event.eventType === 'bufferRemove') {
+        var bufferIndex = this.findBufferIndex(this.buffers, event.bufferId);
+        // TODO: assert(bufferIndex >= 0);
+        this.buffers[bufferIndex].insertEvent(event, this.genericRasterizer);
+        this.afterRemove(this.buffers[bufferIndex]);
+        return;
+    }
     var targetBuffer = this.findBuffer(targetBufferId);
     if (event.eventType === 'bufferMerge') {
         var mergedBufferIndex = this.findBufferIndex(this.buffers,
@@ -1143,10 +1193,7 @@ Picture.prototype.redoEventFromBuffers = function(buffers, sid,
                     this.mergedBuffers.push(event.mergedBuffer);
                 } else if (event.eventType === 'bufferRemove') {
                     buffers[j].redoEventIndex(i, this.genericRasterizer);
-                    if (buffers[j].events.length <
-                        buffers[j].undoStateInterval * 2) {
-                        this.freeBuffer(buffers[j]);
-                    }
+                    this.afterRemove(buffers[j]);
                 } else {
                     if (i === 0) {
                         // TODO: assert(event.eventType === 'bufferAdd');

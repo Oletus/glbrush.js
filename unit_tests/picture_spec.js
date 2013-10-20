@@ -449,7 +449,7 @@ var doPictureTest = function(mode) {
         expect(pic.buffers[1].mergedTo).toBe(null);
     });
 
-    it('inserts a merge event', function() {
+    it('inserts a buffer merge event', function() {
         var pic = testPicture();
         var clearColor = [12, 23, 34];
         pic.addBuffer(1337, clearColor, false);
@@ -467,6 +467,20 @@ var doPictureTest = function(mode) {
         expect(pic.buffers[0].id).toBe(1337);
         expect(pic.buffers[1].id).toBe(9001);
         expect(pic.buffers[1].mergedTo).toBe(null);
+    });
+
+    it('inserts a buffer remove event', function() {
+        var pic = testPicture();
+        var clearColor = [12, 23, 34];
+        pic.addBuffer(1337, clearColor, false);
+        pic.addBuffer(9001, clearColor, false);
+        var removeEvent = pic.createBufferRemoveEvent(9001);
+        pic.insertEvent(9001, removeEvent);
+        expect(pic.buffers.length).toBe(2);
+        expect(pic.buffers[0].id).toBe(1337);
+        expect(pic.buffers[1].id).toBe(9001);
+        expect(pic.buffers[1].isRemoved()).toBe(true);
+        expect(pic.buffers[1].freed).toBe(true);
     });
 
     it('does not display buffers whose creation has been undone', function() {
