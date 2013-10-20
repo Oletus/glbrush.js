@@ -617,19 +617,16 @@ PictureBuffer.prototype.undoEventIndex = function(eventIndex, rasterizer,
         if (i >= 0) {
             --this.events[i].hideCount;
             if (this.events[i].hideCount === 0) {
+                // TODO: Whether events are hidden should factor into undo state
+                // cost.
                 this.playbackAfterChange(i, rasterizer, 0, 0);
             }
         }
     }
     this.events[eventIndex].undone = true;
-    if (this.events[eventIndex].eventType !== 'bufferMove' &&
-        this.events[eventIndex].eventType !== 'eventHide') {
-        this.playbackAfterChange(eventIndex, rasterizer, -1, 0);
-    } else {
-        // TODO: Buffer moves or removes and event hides don't actually cost
-        // anything to regenerate, so take that into account
-        this.changeUndoStatesFrom(eventIndex, false, -1, 0);
-    }
+    // TODO: Buffer moves or removes and event hides don't actually cost
+    // anything to regenerate, so take that into account
+    this.playbackAfterChange(eventIndex, rasterizer, -1, 0);
     return this.events[eventIndex];
 };
 
@@ -647,7 +644,17 @@ PictureBuffer.prototype.undoEventIndex = function(eventIndex, rasterizer,
 PictureBuffer.prototype.playbackAfterChange = function(eventIndex, rasterizer,
                                                        followingStateCostChange,
                                                        followingStateMove) {
-    if (!this.events[0].undone) {
+    if (this.events[eventIndex].eventType === 'bufferMove' ||
+        this.events[eventIndex].eventType === 'bufferRemove' ||
+        this.events[eventIndex].eventType === 'eventHide' ||
+        this.events[0].undone) {
+        // If event 0 is undone, we can defer real playback until it's redone.
+        // Other event types covered here don't affect the bitmap state by
+        // themselves (the event which has its hideCount altered is handled
+        // separately).
+        this.changeUndoStatesFrom(eventIndex, false, followingStateCostChange,
+                                  followingStateMove);
+    } else {
         var bBox = this.events[eventIndex].getBoundingBox(this.boundsRect);
         this.pushClipRect(bBox);
         // Undo states following the event are invalidated. The invalidated
