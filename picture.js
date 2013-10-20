@@ -17,6 +17,7 @@ var Picture = function(id, boundsRect, bitmapScale, mode) {
         mode = 'webgl';
     }
     this.mode = mode;
+    this.parsedVersion = null;
 
     this.animating = false;
 
@@ -283,9 +284,19 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry) {
     var startTime = new Date().getTime();
     var eventStrings = serialization.split(/\r?\n/);
     var pictureParams = eventStrings[0].split(' ');
-    var width = parseInt(pictureParams[1]);
-    var height = parseInt(pictureParams[2]);
+    var version = 0;
+    var width = 0;
+    var height = 0;
+    if (pictureParams[1] !== 'version') {
+        width = parseInt(pictureParams[1]);
+        height = parseInt(pictureParams[2]);
+    } else {
+        version = parseInt(pictureParams[2]);
+        width = parseInt(pictureParams[3]);
+        height = parseInt(pictureParams[4]);
+    }
     var pic = Picture.create(id, width, height, bitmapScale, modesToTry);
+    pic.parsedVersion = version;
     pic.moveBufferInternal = function() {}; // Move events can be processed out
     // of order here, so we don't apply them. Instead rely on buffers being
     // already in the correct order.
@@ -298,7 +309,7 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry) {
             break;
         } else {
             var arr = eventStrings[i].split(' ');
-            var pictureEvent = PictureEvent.parse(arr, 0);
+            var pictureEvent = PictureEvent.parse(arr, 0, version);
             pictureEvent.scale(bitmapScale);
             pic.pushEvent(currentId, pictureEvent);
             currentId = pic.buffers[pic.buffers.length - 1].id;
@@ -346,14 +357,18 @@ Picture.prototype.maxBitmapScale = function() {
     return glUtils.maxFramebufferSize / Math.max(this.width(), this.height());
 };
 
+/** @const */
+Picture.formatVersion = 1;
+
 /**
  * @return {string} A serialization of this Picture. Can be parsed into a new
- * Picture by calling Picture.parse. Compatibility between versions is not
- * guaranteed.
+ * Picture by calling Picture.parse. Compatibility is guaranteed between at
+ * least two subsequent versions.
  */
 Picture.prototype.serialize = function() {
     var serializationScale = 1.0 / this.bitmapScale;
-    var serialization = ['picture ' + this.width() + ' ' + this.height()];
+    var serialization = ['picture version ' + Picture.formatVersion + ' ' +
+                         this.width() + ' ' + this.height()];
     var i;
     var buffer;
     for (i = 0; i < this.mergedBuffers.length; ++i) {

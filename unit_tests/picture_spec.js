@@ -18,6 +18,21 @@ var doPictureTest = function(mode) {
         expect(pic.height()).toBe(height);
         expect(pic.bitmapWidth()).toBe(width * 2.0);
         expect(pic.bitmapHeight()).toBe(height * 2.0);
+        expect(pic.buffers.length).toBe(0);
+    });
+
+    it('parses a picture without a version number', function() {
+        var parsed = Picture.parse(-1, 'picture 122 234', 2.0, [mode]);
+        var pic = parsed.picture;
+        expect(pic.parsedVersion).toBe(0);
+        expect(pic.id).toBe(-1);
+        expect(pic.bitmapScale).toBe(2.0);
+        expect(pic.mode).toEqual(mode);
+        expect(pic.width()).toBe(122);
+        expect(pic.height()).toBe(234);
+        expect(pic.bitmapWidth()).toBe(width * 2.0);
+        expect(pic.bitmapHeight()).toBe(height * 2.0);
+        expect(pic.buffers.length).toBe(0);
     });
 
     it('contains buffers', function() {
@@ -214,6 +229,7 @@ var doPictureTest = function(mode) {
         var clearColor = [12, 23, 34];
         pic.addBuffer(1337, clearColor, false);
         var pic2 = Picture.resize(pic, 3.0);
+        expect(pic2.parsedVersion).toBe(Picture.formatVersion);
         expect(pic2.width()).toBe(pic.width());
         expect(pic2.height()).toBe(pic.height());
         expect(pic2.bitmapWidth()).toNotBe(pic.bitmapWidth());
@@ -381,7 +397,8 @@ var doPictureTest = function(mode) {
         var realMergedBuffer = mergeEvent.mergedBuffer;
         var serialization = mergeEvent.serialize(1.0);
         var splitSerialization = serialization.split(' ');
-        mergeEvent = PictureEvent.parse(splitSerialization, 0);
+        mergeEvent = PictureEvent.parse(splitSerialization, 0,
+                                        Picture.formatVersion);
         expect(mergeEvent.mergedBuffer).not.toBe(realMergedBuffer);
         expect(mergeEvent.mergedBuffer.isDummy).toBe(true);
         pic.pushEvent(1337, mergeEvent);
@@ -658,9 +675,9 @@ var doPictureTest = function(mode) {
         var pic = testPicture();
         var serialization = pic.serialize();
         serialization += '\nmetadata\nappdata';
-        var pic2 = Picture.parse(0, serialization, 1.0, [pic.mode]);
-        expect(pic2.metadata[0]).toBe('metadata');
-        expect(pic2.metadata[1]).toBe('appdata');
+        var parsed = Picture.parse(0, serialization, 1.0, [pic.mode]);
+        expect(parsed.metadata[0]).toBe('metadata');
+        expect(parsed.metadata[1]).toBe('appdata');
     });
 
     it('calculates its memory usage', function() {

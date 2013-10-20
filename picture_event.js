@@ -56,27 +56,33 @@ PictureEvent.prototype.serializePictureEvent = function() {
  * @param {Array.<string>} arr Array containing the tokens, split at spaces from
  * the original serialization.
  * @param {number} i Index of the first token to deserialize.
+ * @param {number} version Version number of the serialization format.
  * @return {PictureEvent} The parsed event or null.
  */
-PictureEvent.parse = function(arr, i) {
+PictureEvent.parse = function(arr, i, version) {
     var eventType = arr[i++];
     var sid = parseInt(arr[i++]);
     var sessionEventId = parseInt(arr[i++]);
     var undone = (parseInt(arr[i++]) !== 0);
     if (eventType === 'brush') {
-        return BrushEvent.parse(arr, i, sid, sessionEventId, undone);
+        return BrushEvent.parse(arr, i, version, sid, sessionEventId, undone);
     } else if (eventType === 'scatter') {
-        return ScatterEvent.parse(arr, i, sid, sessionEventId, undone);
+        return ScatterEvent.parse(arr, i, version, sid, sessionEventId, undone);
     } else if (eventType === 'gradient') {
-        return GradientEvent.parse(arr, i, sid, sessionEventId, undone);
+        return GradientEvent.parse(arr, i, version, sid, sessionEventId,
+                                   undone);
     } else if (eventType === 'bufferMerge') {
-        return BufferMergeEvent.parse(arr, i, sid, sessionEventId, undone);
+        return BufferMergeEvent.parse(arr, i, version, sid, sessionEventId,
+                                      undone);
     } else if (eventType === 'bufferAdd') {
-        return BufferAddEvent.parse(arr, i, sid, sessionEventId, undone);
+        return BufferAddEvent.parse(arr, i, version, sid, sessionEventId,
+                                    undone);
     } else if (eventType === 'bufferRemove') {
-        return BufferRemoveEvent.parse(arr, i, sid, sessionEventId, undone);
+        return BufferRemoveEvent.parse(arr, i, version, sid, sessionEventId,
+                                       undone);
     } else if (eventType === 'bufferMove') {
-        return BufferMoveEvent.parse(arr, i, sid, sessionEventId, undone);
+        return BufferMoveEvent.parse(arr, i, version, sid, sessionEventId,
+                                     undone);
     } else {
         console.log('Unexpected picture event type ' + eventType);
         return null;
@@ -89,7 +95,8 @@ PictureEvent.parse = function(arr, i) {
  * @return {PictureEvent} A copy of the event.
  */
 PictureEvent.copy = function(event) {
-    return PictureEvent.parse(event.serialize(1.0).split(' '), 0);
+    return PictureEvent.parse(event.serialize(1.0).split(' '), 0,
+                              Picture.formatVersion);
 };
 
 /**
@@ -208,11 +215,11 @@ BrushEvent.prototype.serialize = function(scale) {
  * @param {function(number, number, boolean, Uint8Array|Array.<number>, number,
  * number, number, number, PictureEvent.Mode)} constructor Constructor for the
  * parsed object.
- * @return {function(Array.<string>, number, number, number, boolean)} Parse
- * function.
+ * @return {function(Array.<string>, number, number, number, number, boolean)}
+ * Parse function.
  */
 var brushEventParser = function(constructor) {
-    return function(arr, i, sid, sessionEventId, undone) {
+    return function(arr, i, version, sid, sessionEventId, undone) {
         var color = [];
         color[0] = parseInt(arr[i++]);
         color[1] = parseInt(arr[i++]);
@@ -240,6 +247,7 @@ var brushEventParser = function(constructor) {
  * @param {Array.<string>} arr Array containing the tokens, split at spaces from
  * the original serialization.
  * @param {number} i Index of the first token to deserialize.
+ * @param {number} version Version number of the serialization format.
  * @param {number} sid Session identifier. Must be an integer.
  * @param {number} sessionEventId An event/session specific identifier. The idea
  * is that the sid/sessionEventId pair is unique for this event. Must be an
@@ -550,6 +558,7 @@ ScatterEvent.prototype.serialize = BrushEvent.prototype.serialize;
  * @param {Array.<string>} arr Array containing the tokens, split at spaces from
  * the original serialization.
  * @param {number} i Index of the first token to deserialize.
+ * @param {number} version Version number of the serialization format.
  * @param {number} sid Session identifier. Must be an integer.
  * @param {number} sessionEventId An event/session specific identifier. The idea
  * is that the sid/sessionEventId pair is unique for this event. Must be an
@@ -662,6 +671,7 @@ GradientEvent.prototype = new PictureEvent('gradient');
  * @param {Array.<string>} arr Array containing the tokens, split at spaces from
  * the original serialization.
  * @param {number} i Index of the first token to deserialize.
+ * @param {number} version Version number of the serialization format.
  * @param {number} sid Session identifier. Must be an integer.
  * @param {number} sessionEventId An event/session specific identifier. The idea
  * is that the sid/sessionEventId pair is unique for this event. Must be an
@@ -669,7 +679,7 @@ GradientEvent.prototype = new PictureEvent('gradient');
  * @param {boolean} undone Whether this event is undone.
  * @return {GradientEvent} The parsed event or null.
  */
-GradientEvent.parse = function(arr, i, sid, sessionEventId, undone) {
+GradientEvent.parse = function(arr, i, version, sid, sessionEventId, undone) {
     var color = [];
     color[0] = parseInt(arr[i++]);
     color[1] = parseInt(arr[i++]);
@@ -865,6 +875,7 @@ BufferAddEvent.prototype.isBufferStackChange = function() {
  * @param {Array.<string>} arr Array containing the tokens, split at spaces from
  * the original serialization.
  * @param {number} i Index of the first token to deserialize.
+ * @param {number} version Version number of the serialization format.
  * @param {number} sid Session identifier. Must be an integer.
  * @param {number} sessionEventId An event/session specific identifier. The idea
  * is that the sid/sessionEventId pair is unique for this event. Must be an
@@ -872,7 +883,7 @@ BufferAddEvent.prototype.isBufferStackChange = function() {
  * @param {boolean} undone Whether this event is undone.
  * @return {BufferAddEvent} The parsed event or null.
  */
-BufferAddEvent.parse = function(arr, i, sid, sessionEventId, undone) {
+BufferAddEvent.parse = function(arr, i, version, sid, sessionEventId, undone) {
     var bufferId = parseInt(arr[i++]);
     var hasAlpha = arr[i++] === '1';
     var clearColor = [];
@@ -957,6 +968,7 @@ BufferRemoveEvent.prototype.isBufferStackChange = function() {
  * @param {Array.<string>} arr Array containing the tokens, split at spaces from
  * the original serialization.
  * @param {number} i Index of the first token to deserialize.
+ * @param {number} version Version number of the serialization format.
  * @param {number} sid Session identifier. Must be an integer.
  * @param {number} sessionEventId An event/session specific identifier. The idea
  * is that the sid/sessionEventId pair is unique for this event. Must be an
@@ -964,7 +976,8 @@ BufferRemoveEvent.prototype.isBufferStackChange = function() {
  * @param {boolean} undone Whether this event is undone.
  * @return {BufferRemoveEvent} The parsed event or null.
  */
-BufferRemoveEvent.parse = function(arr, i, sid, sessionEventId, undone) {
+BufferRemoveEvent.parse = function(arr, i, version, sid, sessionEventId,
+                                   undone) {
     var bufferId = parseInt(arr[i++]);
     var pictureEvent = new BufferRemoveEvent(sid, sessionEventId, undone,
                                              bufferId);
@@ -1037,6 +1050,7 @@ BufferMoveEvent.prototype.isBufferStackChange = function() {
  * @param {Array.<string>} arr Array containing the tokens, split at spaces from
  * the original serialization.
  * @param {number} i Index of the first token to deserialize.
+ * @param {number} version Version number of the serialization format.
  * @param {number} sid Session identifier. Must be an integer.
  * @param {number} sessionEventId An event/session specific identifier. The idea
  * is that the sid/sessionEventId pair is unique for this event. Must be an
@@ -1044,7 +1058,7 @@ BufferMoveEvent.prototype.isBufferStackChange = function() {
  * @param {boolean} undone Whether this event is undone.
  * @return {BufferMoveEvent} The parsed event or null.
  */
-BufferMoveEvent.parse = function(arr, i, sid, sessionEventId, undone) {
+BufferMoveEvent.parse = function(arr, i, version, sid, sessionEventId, undone) {
     var movedId = parseInt(arr[i++]);
     var fromIndex = parseInt(arr[i++]);
     var toIndex = parseInt(arr[i++]);
@@ -1123,6 +1137,7 @@ BufferMergeEvent.prototype.isBufferStackChange = function() {
  * @param {Array.<string>} arr Array containing the tokens, split at spaces from
  * the original serialization.
  * @param {number} i Index of the first token to deserialize.
+ * @param {number} version Version number of the serialization format.
  * @param {number} sid Session identifier. Must be an integer.
  * @param {number} sessionEventId An event/session specific identifier. The idea
  * is that the sid/sessionEventId pair is unique for this event. Must be an
@@ -1130,7 +1145,8 @@ BufferMergeEvent.prototype.isBufferStackChange = function() {
  * @param {boolean} undone Whether this event is undone.
  * @return {BufferMergeEvent} The parsed event or null.
  */
-BufferMergeEvent.parse = function(arr, i, sid, sessionEventId, undone) {
+BufferMergeEvent.parse = function(arr, i, version, sid, sessionEventId,
+                                  undone) {
     var opacity = parseFloat(arr[i++]);
     var mergedBufferId = parseInt(arr[i++]);
     var pictureEvent = new BufferMergeEvent(sid, sessionEventId, undone,

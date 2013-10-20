@@ -13,7 +13,8 @@ describe('PictureEvent', function() {
             var event = creator();
             var serialization = event.serialize(1.0);
             var splitSerialization = serialization.split(' ');
-            var parsedEvent = PictureEvent.parse(splitSerialization, 0);
+            var parsedEvent = PictureEvent.parse(splitSerialization, 0,
+                                                 Picture.formatVersion);
             tester(parsedEvent);
         });
 
