@@ -65,13 +65,27 @@ var doPictureTest = function(mode) {
         expect(pic.findBuffer(123)).toBe(pic.buffers[1]);
     });
 
+    it('finds the buffer containing a specific event', function() {
+        var pic = testPicture();
+        var clearColor = [12, 23, 34];
+        pic.addBuffer(1337, clearColor, false);
+        pic.addBuffer(123, clearColor, false);
+        pic.addBuffer(9001, clearColor, false);
+        var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 1, 0,
+                                              PictureEvent.Mode.normal);
+        brushEvent.pushCoordTriplet(0, 0, 1.0);
+        brushEvent.pushCoordTriplet(width, height, 1.0);
+        pic.pushEvent(123, brushEvent);
+        expect(pic.findBufferContainingEvent(brushEvent)).toBe(123);
+    });
+
     it('counts the events it contains', function() {
         var pic = testPicture();
         var clearColor = [12, 23, 34];
         pic.addBuffer(1337, clearColor, false);
         expect(pic.getEventCount()).toBe(1);
         var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 1, 0,
-                                          PictureEvent.Mode.normal);
+                                              PictureEvent.Mode.normal);
         brushEvent.pushCoordTriplet(0, 0, 1.0);
         brushEvent.pushCoordTriplet(width, height, 1.0);
         pic.pushEvent(1337, brushEvent);
