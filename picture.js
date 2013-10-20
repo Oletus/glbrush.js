@@ -1391,7 +1391,8 @@ Picture.prototype.animate = function(simultaneousStrokes, speed,
     function getNextEventIndexToAnimate() {
         ++j;
         while (j < that.totalEvents && (that.eventToAnimate(j).event.undone ||
-               !that.eventToAnimate(j).event.isRasterized())) {
+               !that.eventToAnimate(j).event.isRasterized() ||
+               that.eventToAnimate(j).event.hideCount > 0)) {
             ++j;
         }
         var bufferIndex = 0;
