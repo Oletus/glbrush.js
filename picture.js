@@ -178,7 +178,7 @@ Picture.prototype.findBuffer = function(id) {
 
 /**
  * Find the buffer that contains the given event.
- * @param {PictureEvent} The event to look for.
+ * @param {PictureEvent} event The event to look for.
  * @return {number} The buffer's id or -1 if not found.
  */
 Picture.prototype.findBufferContainingEvent = function(event) {
