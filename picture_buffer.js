@@ -206,7 +206,10 @@ PictureBuffer.prototype.mergedBufferChanged = function(changedBuffer,
 
 /**
  * Insert an event at the current insertion point and increment the insertion
- * point.
+ * point. Note that performance is good only if the insertion point is
+ * relatively close to the top of the buffer, and that the event should maintain
+ * the rule that events with higher sessionEventIds from the same session are
+ * closer to the top of the buffer than events with lower sessionEventIds.
  * @param {PictureEvent} event Event to insert.
  * @param {BaseRasterizer} rasterizer The rasterizer to use.
  */

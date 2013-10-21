@@ -938,7 +938,11 @@ Picture.prototype.pushEvent = function(targetBufferId, event) {
 
 /**
  * Add an event to the insertion point of one of this picture's buffers and
- * increment the insertion point.
+ * increment the insertion point. Note that performance is good only if the
+ * insertion point is relatively close to the top of the buffer, and that the
+ * event should maintain the rule that events with higher sessionEventIds from
+ * the same session are closer to the top of the buffer than events with lower
+ * sessionEventIds.
  * @param {number} targetBufferId The id of the buffer to insert the event to.
  * @param {PictureEvent} event Event to insert. Can not be a BufferAddEvent or
  * a BufferMoveEvent. TODO: Fix this for BufferMoveEvent.
