@@ -1,0 +1,161 @@
+<html>
+<head>
+<!-- Copyright Olli Etuaho 2013 -->
+<title>glbrush.js blending modes example application</title>
+<script type="text/javascript" src="lib/hsl.js"></script>
+<script type="text/javascript" src="util2d.js"></script>
+<script type="text/javascript" src="utilgl.js"></script>
+<script type="text/javascript" src="blit_shader.js"></script>
+<script type="text/javascript" src="rasterize_shader.js"></script>
+<script type="text/javascript" src="gradient_shader.js"></script>
+<script type="text/javascript" src="compositing_shader.js"></script>
+<script type="text/javascript" src="compositor.js"></script>
+<script type="text/javascript" src="picture_event.js"></script>
+<script type="text/javascript" src="rasterize.js"></script>
+<script type="text/javascript" src="picture_buffer.js"></script>
+<script type="text/javascript" src="undo_state.js"></script>
+<script type="text/javascript" src="picture.js"></script>
+<script type="text/javascript">
+/**
+ * Utility function to get event coordinates relative to an element.
+ */
+function getRelativeCoords(event, element) {
+    var rect = element.getBoundingClientRect();
+    // + 0.5 to move to pixel center
+    if (event.touches !== undefined && event.touches.length > 0) {
+        return new Vec2(event.touches[0].clientX - rect.left + 0.5,
+                        event.touches[0].clientY - rect.top + 0.5);
+    }
+    return new Vec2(event.clientX - rect.left + 0.5,
+                    event.clientY - rect.top + 0.5);
+}
+
+drawingBlendMode = PictureEvent.Mode.normal;
+
+loadApp = function() {
+    // Create a container element for the picture
+    var drawArea = document.createElement('div');
+    var width = 800;
+    var height = 600;
+    drawArea.style.width = width + 'px';
+    drawArea.style.height = height + 'px';
+    document.body.appendChild(drawArea);
+
+    // Initialize a Picture with one opaque layer and add it to the drawArea
+    var picture = Picture.create(0, width, height, 1.0,
+                                 ['webgl', 'no-float-webgl', 'canvas']);
+    picture.addBuffer(0, [255, 255, 255, 255], false);
+    picture.setCurrentEventAttachment(0);
+    drawArea.appendChild(picture.pictureElement());
+    picture.display();
+
+    // Add mouse event listeners to the container element that create brush
+    // events on the draw area
+    var currentEvent = null;
+    var pressureInd = 0;
+    drawArea.onmousedown = function(e) {
+        var coords = getRelativeCoords(e, drawArea);
+        var oldPixel = picture.getPixelRGBA(coords);
+        // some funky color changes
+        var red = 255 - oldPixel[0];
+        var green = 33;
+        var blue = 42;
+        currentEvent = picture.createBrushEvent([red, green, blue], 0.8, 1.0,
+                                                20, 1,
+                                                drawingBlendMode);
+    };
+    drawArea.onmouseup = function(e) {
+        if (currentEvent !== null) {
+            picture.setCurrentEvent(null);
+            picture.pushEvent(0, currentEvent);
+            picture.display();
+            currentEvent = null;
+        }
+    };
+    drawArea.onmouseout = drawArea.onmouseup;
+    drawArea.onmousemove = function(e) {
+        if (currentEvent !== null) {
+            ++pressureInd;
+            var pressure = (Math.sin(pressureInd * 0.4) + 2.0) * 0.33;
+            var coords = getRelativeCoords(e, drawArea);
+            currentEvent.pushCoordTriplet(coords.x, coords.y, pressure);
+            picture.setCurrentEvent(currentEvent);
+            picture.display();
+        }
+    };
+    
+    var createButton = function(value, onclick) {
+        var btn = document.createElement('input');
+        btn.type = 'button';
+        btn.value = value;
+        document.body.appendChild(btn);
+        btn.onclick = onclick;
+    };
+    
+    var createSelection = function(values, selection, onchange) {
+        var sel = document.createElement('select');
+        for (var i=0; i < values.length; i++) {
+            var option = document.createElement('option');
+            option.text = values[i][0];
+            option.value = values[i][1];
+            sel.appendChild(option);            
+        }
+        //sel.onchange = onchange;
+        sel.selectedIndex = selection;
+        sel.onchange = function(){onchange(this);};
+        document.body.appendChild(sel);
+    };
+
+    // Add undo to the mix just for kicks
+    createButton('Undo', function() {
+        picture.undoLatest();
+        picture.display();
+    });
+
+    // And animation!
+    createButton('Animate', function() {
+        picture.animate(4, 0.1);
+    });
+
+    // Whee, resize
+    var resize = function(scale) {
+        drawArea.innerHTML = '';
+        picture = Picture.resize(picture, scale);
+        drawArea.appendChild(picture.pictureElement());
+        drawArea.style.width = picture.bitmapWidth();
+        drawArea.style.height = picture.bitmapHeight();
+        picture.display();
+    };
+    createButton('0.5x', function() {
+        resize(0.5);
+    });
+    createButton('1.0x', function() {
+        resize(1.0);
+    });
+    if (picture.maxBitmapScale() > 1.5) {
+        createButton('1.5x', function() {
+            resize(1.5);
+        });
+    }
+    
+    var blendModes = new Array();
+    for (var key in PictureEvent.Mode) {
+      if (PictureEvent.Mode.hasOwnProperty(key)) {        
+        blendModes.push([key, PictureEvent.Mode[key]]);
+      }
+    }    
+    createSelection(blendModes, drawingBlendMode, function(sel) {
+        var selectedOption = sel.options[sel.selectedIndex];
+        drawingBlendMode = parseInt(selectedOption.value);
+    });
+
+    // And there's a lot more public API in Picture to use...
+}
+</script>
+</head>
+<body onload="loadApp()" style="background:#888;">
+    
+    
+
+</body>
+</html>
