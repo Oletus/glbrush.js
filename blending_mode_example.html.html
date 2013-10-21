@@ -57,9 +57,9 @@ loadApp = function() {
         var coords = getRelativeCoords(e, drawArea);
         var oldPixel = picture.getPixelRGBA(coords);
         // some funky color changes
-        var red = 255 - oldPixel[0];
-        var green = 33;
-        var blue = 42;
+        var red = Math.random() * 255; //255 - oldPixel[0];
+        var green = Math.random() * 255; //33;
+        var blue = Math.random() * 255; //42;
         currentEvent = picture.createBrushEvent([red, green, blue], 0.8, 1.0,
                                                 20, 1,
                                                 drawingBlendMode);
