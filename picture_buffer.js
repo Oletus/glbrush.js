@@ -206,7 +206,10 @@ PictureBuffer.prototype.mergedBufferChanged = function(changedBuffer,
 
 /**
  * Insert an event at the current insertion point and increment the insertion
- * point.
+ * point. Note that performance is good only if the insertion point is
+ * relatively close to the top of the buffer, and that the event should maintain
+ * the rule that events with higher sessionEventIds from the same session are
+ * closer to the top of the buffer than events with lower sessionEventIds.
  * @param {PictureEvent} event Event to insert.
  * @param {BaseRasterizer} rasterizer The rasterizer to use.
  */
@@ -538,22 +541,26 @@ PictureBuffer.prototype.previousUndoState = function(eventIndex) {
  * Change undo state data for states following a given index.
  * @param {number} eventIndex The event index where the events array changed.
  * @param {boolean} invalidate Whether to invalidate following states.
- * @param {number} costChange How much to change the cost of
- * undo states that contain the event at eventIndex.
- * @param {number} indexMove How much to increment the index of undo
- * states that contain the event at eventIndex.
+ * @param {number} costChange How much to change the cost of the undo state that
+ * would have to apply the event at eventIndex if it were regenerated.
+ * @param {number} indexMove How much to increment the index of undo states that
+ * contain the event at eventIndex.
  * @protected
  */
 PictureBuffer.prototype.changeUndoStatesFrom = function(eventIndex, invalidate,
                                                         costChange, indexMove) {
     if (this.undoStates !== null) {
-        var i = this.undoStates.length - 1;
-        while (i >= 0) {
+        var i = 0;
+        var changeCost = true;
+        while (i < this.undoStates.length) {
             if (this.undoStates[i].index > eventIndex) {
                 if (invalidate) {
                     this.undoStates[i].invalid = true;
                 }
-                this.undoStates[i].cost += costChange;
+                if (changeCost) {
+                    this.undoStates[i].cost += costChange;
+                    changeCost = false; // only one undo state carries the cost
+                }
                 this.undoStates[i].index += indexMove;
                 if (i > 0 &&
                     this.undoStates[i].index === this.undoStates[i - 1].index) {
@@ -561,7 +568,7 @@ PictureBuffer.prototype.changeUndoStatesFrom = function(eventIndex, invalidate,
                     this.spliceUndoState(i);
                 }
             }
-            --i;
+            ++i;
         }
     }
 };
@@ -635,8 +642,9 @@ PictureBuffer.prototype.undoEventIndex = function(eventIndex, rasterizer,
  * @param {number} eventIndex Index of the first event to play back at minimum.
  * @param {BaseRasterizer} rasterizer The rasterizer to use to update the
  * bitmap.
- * @param {number} followingStateCostChange How much to change the cost of
- * undo states that contain the event at eventIndex.
+ * @param {number} followingStateCostChange How much to change the cost of the
+ * undo state that would have to apply the event at eventIndex if it were
+ * regenerated.
  * @param {number} followingStateMove How much to increment the index of undo
  * states that contain the event at eventIndex.
  * @protected
@@ -942,6 +950,8 @@ CanvasBuffer.drawRasterizer = function(dataCtx, targetCtx, raster, clipRect,
         raster.multiply(targetData, color, opacity, br.x, br.y, br.w, br.h);
     } else if (mode === PictureEvent.Mode.screen) {
         raster.screen(targetData, color, opacity, br.x, br.y, br.w, br.h);
+    } else if (mode === PictureEvent.Mode.overlay) {
+        raster.overlay(targetData, color, opacity, br.x, br.y, br.w, br.h);
     }
     targetCtx.putImageData(targetData, br.x, br.y);
 };

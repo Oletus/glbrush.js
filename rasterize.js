@@ -398,6 +398,57 @@ Rasterizer.prototype.screen = function(targetData, color, opacity, x, y, w, h) {
 };
 
 /**
+ * Linear interpolation of a and b by weight f
+ * @param {number} a Value a, if f == 0.0, a is returned
+ * @param {number} b Value b, if f == 1.0, b is returned
+ * @param {number} f Interpolation weight
+ */
+var mix = function(a, b, f) {
+    //console.log(a + ' ' + b + ' ' + f);
+    return a + f * (b - a);
+};
+
+/**
+ * Draw the rasterizer's contents to the given bitmap with overlay blending.
+ * @param {ImageData} targetData The buffer to draw to.
+ * @param {Uint8Array|Array.<number>} color Color to use for drawing. Channel
+ * values should be 0-255.
+ * @param {number} opacity Opacity to use when drawing the rasterization result.
+ * Opacity for each individual pixel is its rasterized opacity times this
+ * opacity value.
+ * @param {number} x Left edge of the area to copy to targetData. Must be an
+ * integer.
+ * @param {number} y Top edge of the area to copy to targetData. Must be an
+ * integer.
+ * @param {number} w Width of the targetData buffer and the area to copy there.
+ * Must be an integer.
+ * @param {number} h Height of the targetData buffer and the area to copy there.
+ * Must be an integer.
+ */
+Rasterizer.prototype.overlay = function(targetData, color, opacity, x, y, w, h) {
+    var tData = targetData.data;
+    for (var yi = 0; yi < h; ++yi) {
+        var ind = yi * w * 4;
+        var sind = x + (y + yi) * this.width;
+        for (var xi = 0; xi < w; ++xi) {
+            var alphaT = tData[ind + 3] / 255;
+            var alphaS = this.data[sind] * opacity;
+            var alpha = alphaS + alphaT * (1.0 - alphaS);
+            for (var c=0; c<3; c++) {
+                tData[ind+c] = mix(tData[ind+c],
+                        tData[ind+c] < 128 ?
+                            (2.0 / 255.0 * tData[ind+c] * color[c]) :
+                            (255 - 2.0 * (1.0 - color[c]/255) * (255 - tData[ind+c])),
+                        alphaS);
+            }
+            tData[ind + 3] = 255 * alpha;
+            ind += 4;
+            ++sind;
+        }
+    }
+};
+
+/**
  * Draw the rasterizer's contents to the given bitmap. The target bitmap must
  * be opaque i.e. contain only pixels with alpha 255.
  * @param {ImageData} targetData The buffer to draw to.
