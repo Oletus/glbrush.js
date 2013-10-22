@@ -402,6 +402,7 @@ Rasterizer.prototype.screen = function(targetData, color, opacity, x, y, w, h) {
  * @param {number} a Value a, if f == 0.0, a is returned
  * @param {number} b Value b, if f == 1.0, b is returned
  * @param {number} f Interpolation weight
+ * @return {number} Interpolated value between a and b
  */
 var mix = function(a, b, f) {
     return a + f * (b - a);

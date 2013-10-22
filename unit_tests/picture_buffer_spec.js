@@ -181,7 +181,7 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
     var mix = function(a, b, f) {
         return a + f * (b - a);
     };
-    
+
     it('blends an event to the bitmap with the overlay mode', function() {
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
