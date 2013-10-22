@@ -404,7 +404,6 @@ Rasterizer.prototype.screen = function(targetData, color, opacity, x, y, w, h) {
  * @param {number} f Interpolation weight
  */
 var mix = function(a, b, f) {
-    //console.log(a + ' ' + b + ' ' + f);
     return a + f * (b - a);
 };
 
@@ -434,11 +433,12 @@ Rasterizer.prototype.overlay = function(targetData, color, opacity, x, y, w, h) 
             var alphaT = tData[ind + 3] / 255;
             var alphaS = this.data[sind] * opacity;
             var alpha = alphaS + alphaT * (1.0 - alphaS);
-            for (var c=0; c<3; c++) {
-                tData[ind+c] = mix(tData[ind+c],
-                        tData[ind+c] < 128 ?
-                            (2.0 / 255.0 * tData[ind+c] * color[c]) :
-                            (255 - 2.0 * (1.0 - color[c]/255) * (255 - tData[ind+c])),
+            for (var c = 0; c < 3; c++) {
+                tData[ind + c] = mix(tData[ind + c],
+                        tData[ind + c] < 128.0 ?
+                        (2.0 / 255.0 * tData[ind + c] * color[c]) :
+                        (255.0 - 2.0 * (1.0 - color[c] / 255.0) *
+                                (255.0 - tData[ind + c])),
                         alphaS);
             }
             tData[ind + 3] = 255 * alpha;
