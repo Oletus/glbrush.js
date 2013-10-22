@@ -511,23 +511,31 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
     it('updates undo state cost when doing operations', function() {
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
-        fillBuffer(buffer, rasterizer, buffer.undoStateInterval + 3);
+        buffer.undoStateInterval = 8; // Reduce interval to make test faster
+        fillBuffer(buffer, rasterizer, buffer.undoStateInterval * 2 + 3);
         var undoState = buffer.undoStates[0];
         var undoStateStartCost = undoState.cost;
+        var undoState2 = buffer.undoStates[1];
+        var undoState2StartCost = undoState2.cost;
 
         // Non-corner cases
         buffer.undoEventIndex(4, rasterizer);
         expect(undoState.cost).toBe(undoStateStartCost - 1);
+        expect(undoState2.cost).toBe(undoState2StartCost);
         buffer.removeEventIndex(5, rasterizer);
         expect(undoState.cost).toBe(undoStateStartCost - 2);
+        expect(undoState2.cost).toBe(undoState2StartCost);
         buffer.redoEventIndex(4, rasterizer);
         expect(undoState.cost).toBe(undoStateStartCost - 1);
+        expect(undoState2.cost).toBe(undoState2StartCost);
 
         // Corner cases: events near the state border
         buffer.undoEventIndex(undoState.index - 1, rasterizer);
         expect(undoState.cost).toBe(undoStateStartCost - 2);
+        expect(undoState2.cost).toBe(undoState2StartCost);
         buffer.undoEventIndex(undoState.index, rasterizer);
         expect(undoState.cost).toBe(undoStateStartCost - 2);
+        expect(undoState2.cost).toBe(undoState2StartCost - 1);
 
         // Remove an already undone event, should have no effect on cost
         buffer.removeEventIndex(undoState.index - 1, rasterizer);
