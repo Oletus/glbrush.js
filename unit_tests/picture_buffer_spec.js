@@ -178,6 +178,34 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         buffer.free();
     });
 
+    it('blends an event to the bitmap with the overlay mode', function() {
+        var buffer = createBuffer(params);
+        var rasterizer = createRasterizer(params);
+        var opacity = 0.5;
+        var brushEvent = fillingBrushEvent(params.width, params.height,
+                                           [0.2 * 255, 0.4 * 255, 0.8 * 255],
+                                           opacity, PictureEvent.Mode.overlay);
+        buffer.pushEvent(brushEvent, rasterizer);
+        var samplePixel = buffer.getPixelRGBA(new Vec2(0, 0));
+        var cc = params.clearColor;
+        var fcc = [cc[0] / 255.0, cc[1] / 255.0, cc[2] / 255.0];
+        var bcc = [0.2, 0.4, 0.8];
+        for (var chan = 0; chan < 3; chan++) {
+            expect(samplePixel[chan]).toBeNear(255. * mathUtil.mix(fcc[chan],
+                    fcc[chan] < .5 ?
+                    (2.0 * fcc[chan] * bcc[chan]) :
+                    (1. - 2.0 * (1.0 - bcc[chan]) * (1.0 - fcc[chan])),
+                    opacity),
+                            2.0);
+        }
+        var targetAlpha = params.clearColor[3] / 255;
+        var alpha = (targetAlpha + opacity - targetAlpha * opacity) * 255;
+        expect(samplePixel[3]).toBeNear(alpha, 10);
+
+        rasterizer.free();
+        buffer.free();
+    });
+
     it('erases from an opaque buffer', function() {
         var hadAlpha = params.hasAlpha;
         var oldClearAlpha = params.clearColor[3];

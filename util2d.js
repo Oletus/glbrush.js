@@ -202,6 +202,21 @@ colorUtil.differentColor = function(color) {
     return hslToRgb(hsl[0], hsl[1], hsl[2]);
 };
 
+mathUtil = {
+    mix: null
+};
+
+/**
+ * Linear interpolation of a and b by weight f
+ * @param {number} a Value a, if f == 0.0, a is returned
+ * @param {number} b Value b, if f == 1.0, b is returned
+ * @param {number} f Interpolation weight
+ * @return {number} Interpolated value between a and b
+ */
+mathUtil.mix = function(a, b, f) {
+    return a + f * (b - a);
+};
+
 /**
  * @constructor
  * @param {number} x Horizontal component of the vector.

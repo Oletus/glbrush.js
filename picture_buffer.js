@@ -950,6 +950,8 @@ CanvasBuffer.drawRasterizer = function(dataCtx, targetCtx, raster, clipRect,
         raster.multiply(targetData, color, opacity, br.x, br.y, br.w, br.h);
     } else if (mode === PictureEvent.Mode.screen) {
         raster.screen(targetData, color, opacity, br.x, br.y, br.w, br.h);
+    } else if (mode === PictureEvent.Mode.overlay) {
+        raster.overlay(targetData, color, opacity, br.x, br.y, br.w, br.h);
     }
     targetCtx.putImageData(targetData, br.x, br.y);
 };

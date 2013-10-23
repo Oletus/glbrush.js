@@ -133,7 +133,8 @@ PictureEvent.Mode = {
     erase: 0,
     normal: 1,
     multiply: 2,
-    screen: 3
+    screen: 3,
+    overlay: 4
 };
 
 /**

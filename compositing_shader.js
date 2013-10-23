@@ -49,6 +49,22 @@ compositingShader.getFragmentSource = function(layers) {
         src.push('  ' + bufferColor + ' = vec4((' + eq +
             ') * blendedAlpha' + i + ', blendedAlpha' + i + ');');
     };
+    // Some blending operations require per component logic.
+    var blendEqPerComponent = function(eq) {
+        src.push('  float blendedAlpha' + i + ' = layer' + i + 'Color.w + ' +
+                bufferColor + '.w * (1.0 - layer' + i + 'Color.w);');
+        src.push('  ' + bufferColor + ' = vec4(vec3(');
+        // Unpremultiplied colors, once for each channel
+        var eqc;
+        for (var channel = 0; channel < 3; channel++) {
+            eqc = eq.replace(/srcColor/g, 'uColor' + i + '[' + channel + ']');
+            eqc = eqc.replace(/dstColor/g, '(' + bufferColor + '[' + channel +
+                    '] / ' + bufferColor + '.w)');
+            eqc = eqc.replace(/srcAlpha/g, 'layer' + i + 'Color.w');
+            src.push('   ' + eqc + (channel !== 2 ? ',' : ''));
+        }
+        src.push(') * blendedAlpha' + i + ', blendedAlpha' + i + ');');
+    };
     i = 0;
     while (i < layers.length) {
         // TODO: assert(layers[i].type === CanvasCompositor.Element.buffer);
@@ -89,6 +105,12 @@ compositingShader.getFragmentSource = function(layers) {
                     blendEq('srcAlpha * ' +
                             '(1.0 - (1.0 - srcColor) * (1.0 - dstColor)) + ' +
                             '(1.0 - srcAlpha) * dstColor');
+                } else if (layers[i].mode === PictureEvent.Mode.overlay) {
+                    blendEqPerComponent(
+                            'mix(dstColor, (srcColor < 0.5 ?' +
+                            '(2.0 * dstColor * srcColor) :' +
+                            '(1.0 - 2.0 * (1.0 - srcColor) * ' +
+                            '(1.0 - dstColor))),  srcAlpha)');
                 } else {
                     console.log('Unexpected mode in shader generation ' +
                                 layers[i].mode);
