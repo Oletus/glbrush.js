@@ -178,10 +178,6 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         buffer.free();
     });
 
-    var mix = function(a, b, f) {
-        return a + f * (b - a);
-    };
-
     it('blends an event to the bitmap with the overlay mode', function() {
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
@@ -195,7 +191,7 @@ var testBuffer = function(createBuffer, createRasterizer, params) {
         var fcc = [cc[0] / 255.0, cc[1] / 255.0, cc[2] / 255.0];
         var bcc = [0.2, 0.4, 0.8];
         for (var chan = 0; chan < 3; chan++) {
-            expect(samplePixel[chan]).toBeNear(255. * mix(fcc[chan],
+            expect(samplePixel[chan]).toBeNear(255. * mathUtil.mix(fcc[chan],
                     fcc[chan] < .5 ?
                     (2.0 * fcc[chan] * bcc[chan]) :
                     (1. - 2.0 * (1.0 - bcc[chan]) * (1.0 - fcc[chan])),

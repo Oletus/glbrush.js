@@ -398,17 +398,6 @@ Rasterizer.prototype.screen = function(targetData, color, opacity, x, y, w, h) {
 };
 
 /**
- * Linear interpolation of a and b by weight f
- * @param {number} a Value a, if f == 0.0, a is returned
- * @param {number} b Value b, if f == 1.0, b is returned
- * @param {number} f Interpolation weight
- * @return {number} Interpolated value between a and b
- */
-var mix = function(a, b, f) {
-    return a + f * (b - a);
-};
-
-/**
  * Draw the rasterizer's contents to the given bitmap with overlay blending.
  * @param {ImageData} targetData The buffer to draw to.
  * @param {Uint8Array|Array.<number>} color Color to use for drawing. Channel
@@ -435,7 +424,7 @@ Rasterizer.prototype.overlay = function(targetData, color, opacity, x, y, w, h) 
             var alphaS = this.data[sind] * opacity;
             var alpha = alphaS + alphaT * (1.0 - alphaS);
             for (var c = 0; c < 3; c++) {
-                tData[ind + c] = mix(tData[ind + c],
+                tData[ind + c] = mathUtil.mix(tData[ind + c],
                         tData[ind + c] < 128.0 ?
                         (2.0 / 255.0 * tData[ind + c] * color[c]) :
                         (255.0 - 2.0 * (1.0 - color[c] / 255.0) *
