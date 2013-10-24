@@ -203,7 +203,8 @@ colorUtil.differentColor = function(color) {
 };
 
 mathUtil = {
-    mix: null
+    mix: null,
+    ease: null
 };
 
 /**
@@ -215,6 +216,17 @@ mathUtil = {
  */
 mathUtil.mix = function(a, b, f) {
     return a + f * (b - a);
+};
+
+/**
+ * Smooth interpolation of a and b by transition value f. Starts off quickly but eases towards the end.
+ * @param {number} a Value a, if f == 0.0, a is returned
+ * @param {number} b Value b, if f == 1.0, b is returned
+ * @param {number} f Interpolation transition value
+ * @return {number} Interpolated value between a and b
+ */
+mathUtil.ease = function(a, b, f) {
+    return a + Math.sin(f * Math.PI * 0.5) * (b - a);
 };
 
 /**
@@ -646,4 +658,16 @@ canvasUtil.dualStroke = function(ctx) {
     ctx.lineWidth = 1.5;
     ctx.strokeStyle = '#000';
     ctx.stroke();
+};
+
+/**
+ * Draw a light stroke using the current path.
+ * @param {CanvasRenderingContext2D} ctx The canvas rendering context.
+ */
+canvasUtil.lightStroke = function(ctx) {
+    ctx.globalAlpha = 0.3;
+    ctx.lineWidth = 1.0;
+    ctx.strokeStyle = '#000';
+    ctx.stroke();
+    ctx.globalAlpha = 1.0;
 };

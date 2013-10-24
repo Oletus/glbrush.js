@@ -11,6 +11,23 @@ beforeEach(function() {
 });
 
 describe('util2d', function() {
+    describe('mathUtil', function() {
+        it('interpolates linearly', function() {
+            expect(mathUtil.mix(1, 4, 0.0)).toBeNear(1, 0.0001);
+            expect(mathUtil.mix(1, 4, 0.5)).toBeNear(2.5, 0.0001);
+            expect(mathUtil.mix(1, 4, 1.0)).toBeNear(4, 0.0001);
+        });
+
+        it('interpolates smoothly', function() {
+            expect(mathUtil.ease(1, 4, 0.0)).toBeNear(1, 0.0001);
+            expect(mathUtil.ease(1, 4, 0.25)).toBeGreaterThan(2);
+            expect(mathUtil.ease(1, 4, 0.25)).toBeLessThan(3);
+            expect(mathUtil.ease(1, 4, 0.5)).toBeGreaterThan(3);
+            expect(mathUtil.ease(1, 4, 0.5)).toBeLessThan(3.5);
+            expect(mathUtil.ease(1, 4, 0.75)).toBeGreaterThan(3.5);
+            expect(mathUtil.ease(1, 4, 1.0)).toBeNear(4, 0.0001);
+        });
+    });
 
     describe('cssUtil', function() {
         it('converts arrays of values to CSS RGB colors', function() {
