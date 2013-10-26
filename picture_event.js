@@ -101,7 +101,7 @@ PictureEvent.copy = function(event) {
 
 /**
  * Determine whether this event's bounding box intersects with the given
- * rectangle. Returns undefined if this event's bounding box is not up to date.
+ * rectangle.
  * @param {Rect} rect The rectangle to intersect with.
  * @return {boolean} Does the event's axis-aligned bounding box intersect the
  * given rectangle?
