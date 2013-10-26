@@ -733,6 +733,19 @@ GradientEvent.prototype.scale = function(scale) {
 };
 
 /**
+ * Translate this event. This will change the coordinates of the gradient. Note
+ * that the event is not cleared from any rasterizers, clear any rasterizers
+ * that have this event manually before calling this function.
+ * @param {Vec2} offset The vector to translate with.
+ */
+GradientEvent.prototype.translate = function(offset) {
+    this.coords0.x += offset.x;
+    this.coords0.y += offset.y;
+    this.coords1.x += offset.x;
+    this.coords1.y += offset.y;
+};
+
+/**
  * @param {Rect} clipRect Canvas bounds that can be used to intersect the
  * bounding box against, though this is not mandatory.
  * @return {Rect} The event's bounding box. This function is not allowed to
