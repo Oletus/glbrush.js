@@ -29,6 +29,7 @@ BaseRasterizer.prototype.initBaseRasterizer = function(width, height) {
     this.t = 0;
     this.drawEvent = null;
     this.drawEventState = null;
+    this.drawEventGeneration = -1;
     this.drawEventClipRect = new Rect(0, this.width, 0, this.height);
     this.dirtyArea = new Rect();
 };
@@ -77,11 +78,12 @@ BaseRasterizer.prototype.clearDirty = function() {
  * @return {Object} Draw event state for the given event.
  */
 BaseRasterizer.prototype.getDrawEventState = function(event, stateConstructor) {
-    if (event !== this.drawEvent ||
+    if (event !== this.drawEvent || event.generation !== this.drawEventGeneration ||
         !this.drawEventClipRect.containsRect(this.clipRect)) {
         this.clearDirty();
         this.drawEvent = event;
         this.drawEventState = new stateConstructor();
+        this.drawEventGeneration = event.generation;
     }
     this.drawEventClipRect.setRect(this.clipRect);
     return this.drawEventState;

@@ -27,10 +27,7 @@ var BrushEventState = function(coordsInd, direction) {
  * already drawn in a rasterizer.
  * @constructor
  */
-var GradientEventState = function() {
-    this.coords0 = new Vec2(0, 0);
-    this.coords1 = new Vec2(0, 0);
-};
+var GradientEventState = function() {};
 
 /**
  * An event that changes a picture buffer's state.
@@ -158,6 +155,7 @@ var brushEventConstructor = function() {
         this.soft = softness > 0.5;
         this.mode = mode;
         this.hideCount = 0;
+        this.generation = 0;
     };
 };
 
@@ -289,9 +287,7 @@ BrushEvent.prototype.pushCoordTriplet = function(x, y, pressure) {
 };
 
 /**
- * Scale this event. This will change the coordinates of the stroke. Note that
- * the event is not cleared from any rasterizers, clear any rasterizers that
- * have this event manually before calling this function.
+ * Scale this event. This will change the coordinates of the stroke.
  * @param {number} scale Scaling factor. Must be larger than 0.
  */
 BrushEvent.prototype.scale = function(scale) {
@@ -303,12 +299,11 @@ BrushEvent.prototype.scale = function(scale) {
         }
     }
     this.boundingBoxRasterizer.boundingBox = null;
+    ++this.generation; // This invalidates any real rasterizers which have this event cached.
 };
 
 /**
- * Translate this event. This will change the coordinates of the stroke. Note
- * that the event is not cleared from any rasterizers, clear any rasterizers
- * that have this event manually before calling this function.
+ * Translate this event. This will change the coordinates of the stroke.
  * @param {Vec2} offset The vector to translate with.
  */
 BrushEvent.prototype.translate = function(offset) {
@@ -320,6 +315,7 @@ BrushEvent.prototype.translate = function(offset) {
         }
     }
     this.boundingBoxRasterizer.translate(offset);
+    ++this.generation; // This invalidates any real rasterizers which have this event cached.
 };
 
 /**
@@ -668,6 +664,7 @@ var GradientEvent = function(sid, sessionEventId, undone, color, opacity,
     this.coords1 = new Vec2(1, 1);
     this.mode = mode;
     this.hideCount = 0;
+    this.generation = 0;
 };
 
 GradientEvent.prototype = new PictureEvent('gradient');
@@ -719,9 +716,7 @@ GradientEvent.prototype.serialize = function(scale) {
 };
 
 /**
- * Scale this event. This will change the coordinates of the gradient. Note that
- * the event is not cleared from any rasterizers, clear any rasterizers that
- * have this event manually before calling this function.
+ * Scale this event. This will change the coordinates of the gradient.
  * @param {number} scale Scaling factor. Must be larger than 0.
  */
 GradientEvent.prototype.scale = function(scale) {
@@ -730,12 +725,11 @@ GradientEvent.prototype.scale = function(scale) {
     this.coords0.y *= scale;
     this.coords1.x *= scale;
     this.coords1.y *= scale;
+    ++this.generation; // This invalidates any rasterizers which have this event cached.
 };
 
 /**
- * Translate this event. This will change the coordinates of the gradient. Note
- * that the event is not cleared from any rasterizers, clear any rasterizers
- * that have this event manually before calling this function.
+ * Translate this event. This will change the coordinates of the gradient.
  * @param {Vec2} offset The vector to translate with.
  */
 GradientEvent.prototype.translate = function(offset) {
@@ -743,6 +737,7 @@ GradientEvent.prototype.translate = function(offset) {
     this.coords0.y += offset.y;
     this.coords1.x += offset.x;
     this.coords1.y += offset.y;
+    ++this.generation; // This invalidates any rasterizers which have this event cached.
 };
 
 /**
@@ -814,18 +809,6 @@ GradientEvent.prototype.getBoundingBox = function(clipRect) {
  */
 GradientEvent.prototype.drawTo = function(rasterizer) {
     var drawState = rasterizer.getDrawEventState(this, GradientEventState);
-    if (drawState.coords0.x === this.coords0.x &&
-        drawState.coords0.y === this.coords0.y &&
-        drawState.coords1.x === this.coords1.x &&
-        drawState.coords1.y === this.coords1.y) {
-        return;
-    }
-    rasterizer.clearDirty();
-    drawState = rasterizer.getDrawEventState(this, GradientEventState);
-    drawState.coords0.x = this.coords0.x;
-    drawState.coords0.y = this.coords0.y;
-    drawState.coords1.x = this.coords1.x;
-    drawState.coords1.y = this.coords1.y;
     rasterizer.linearGradient(this.coords1, this.coords0);
 };
 

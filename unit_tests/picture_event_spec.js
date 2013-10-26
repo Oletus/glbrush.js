@@ -24,6 +24,19 @@ describe('PictureEvent', function() {
             expect(eventCopy).not.toBe(event);
             tester(eventCopy);
         });
+
+        var event = creator();
+        if (event.isRasterized()) {
+            it('has a generation number', function() {
+                var event = creator();
+                expect(typeof event.generation).toBe(typeof 0);
+                expect(event.generation).toBe(0);
+                // The generation number is incremented whenever rasterizers
+                // containing the event are invalidated.
+                event.translate(new Vec2(5, 5));
+                expect(event.generation).toBe(1);
+            });
+        }
     };
 
     describe('BrushEvent', function() {
