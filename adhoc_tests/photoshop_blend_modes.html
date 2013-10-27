@@ -34,22 +34,35 @@ function testBlendFunction(name, blendFunction) {
         var ctx = canvas.getContext("2d");
         ctx.drawImage(this, 0, 0);
         var data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-        var error = 0.;
+        var errorTotal = 0.;
+        var errorMax = 0.;
         for (var x = 0; x < 27; x++)
             for (var y = 0; y < 27; y++) {
                 var result = blendFunction(inputs[x], inputs[y]);
-                error += Math.abs(data[(x + y*27) * 4] - result);
+                var error = Math.abs(data[(x + y*27) * 4] - result)
+                errorTotal += error;
+                errorMax = errorMax < error ? error : errorMax;
                 //console.log("func " + result + " vs. ps " + data[(x + y*27) * 4]);
             }
-        var averageError = error / (27 * 27) * (100 / 255)
+        var averageError = errorTotal / (27 * 27) * (100 / 255)
+        var maximumError = errorMax * (100 / 255);
         document.body.innerHTML += "<div>Testing function <b>" + name + "</b>, average error is <b>" + averageError +
-                " %<b></div>";
+                " %</b>, maximum error is <b>" + maximumError + " %</b></div>";
     }        
     img.src = "img/photoshop_cs5_" + name + ".png";
 }
 
 function runTest() {
-    testBlendFunction("multiply", function(a,b) { return a * (b / 255); });
+    //testBlendFunction("multiply", function(a,b) { return a * (b / 255); });
+    testBlendFunction("multiply", colorUtil.blendMultiply);
+    testBlendFunction("screen", colorUtil.blendScreen);
+    testBlendFunction("overlay", colorUtil.blendOverlay);
+    testBlendFunction("hardlight", colorUtil.blendHardLight);
+    testBlendFunction("softlight", colorUtil.blendSoftLight);
+    testBlendFunction("darken", colorUtil.blendDarken);
+    testBlendFunction("lighten", colorUtil.blendLighten);
+    testBlendFunction("difference", colorUtil.blendDifference);
+    testBlendFunction("exclusion", colorUtil.blendExclusion);
 }
 
 </script>

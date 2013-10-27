@@ -36,7 +36,16 @@ colorUtil = {
     serializeRGB: null,
     nBlends: null,
     alphaForNBlends: null,
-    differentColor: null
+    differentColor: null,
+    blendMultiply: null,
+    blendScreen: null,
+    blendDarken: null,
+    blendLighten: null,
+    blendDifference: null,
+    blendExclusion: null,
+    blendOverlay: null,
+    blendHardLight: null,
+    blendSoftLight: null,
 };
 
 /**
@@ -200,6 +209,51 @@ colorUtil.differentColor = function(color) {
         hsl[2] = (hsl[2] + 0.4) % 1;
     }
     return hslToRgb(hsl[0], hsl[1], hsl[2]);
+};
+
+colorUtil.blendMultiply = function(a, b) {
+    return a * b / 255.;
+};
+
+colorUtil.blendScreen = function(a, b) {
+    return 255. - (1. - a / 255.) * (255. - b);
+};
+
+colorUtil.blendOverlay = function(a, b) {
+    return a < 127.5 ?
+            (2.0 / 255.0 * a * b) :
+            (255.0 - 2.0 * (1.0 - b / 255.0) * (255.0 - a));
+};
+
+colorUtil.blendHardLight = function(a, b) {
+    return b < 127.5 ?
+            (2.0 / 255.0 * a * b) :
+            (255.0 - 2.0 * (1.0 - b / 255.0) * (255.0 - a));
+};
+
+colorUtil.blendSoftLight = function(a, b) {
+    a /= 255;
+    b /= 255;
+    return 255 * (b <= .5 ?
+            2 * a * b + a * a * (1 - 2 * b) :
+            Math.sqrt(a) * (2 * b - 1) + (2 * a) * (1 - b));    
+    // b < .5 ? (2 * a * b + a * a * (1 – 2 * b)) : (sqrt(a) * (2 * b – 1) + (2 * a) * (1 – b))
+};
+
+colorUtil.blendDarken = function(a, b) {
+    return a < b ? a : b;    
+};
+
+colorUtil.blendLighten = function(a, b) {
+    return a > b ? a : b;    
+};
+
+colorUtil.blendDifference = function(a, b) {
+    return Math.abs(a - b);    
+};
+
+colorUtil.blendExclusion = function(a, b) {
+    return a + b - 2.0 / 255.0 * a * b;
 };
 
 mathUtil = {
