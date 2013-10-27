@@ -28,7 +28,7 @@ describe('Rasterizing system', function() {
         if (testFillCircleCalls === undefined) {
             testFillCircleCalls = false;
         }
-        testRasterizer.beginCircleLines(true, 0.1);
+        testRasterizer.beginCircleLines(true, false, 0.1);
         expect(testRasterizer.soft).toBe(true);
         expect(testRasterizer.flowAlpha).toBe(0.1);
         expect(testRasterizer.t).toBe(0);
@@ -196,7 +196,7 @@ describe('Rasterizing system', function() {
             var rasterizer = new Rasterizer(123, 456);
             var clipRect = new Rect(-100, 223, -100, 556);
             rasterizer.setClip(clipRect);
-            rasterizer.beginCircleLines(true, 0.1);
+            rasterizer.beginCircleLines(true, false, 0.1);
             rasterizer.circleLineTo(123, 0, 1);
             rasterizer.circleLineTo(123, 100, 1);
             var coords = new Vec2(0, 1);

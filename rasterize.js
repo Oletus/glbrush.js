@@ -22,6 +22,7 @@ BaseRasterizer.prototype.initBaseRasterizer = function(width, height) {
     this.width = width;
     this.height = height;
     this.soft = false;
+    this.texturized = false;
     this.flowAlpha = 0; // range [0, 1]
     this.prevX = null;
     this.prevY = null;
@@ -92,11 +93,13 @@ BaseRasterizer.prototype.getDrawEventState = function(event, stateConstructor) {
 /**
  * Initialize drawing circle lines with the given parameters.
  * @param {boolean} soft Use soft edged circles.
+ * @param {boolean} texturized Use texturized circles.
  * @param {number} flowAlpha The alpha value to use to rasterize individual
  * circles.
  */
-BaseRasterizer.prototype.beginCircleLines = function(soft, flowAlpha) {
+BaseRasterizer.prototype.beginCircleLines = function(soft, texturized, flowAlpha) {
     this.soft = soft;
+    this.texturized = texturized;
     this.minRadius = this.soft ? 1.0 : 0.5;
     this.flowAlpha = flowAlpha;
     this.prevX = null;
@@ -189,7 +192,7 @@ BaseRasterizer.prototype.checkSanity = function() {
     this.drawEvent = null;
     this.resetClip();
     this.clear();
-    this.beginCircleLines(false, 1.0);
+    this.beginCircleLines(false, false, 1.0);
     this.circleLineTo(1.5, 1.5, 2.0);
     this.circleLineTo(4.5, 4.5, 2.0);
     this.flushCircles();
@@ -201,7 +204,7 @@ BaseRasterizer.prototype.checkSanity = function() {
         }
     }
     this.clear();
-    this.beginCircleLines(false, 0.5);
+    this.beginCircleLines(false, false, 0.5);
     this.circleLineTo(3.5, 3.5, 2.0);
     this.circleLineTo(13.5, 13.5, 2.0);
     this.flushCircles();
@@ -499,7 +502,7 @@ Rasterizer.prototype.getPixel = function(coords) {
 
 /**
  * Fill a circle to the rasterizer's bitmap at the given coordinates. Uses the
- * soft and flowAlpha values set using beginCircleLines, and clips the circle to
+ * soft, texturized and flowAlpha values set using beginCircleLines, and clips the circle to
  * the current clipping rectangle.
  * @param {number} centerX The x coordinate of the center of the circle.
  * @param {number} centerY The y coordinate of the center of the circle.
@@ -714,21 +717,22 @@ var GLDoubleBufferedRasterizer = function(gl, glManager, width, height) {
     this.currentTex = 0;
 
     if (!GLDoubleBufferedRasterizer.nFillShader) {
-        // TODO: assert(!GLDoubleBufferedRasterizer.nSoftShader)
-        // assert(!GLDoubleBufferedRasterizer.linearGradientShader)
+        // TODO: assert(!GLDoubleBufferedRasterizer.nSoftShader);
+        // assert(!GLDoubleBufferedRasterizer.nTexShader);
+        // assert(!GLDoubleBufferedRasterizer.linearGradientShader);
         GLDoubleBufferedRasterizer.nFillShader = [];
         GLDoubleBufferedRasterizer.nSoftShader = [];
+        GLDoubleBufferedRasterizer.nTexShader = [];
         for (var i = 1; i <= GLDoubleBufferedRasterizer.maxCircles; ++i) {
             GLDoubleBufferedRasterizer.nFillShader.push(
-                new RasterizeShader(GLRasterizerFormat.redGreen, false, i,
-                                    false,
-                                    RasterizeShader.ParameterMode.inUniforms,
-                                    true));
+                new RasterizeShader(GLRasterizerFormat.redGreen, false, false, i,
+                                    false, RasterizeShader.ParameterMode.inUniforms, true));
             GLDoubleBufferedRasterizer.nSoftShader.push(
-                new RasterizeShader(GLRasterizerFormat.redGreen, true, i,
-                                    false,
-                                    RasterizeShader.ParameterMode.inUniforms,
-                                    true));
+                new RasterizeShader(GLRasterizerFormat.redGreen, true, false, i,
+                                    false, RasterizeShader.ParameterMode.inUniforms, true));
+            GLDoubleBufferedRasterizer.nTexShader.push(
+                new RasterizeShader(GLRasterizerFormat.redGreen, false, true, i,
+                                    false, RasterizeShader.ParameterMode.inUniforms, true));
         }
         GLDoubleBufferedRasterizer.linearGradientShader =
             new GradientShader(GLRasterizerFormat.redGreen, false);
@@ -738,8 +742,9 @@ var GLDoubleBufferedRasterizer = function(gl, glManager, width, height) {
 
     this.generateShaderPrograms(GLDoubleBufferedRasterizer.nFillShader,
                                 GLDoubleBufferedRasterizer.nSoftShader,
+                                GLDoubleBufferedRasterizer.nTexShader,
                                 GLDoubleBufferedRasterizer.linearGradientShader,
-                             GLDoubleBufferedRasterizer.verticalGradientShader);
+                                GLDoubleBufferedRasterizer.verticalGradientShader);
 
     this.convUniformParameters = new blitShader.ConversionUniformParameters();
     this.conversionProgram = this.glManager.shaderProgram(
@@ -761,7 +766,13 @@ GLDoubleBufferedRasterizer.nFillShader = null;
  * at compile-time, nSoftShader[i] draws i+1 circles.
  * @protected
  */
- GLDoubleBufferedRasterizer.nSoftShader = null;
+GLDoubleBufferedRasterizer.nSoftShader = null;
+/**
+* RasterizeShaders for drawing texturized circles. Amount of circles is determined
+* at compile-time, nTexShader[i] draws i+1 circles.
+* @protected
+*/
+GLDoubleBufferedRasterizer.nTexShader = null;
 
 GLDoubleBufferedRasterizer.prototype = new BaseRasterizer();
 
@@ -801,32 +812,59 @@ GLDoubleBufferedRasterizer.prototype.initGLRasterizer = function(gl, glManager,
     this.params = new Float32Array(paramBuffer);
     this.circleRect = new Rect();
     this.circleInd = 0;
+
+    this.brushTex = this.gl.createTexture();
+
+    // TODO: Proper brush texture management, this is just for testing...
+    var image = document.createElement('canvas');
+    image.width = 128;
+    image.height = 128;
+    var ctx = image.getContext('2d');
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, 128, 128);
+    ctx.fillStyle = '#fff';
+    ctx.shadowColor = '#000';
+    ctx.shadowBlur = 3; // Slight blurriness is required for an antialiased look
+    ctx.fillRect(5, 5, 64, 64);
+    ctx.fillRect(59, 59, 64, 64);
+    ctx.fillRect(20, 84, 24, 24);
+    ctx.fillRect(84, 20, 24, 24);
+    var that = this;
+    that.gl.bindTexture(that.gl.TEXTURE_2D, that.brushTex);
+    that.gl.texImage2D(that.gl.TEXTURE_2D, 0, that.gl.RGBA, that.gl.RGBA, that.gl.UNSIGNED_BYTE, image);
+    that.gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    that.gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+    that.gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    that.gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    that.gl.generateMipmap(that.gl.TEXTURE_2D);
 };
 
 /**
  * Generate shader programs for a WebGL-based rasterizer.
  * @param {Array.<RasterizeShader>} nFillShader Filled circle shaders.
  * @param {Array.<RasterizeShader>} nSoftShader Soft circle shaders.
+ * @param {Array.<RasterizeShader>} nTexShader Texturized circle shaders.
  * @param {GradientShader} linearGradientShader Linear non-vertical gradient
  * shader.
  * @param {GradientShader} verticalGradientShader Vertical gradient shader.
  * @protected
  */
 GLDoubleBufferedRasterizer.prototype.generateShaderPrograms = function(
-       nFillShader, nSoftShader, linearGradientShader, verticalGradientShader) {
+       nFillShader, nSoftShader, nTexShader, linearGradientShader, verticalGradientShader) {
     this.nFillCircleProgram = [];
     this.nSoftCircleProgram = [];
-    this.uniformParameters = [];
+    this.nTexCircleProgram = [];
+    this.fillUniformParameters = [];
+    this.texUniformParameters = [];
 
     // TODO: assert(nFillShader.length == nSoftShader.length);
     for (i = 0; i < nFillShader.length; ++i) {
-        this.nFillCircleProgram.push(
-            nFillShader[i].programInstance(this.gl));
-        this.nSoftCircleProgram.push(
-            nSoftShader[i].programInstance(this.gl));
+        this.nFillCircleProgram.push(nFillShader[i].programInstance(this.gl));
+        this.nSoftCircleProgram.push(nSoftShader[i].programInstance(this.gl));
+        this.nTexCircleProgram.push(nTexShader[i].programInstance(this.gl));
         // The uniforms are the same for the soft and fill shaders
-        this.uniformParameters.push(
-            nFillShader[i].uniformParameters(this.width, this.height));
+        this.fillUniformParameters.push(nFillShader[i].uniformParameters(this.width, this.height));
+        this.texUniformParameters.push(nTexShader[i].uniformParameters(this.width, this.height));
     }
     this.linearGradientProgram = linearGradientShader.programInstance(this.gl);
     this.verticalGradientProgram =
@@ -943,8 +981,7 @@ GLDoubleBufferedRasterizer.prototype.clear = function() {
  * @param {number} radius The radius of the circle in pixels.
  * @protected
  */
-GLDoubleBufferedRasterizer.prototype.setCircleUniformParameters = function(u,
-                                                     centerX, centerY, radius) {
+GLDoubleBufferedRasterizer.prototype.setCircleUniformParameters = function(u, centerX, centerY, radius) {
     u[0] = centerX / this.width * 2.0 - 1.0;
     u[1] = centerY / this.height * (-2.0) + 1.0;
     u[2] = radius;
@@ -966,7 +1003,7 @@ GLDoubleBufferedRasterizer.prototype.getDrawRect = function(invalRect) {
 };
 
 /**
- * Set the framebuffer, flow alpha and source texture for drawing.
+ * Set the framebuffer, flow alpha, source texture and brush texture for drawing.
  * @param {Object.<string, *>} uniformParameters Map from uniform names to
  * uniform values to set drawing parameters to.
  * @protected
@@ -976,6 +1013,9 @@ GLDoubleBufferedRasterizer.prototype.preDraw = function(uniformParameters) {
     if (uniformParameters !== null) {
         uniformParameters['uFlowAlpha'] = this.flowAlpha;
         uniformParameters['uSrcTex'] = this.getTex();
+        if (this.texturized) {
+            uniformParameters['uBrushTex'] = this.brushTex;
+        }
     }
 };
 
@@ -997,7 +1037,7 @@ GLDoubleBufferedRasterizer.prototype.postDraw = function(invalRect) {
 
 /**
  * Fill a circle to the rasterizer's bitmap at the given coordinates. Uses the
- * soft and flowAlpha values set using beginCircleLines, and clips the circle to
+ * soft, texturized and flowAlpha values set using beginCircleLines, and clips the circle to
  * the current clipping rectangle. The circle is added to the queue, which is
  * automatically flushed when it's full. Flushing manually should be done at the
  * end of drawing circles.
@@ -1028,21 +1068,23 @@ GLDoubleBufferedRasterizer.prototype.flushCircles = function() {
     }
     var drawRect = this.getDrawRect(this.circleRect); // may change circleRect!
     var circleCount = this.circleInd;
-    this.preDraw(this.uniformParameters[circleCount - 1]);
+    var uniformParameters = this.texturized ? this.texUniformParameters : this.fillUniformParameters;
+    this.preDraw(uniformParameters[circleCount - 1]);
     for (var i = 0; i < circleCount; ++i) {
         this.setCircleUniformParameters(
-            this.uniformParameters[circleCount - 1]['uCircle' + i],
+            uniformParameters[circleCount - 1]['uCircle' + i],
             this.params[i * 3], this.params[i * 3 + 1], this.params[i * 3 + 2]);
     }
     glUtils.updateClip(this.gl, drawRect, this.height);
-    if (this.soft) {
-        this.glManager.drawFullscreenQuad(
-            this.nSoftCircleProgram[circleCount - 1],
-            this.uniformParameters[circleCount - 1]);
+    if (this.texturized) {
+        this.glManager.drawFullscreenQuad(this.nTexCircleProgram[circleCount - 1],
+                                          uniformParameters[circleCount - 1]);
+    } else if (this.soft) {
+        this.glManager.drawFullscreenQuad(this.nSoftCircleProgram[circleCount - 1],
+                                          uniformParameters[circleCount - 1]);
     } else {
-        this.glManager.drawFullscreenQuad(
-            this.nFillCircleProgram[circleCount - 1],
-            this.uniformParameters[circleCount - 1]);
+        this.glManager.drawFullscreenQuad(this.nFillCircleProgram[circleCount - 1],
+                                          uniformParameters[circleCount - 1]);
     }
     this.dirtyArea.unionRect(drawRect);
     this.postDraw(this.circleRect);
@@ -1122,21 +1164,23 @@ var GLFloatRasterizer = function(gl, glManager, width, height) {
 
     if (!GLFloatRasterizer.nFillShader) {
         // TODO: assert(!GLFloatRasterizer.nSoftShader)
+        // TODO: assert(!GLFloatRasterizer.nTexShader)
+        // TODO: assert(!GLFloatRasterizer.linearGradientShader);
+        // TODO: assert(!GLFloatRasterizer.verticalGradientShader);
         GLFloatRasterizer.nFillShader = [];
         GLFloatRasterizer.nSoftShader = [];
+        GLFloatRasterizer.nTexShader = [];
         for (i = 1; i <= GLFloatRasterizer.maxCircles; ++i) {
             GLFloatRasterizer.nFillShader.push(
-                new RasterizeShader(GLRasterizerFormat.alpha, false, i, false,
-                                    RasterizeShader.ParameterMode.inUniforms,
-                                    true));
+                new RasterizeShader(GLRasterizerFormat.alpha, false, false, i, false,
+                                    RasterizeShader.ParameterMode.inUniforms, true));
             GLFloatRasterizer.nSoftShader.push(
-                new RasterizeShader(GLRasterizerFormat.alpha, true, i, false,
-                                    RasterizeShader.ParameterMode.inUniforms,
-                                    true));
+                new RasterizeShader(GLRasterizerFormat.alpha, true, false, i, false,
+                                    RasterizeShader.ParameterMode.inUniforms, true));
+            GLFloatRasterizer.nTexShader.push(
+                new RasterizeShader(GLRasterizerFormat.alpha, false, true, i, false,
+                                    RasterizeShader.ParameterMode.inUniforms, true));
         }
-    }
-    if (!GLFloatRasterizer.linearGradientShader) {
-        // TODO: assert(!GLFloatRasterizer.verticalGradientShader);
         GLFloatRasterizer.linearGradientShader =
             new GradientShader(GLRasterizerFormat.alpha, false);
         GLFloatRasterizer.verticalGradientShader =
@@ -1145,6 +1189,7 @@ var GLFloatRasterizer = function(gl, glManager, width, height) {
 
     this.generateShaderPrograms(GLFloatRasterizer.nFillShader,
                                 GLFloatRasterizer.nSoftShader,
+                                GLFloatRasterizer.nTexShader,
                                 GLFloatRasterizer.linearGradientShader,
                                 GLFloatRasterizer.verticalGradientShader);
 
@@ -1169,6 +1214,12 @@ GLFloatRasterizer.nFillShader = null;
  * @protected
  */
 GLFloatRasterizer.nSoftShader = null;
+/**
+ * RasterizeShaders for drawing texturized circles. Amount of circles is determined
+ * at compile-time, nTexShader[i] draws i+1 circles.
+ * @protected
+ */
+GLFloatRasterizer.nTexShader = null;
 
 GLFloatRasterizer.prototype = new BaseRasterizer();
 
@@ -1218,7 +1269,7 @@ GLFloatRasterizer.prototype.getDrawRect = function(invalRect) {
 };
 
 /**
- * Set the framebuffer and flow alpha for drawing.
+ * Set the framebuffer, flow alpha and brush texture for drawing.
  * @param {Object.<string, *>} uniformParameters Map from uniform names to
  * uniform values to set drawing parameters to.
  * @protected
@@ -1227,6 +1278,9 @@ GLFloatRasterizer.prototype.preDraw = function(uniformParameters) {
     this.glManager.useFboTex(this.tex);
     if (uniformParameters !== null) {
         uniformParameters['uFlowAlpha'] = this.flowAlpha;
+        if (this.texturized) {
+            uniformParameters['uBrushTex'] = this.brushTex;
+        }
     }
 };
 
@@ -1299,17 +1353,22 @@ var GLFloatTexDataRasterizer = function(gl, glManager, width, height) {
                                               this.gl.RGBA, this.gl.FLOAT);
 
     if (!GLFloatTexDataRasterizer.fillShader) {
+        // TODO: assert(!GLFloatRasterizer.softShader);
+        // assert(!GLFloatRasterizer.texShader);
+        // assert(!GLFloatRasterizer.linearGradientShader);
+        // assert(!GLFloatRasterizer.verticalGradientShader);
         GLFloatTexDataRasterizer.fillShader =
-            new RasterizeShader(GLRasterizerFormat.alpha, false,
+            new RasterizeShader(GLRasterizerFormat.alpha, false, false,
                                 GLFloatTexDataRasterizer.maxCircles, true,
                                 RasterizeShader.ParameterMode.inTex, false);
         GLFloatTexDataRasterizer.softShader =
-            new RasterizeShader(GLRasterizerFormat.alpha, true,
+            new RasterizeShader(GLRasterizerFormat.alpha, true, false,
                                 GLFloatTexDataRasterizer.maxCircles, true,
                                 RasterizeShader.ParameterMode.inTex, false);
-    }
-    if (!GLFloatRasterizer.linearGradientShader) {
-        // TODO: assert(!GLFloatRasterizer.verticalGradientShader);
+        GLFloatTexDataRasterizer.texShader =
+            new RasterizeShader(GLRasterizerFormat.alpha, false, true,
+                                GLFloatTexDataRasterizer.maxCircles, true,
+                                RasterizeShader.ParameterMode.inTex, false);
         GLFloatRasterizer.linearGradientShader =
             new GradientShader(GLRasterizerFormat.alpha, false);
         GLFloatRasterizer.verticalGradientShader =
@@ -1319,10 +1378,15 @@ var GLFloatTexDataRasterizer = function(gl, glManager, width, height) {
         GLFloatTexDataRasterizer.fillShader.programInstance(this.gl);
     this.softCircleProgram =
         GLFloatTexDataRasterizer.softShader.programInstance(this.gl);
+    this.texCircleProgram =
+        GLFloatTexDataRasterizer.texShader.programInstance(this.gl);
     // The uniforms are the same for the soft and fill shaders
-    this.uniformParameters =
+    this.fillUniformParameters =
         GLFloatTexDataRasterizer.fillShader.uniformParameters(width, height);
-    this.uniformParameters['uCircleParameters'] = this.parameterTex;
+    this.texUniformParameters =
+        GLFloatTexDataRasterizer.texShader.uniformParameters(width, height);
+    this.fillUniformParameters['uCircleParameters'] = this.parameterTex;
+    this.texUniformParameters['uCircleParameters'] = this.parameterTex;
 
     this.linearGradientProgram =
         GLFloatRasterizer.linearGradientShader.programInstance(this.gl);
@@ -1392,19 +1456,23 @@ GLFloatTexDataRasterizer.prototype.flushCircles = function() {
         return;
     }
     this.glManager.useFboTex(this.tex);
-    this.uniformParameters['uCircleCount'] = this.circleInd;
-    this.uniformParameters['uFlowAlpha'] = this.flowAlpha;
+    var uniformParameters = this.texturized ? this.texUniformParameters : this.fillUniformParameters;
+    uniformParameters['uCircleCount'] = this.circleInd;
+    uniformParameters['uFlowAlpha'] = this.flowAlpha;
+    if (this.texturized) {
+        uniformParameters['uBrushTex'] = this.brushTex;
+    }
     this.gl.bindTexture(this.gl.TEXTURE_2D, this.parameterTex);
     this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.maxCircles, 1,
                        0, this.gl.RGBA, this.gl.FLOAT, this.params);
     this.circleRect.intersectRectRoundedOut(this.clipRect);
     glUtils.updateClip(this.gl, this.circleRect, this.height);
-    if (this.soft) {
-        this.glManager.drawFullscreenQuad(this.softCircleProgram,
-                                          this.uniformParameters);
+    if (this.texturized) {
+        this.glManager.drawFullscreenQuad(this.texCircleProgram, uniformParameters);
+    } else if (this.soft) {
+        this.glManager.drawFullscreenQuad(this.softCircleProgram, uniformParameters);
     } else {
-        this.glManager.drawFullscreenQuad(this.fillCircleProgram,
-                                          this.uniformParameters);
+        this.glManager.drawFullscreenQuad(this.fillCircleProgram, uniformParameters);
     }
     this.dirtyArea.unionRect(this.circleRect);
     this.circleRect.makeEmpty();

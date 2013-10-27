@@ -131,6 +131,7 @@ ShaderGenerator.prototype.vertexUniformSource = function() {
  * Affects whether to blend with a UINT8 source texture or a floating point
  * framebuffer.
  * @param {boolean} soft Use soft brush.
+ * @param {boolean} texturized True if circles are texturized. Overrides the soft parameter.
  * @param {number} circles Amount of circles to draw in a single pass.
  * @param {boolean} dynamicCircles The amount of circles drawn in a single pass
  * can be set at run-time using an uniform.
@@ -139,7 +140,7 @@ ShaderGenerator.prototype.vertexUniformSource = function() {
  * @param {boolean=} unroll Unroll the loop. By default unrolling happens if
  * parameterMode is parametersInUniforms.
  */
-var RasterizeShader = function(format, soft, circles, dynamicCircles,
+var RasterizeShader = function(format, soft, texturized, circles, dynamicCircles,
                                parameterMode, unroll) {
     if (unroll === undefined) {
         unroll = parameterMode !== RasterizeShader.ParameterMode.inTex;
@@ -153,6 +154,7 @@ var RasterizeShader = function(format, soft, circles, dynamicCircles,
     this.soft = soft;
     this.circles = circles;
     this.dynamicCircles = dynamicCircles;
+    this.texturized = texturized;
     this.parameterMode = parameterMode;
     this.unroll = unroll;
     this.initShaderGenerator();
@@ -224,6 +226,10 @@ RasterizeShader.prototype.uniforms = function(width, height) {
              inFragment: false, inVertex: true,
              defaultValue: [2.0 / width, 2.0 / height],
              comment: 'in gl viewport space'});
+    if (this.texturized) {
+        us.push({name: 'uBrushTex', type: 'sampler2D', shortType: 'tex2d',
+                 inFragment: true, inVertex: false, defaultValue: null});
+    }
     return us;
 };
 
@@ -269,19 +275,25 @@ RasterizeShader.prototype.fragmentAlphaSource = function(assignTo, indent) {
     // 1. circleRadius contains the intended perceived radius of the circle.
     // 2. centerDist contains the fragment's distance from the circle center.
     var src = [];
-    src.push(indent + 'float radius = max(circleRadius, ' +
-             this.minRadius().toFixed(1) + ');');
-    src.push(indent + 'float flowAlpha = (circleRadius < ' +
-             this.minRadius().toFixed(1) +
-             ') ? uFlowAlpha * circleRadius * circleRadius * ' +
-             Math.pow(1.0 / this.minRadius(), 2).toFixed(1) + ': uFlowAlpha;');
-    src.push(indent + 'float antialiasMult = ' +
-             'clamp((radius + 1.0 - centerDist) * 0.5, 0.0, 1.0);');
-    if (this.soft) {
-        src.push(indent + assignTo + ' = max((1.0 - centerDist / radius) ' +
-                 '* flowAlpha * antialiasMult, 0.0);');
+    if (this.texturized) {
+        src.push(indent + 'vec2 texCoords = centerDiff / circleRadius * 0.5 + 0.5;');
+        // Note: remember to keep the texture2D call outside non-uniform flow control.
+        src.push(indent + 'float texValue = texture2D(uBrushTex, texCoords).r;');
+        src.push(indent + assignTo + ' = max(abs(centerDiff.x), abs(centerDiff.y)) < circleRadius ? ' +
+                 'uFlowAlpha * texValue : 0.0;');
     } else {
-        src.push(indent + assignTo + ' = flowAlpha * antialiasMult;');
+        src.push(indent + 'float radius = max(circleRadius, ' + this.minRadius().toFixed(1) + ');');
+        src.push(indent + 'float flowAlpha = (circleRadius < ' + this.minRadius().toFixed(1) + ') ? ' +
+                'uFlowAlpha * circleRadius * circleRadius * ' + Math.pow(1.0 / this.minRadius(), 2).toFixed(1) +
+                ': uFlowAlpha;');
+        src.push(indent + 'float antialiasMult = ' +
+                 'clamp((radius + 1.0 - centerDist) * 0.5, 0.0, 1.0);');
+        if (this.soft) {
+            src.push(indent + assignTo + ' = max((1.0 - centerDist / radius) ' +
+                     '* flowAlpha * antialiasMult, 0.0);');
+        } else {
+            src.push(indent + assignTo + ' = flowAlpha * antialiasMult;');
+        }
     }
     return src;
 };
@@ -298,13 +310,14 @@ RasterizeShader.prototype.fragmentAlphaSource = function(assignTo, indent) {
 RasterizeShader.prototype.fragmentInnerLoopSource = function(index,
                                                              arrayIndex) {
     var src = [];
-    if (this.dynamicCircles) {
+    if (this.dynamicCircles && !this.texturized) {
         src.push('    if (' + index + ' < uCircleCount) {');
         // Note that this probably qualifies as non-uniform flow control. See
         // GLSL ES 1.0.17 spec Appendix A.6.
         // TODO: See if moving the texture2D call outside the if would help
         // performance or compatibility. It would be required by the spec if it
         // was mipmapped.
+        // For the texturized brush, the if must be deferred since the texture is mipmapped.
     } else {
         src.push('    {');
     }
@@ -314,19 +327,34 @@ RasterizeShader.prototype.fragmentInnerLoopSource = function(index,
                  '.0, 0.5));');
         src.push('      vec2 center = parameterColor.xy;');
         src.push('      float circleRadius = parameterColor.z;');
-        src.push('      float centerDist = length(center - vPixelCoords);');
+        if (this.texturized) {
+            src.push('      vec2 centerDiff = vPixelCoords - center;');
+        } else {
+            src.push('      float centerDist = length(center - vPixelCoords);');
+        }
     } else {
         if (arrayIndex === undefined) {
             arrayIndex = '[' + index + ']';
         }
         src.push('      float circleRadius = vCircle' + arrayIndex + '.z;');
-        src.push('      float centerDist = length(vCircle' + arrayIndex +
-                 '.xy);');
+        if (this.texturized) {
+            src.push('      vec2 centerDiff = vCircle' + arrayIndex + '.xy;');
+        } else {
+            src.push('      float centerDist = length(vCircle' + arrayIndex + '.xy);');
+        }
     }
     src.push.apply(src, this.fragmentAlphaSource('float circleAlpha',
                    '      '));
+    if (this.texturized && this.dynamicCircles) {
+        // The mipmapped brush texture can't be accessed inside non-uniform flow control,
+        // so the if is here instead of before doing the operations.
+        src.push('      if (' + index + ' < uCircleCount) {');
+    }
     src.push('      destAlpha = clamp(circleAlpha + (1.0 - circleAlpha) ' +
              '* destAlpha, 0.0, 1.0);');
+    if (this.texturized && this.dynamicCircles) {
+        src.push('      }'); // if
+    }
     src.push('    }'); // if
     return src;
 };

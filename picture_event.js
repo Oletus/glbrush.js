@@ -433,7 +433,7 @@ BrushEvent.prototype.drawTo = function(rasterizer, untilCoord) {
     if (i === 0) {
         var nBlends = Math.ceil(this.radius * 2);
         var alpha = colorUtil.alphaForNBlends(this.flow, nBlends);
-        rasterizer.beginCircleLines(this.soft, alpha);
+        rasterizer.beginCircleLines(this.soft, false, alpha);
     }
 
     var r = this.radius;
@@ -602,7 +602,7 @@ ScatterEvent.prototype.drawTo = function(rasterizer, untilCoord) {
     }
     var i = drawState.coordsInd;
     if (i === 0) {
-        rasterizer.beginCircleLines(this.soft, this.flow);
+        rasterizer.beginCircleLines(this.soft, false, this.flow);
     }
     while (i + BrushEvent.coordsStride <= untilCoord) {
         var x = this.coords[i++];
