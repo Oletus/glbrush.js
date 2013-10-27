@@ -3,17 +3,6 @@
 <!-- Copyright Jerry Ylilammi 2013 -->
 <title>Photoshop blend mode comparison</title>
 <script type="text/javascript" src="../util2d.js"></script>
-<script type="text/javascript" src="../utilgl.js"></script>
-<script type="text/javascript" src="../blit_shader.js"></script>
-<script type="text/javascript" src="../rasterize_shader.js"></script>
-<script type="text/javascript" src="../gradient_shader.js"></script>
-<script type="text/javascript" src="../compositing_shader.js"></script>
-<script type="text/javascript" src="../compositor.js"></script>
-<script type="text/javascript" src="../picture_event.js"></script>
-<script type="text/javascript" src="../rasterize.js"></script>
-<script type="text/javascript" src="../picture_buffer.js"></script>
-<script type="text/javascript" src="../undo_state.js"></script>
-<script type="text/javascript" src="../picture.js"></script>
 <script type="text/javascript">
 
 // Generate input values, these are the same values used in Photoshop layers, input1.png and input2.png
@@ -38,16 +27,19 @@ function testBlendFunction(name, blendFunction) {
         var errorMax = 0.;
         for (var x = 0; x < 27; x++)
             for (var y = 0; y < 27; y++) {
-                var result = blendFunction(inputs[x], inputs[y]);
+                var result = Math.round(blendFunction(inputs[x], inputs[y]));
                 var error = Math.abs(data[(x + y*27) * 4] - result)
                 errorTotal += error;
                 errorMax = errorMax < error ? error : errorMax;
-                //console.log("func " + result + " vs. ps " + data[(x + y*27) * 4]);
+                if (error > 1)
+                    console.log(name + ":" + inputs[x] + ", " + inputs[y] + " func " + result + " vs. ps " + 
+                        data[(x + y*27) * 4]);
             }
+        
         var averageError = errorTotal / (27 * 27) * (100 / 255)
-        var maximumError = errorMax * (100 / 255);
+        var maximumError = errorMax; // * (100 / 255);
         document.body.innerHTML += "<div>Testing function <b>" + name + "</b>, average error is <b>" + averageError +
-                " %</b>, maximum error is <b>" + maximumError + " %</b></div>";
+                " %</b>, maximum error is <b>" + maximumError + " / 255</b></div>";
     }        
     img.src = "img/photoshop_cs5_" + name + ".png";
 }
@@ -63,6 +55,8 @@ function runTest() {
     testBlendFunction("lighten", colorUtil.blendLighten);
     testBlendFunction("difference", colorUtil.blendDifference);
     testBlendFunction("exclusion", colorUtil.blendExclusion);
+    testBlendFunction("colorburn", colorUtil.blendColorBurn);
+    testBlendFunction("linearburn", colorUtil.blendLinearBurn);
 }
 
 </script>
