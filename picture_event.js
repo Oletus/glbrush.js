@@ -27,7 +27,9 @@ var BrushEventState = function(coordsInd, direction) {
  * already drawn in a rasterizer.
  * @constructor
  */
-var GradientEventState = function() {};
+var GradientEventState = function() {
+    this.drawn = false;
+};
 
 /**
  * An event that changes a picture buffer's state.
@@ -809,7 +811,11 @@ GradientEvent.prototype.getBoundingBox = function(clipRect) {
  */
 GradientEvent.prototype.drawTo = function(rasterizer) {
     var drawState = rasterizer.getDrawEventState(this, GradientEventState);
+    if (drawState.drawn) {
+        return;
+    }
     rasterizer.linearGradient(this.coords1, this.coords0);
+    drawState.drawn = true;
 };
 
 /**
