@@ -37,7 +37,7 @@ function testBlendFunction(name, blendFunction) {
             }
         
         var averageError = errorTotal / (27 * 27) * (100 / 255)
-        var maximumError = errorMax; // * (100 / 255);
+        var maximumError = errorMax;
         document.body.innerHTML += "<div>Testing function <b>" + name + "</b>, average error is <b>" + averageError +
                 " %</b>, maximum error is <b>" + maximumError + " / 255</b></div>";
     }        

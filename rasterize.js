@@ -316,77 +316,6 @@ Rasterizer.prototype.erase = function(targetData, opacity, x, y, w, h) {
 };
 
 /**
- * Draw the rasterizer's contents to the given bitmap with multiply blending.
- * @param {ImageData} targetData The buffer to draw to.
- * @param {Uint8Array|Array.<number>} color Color to use for drawing. Channel
- * values should be 0-255.
- * @param {number} opacity Opacity to use when drawing the rasterization result.
- * Opacity for each individual pixel is its rasterized opacity times this
- * opacity value.
- * @param {number} x Left edge of the area to copy to targetData. Must be an
- * integer.
- * @param {number} y Top edge of the area to copy to targetData. Must be an
- * integer.
- * @param {number} w Width of the targetData buffer and the area to copy there.
- * Must be an integer.
- * @param {number} h Height of the targetData buffer and the area to copy there.
- * Must be an integer.
- */
-Rasterizer.prototype.multiply = function(targetData, color, opacity, x, y, w, h) {
-    this.blendPerChannel(targetData, color, opacity, x, y, w, h, function(a, b) {
-        return a * b / 255;
-    });       
-};
-
-/**
- * Draw the rasterizer's contents to the given bitmap with screen blending.
- * @param {ImageData} targetData The buffer to draw to.
- * @param {Uint8Array|Array.<number>} color Color to use for drawing. Channel
- * values should be 0-255.
- * @param {number} opacity Opacity to use when drawing the rasterization result.
- * Opacity for each individual pixel is its rasterized opacity times this
- * opacity value.
- * @param {number} x Left edge of the area to copy to targetData. Must be an
- * integer.
- * @param {number} y Top edge of the area to copy to targetData. Must be an
- * integer.
- * @param {number} w Width of the targetData buffer and the area to copy there.
- * Must be an integer.
- * @param {number} h Height of the targetData buffer and the area to copy there.
- * Must be an integer.
- */
-Rasterizer.prototype.screen = function(targetData, color, opacity, x, y, w, h) {
-    this.blendPerChannel(targetData, color, opacity, x, y, w, h, function(a, b) {
-        return 255 - (1.0 - a / 255) * (255 - b);
-    });    
-};
-
-/**
- * Draw the rasterizer's contents to the given bitmap with overlay blending.
- * @param {ImageData} targetData The buffer to draw to.
- * @param {Uint8Array|Array.<number>} color Color to use for drawing. Channel
- * values should be 0-255.
- * @param {number} opacity Opacity to use when drawing the rasterization result.
- * Opacity for each individual pixel is its rasterized opacity times this
- * opacity value.
- * @param {number} x Left edge of the area to copy to targetData. Must be an
- * integer.
- * @param {number} y Top edge of the area to copy to targetData. Must be an
- * integer.
- * @param {number} w Width of the targetData buffer and the area to copy there.
- * Must be an integer.
- * @param {number} h Height of the targetData buffer and the area to copy there.
- * Must be an integer.
- */
-Rasterizer.prototype.overlay = function(targetData, color, opacity, x, y, w, h) {
-    this.blendPerChannel(targetData, color, opacity, x, y, w, h, function(a, b) {
-        return a < 128.0 ?
-                (2.0 / 255.0 * a * b) :
-                (255.0 - 2.0 * (1.0 - b / 255.0) * (255.0 - a));
-    });
-};
-
-/**
  * Draw the rasterizer's contents to the given bitmap with given blend function, applied per channel.
  * @param {ImageData} targetData The buffer to draw to.
  * @param {Uint8Array|Array.<number>} color Color to use for drawing. Channel
@@ -402,7 +331,7 @@ Rasterizer.prototype.overlay = function(targetData, color, opacity, x, y, w, h) 
  * Must be an integer.
  * @param {number} h Height of the targetData buffer and the area to copy there.
  * Must be an integer
- * @param {function()} Blend function that takes inputs three inputs; base color, top color and returns the resulting
+ * @param {function()} blendFunction Blend function that takes inputs three inputs; base color, top color and returns the resulting
  * color.
  */
 Rasterizer.prototype.blendPerChannel = function(targetData, color, opacity, x, y, w, h, blendFunction) {
