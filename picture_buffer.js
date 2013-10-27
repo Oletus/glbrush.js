@@ -964,7 +964,7 @@ CanvasBuffer.drawRasterizer = function(dataCtx, targetCtx, raster, clipRect,
             case PictureEvent.Mode.darken:
                 blendFunction = colorUtil.blendDarken;
                 break;
-            case PictureEvent.Mode.ligent:
+            case PictureEvent.Mode.lighten:
                 blendFunction = colorUtil.blendLighten;
                 break;
             case PictureEvent.Mode.difference:
