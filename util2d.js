@@ -245,7 +245,6 @@ colorUtil.blendScreen = function(a, b) {
  * @return {number} Blended value between/or 0 and 255
  */
 colorUtil.blendOverlay = function(a, b) {
-    //console.log("overlay " + a + ", " + b);
     return a < 127.5 ?
             (2.0 / 255.0 * a * b) :
             (255.0 - 2.0 * (1.0 - b / 255.0) * (255.0 - a));
