@@ -31,7 +31,7 @@ function testBlendFunction(name, blendFunction) {
                 var error = Math.abs(data[(x + y*27) * 4] - result)
                 errorTotal += error;
                 errorMax = errorMax < error ? error : errorMax;
-                if (error > 1)
+                if (error > 2)
                     console.log(name + ":" + inputs[x] + ", " + inputs[y] + " func " + result + " vs. ps " + 
                         data[(x + y*27) * 4]);
             }
@@ -57,6 +57,11 @@ function runTest() {
     testBlendFunction("exclusion", colorUtil.blendExclusion);
     testBlendFunction("colorburn", colorUtil.blendColorBurn);
     testBlendFunction("linearburn", colorUtil.blendLinearBurn);
+    testBlendFunction("vividlight", colorUtil.blendVividLight);
+    testBlendFunction("linearlight", colorUtil.blendLinearLight);
+    testBlendFunction("pinlight", colorUtil.blendPinLight);
+    testBlendFunction("colordodge", colorUtil.blendColorDodge);
+    testBlendFunction("lineardodgeadd", colorUtil.blendLinearDodge);
 }
 
 </script>

@@ -47,8 +47,12 @@ colorUtil = {
     blendHardLight: null,
     blendSoftLight: null,
     blendColorBurn: null,
-    blendLinearBurn: null
-    
+    blendLinearBurn: null,
+    blendVividLight: null,
+    blendLinearLight: null,
+    blendPinLight: null,
+    blendColorDoge: null,
+    blendLinearDodge: null
 };
 
 /**
@@ -241,8 +245,8 @@ colorUtil.blendSoftLight = function(a, b) {
             2 * a * b + a * a * (1 - 2 * b) :
             Math.sqrt(a) * (2 * b - 1) + (2 * a) * (1 - b));    
     // b < .5 ? (2 * a * b + a * a * (1 – 2 * b)) : (sqrt(a) * (2 * b – 1) + (2 * a) * (1 – b))
-//(Blend > 0.5) * (1 - (1-Target) * (1-(Blend-0.5))) +
-//(Blend <= 0.5) * (Target * (Blend+0.5))    
+    //(Blend > 0.5) * (1 - (1-Target) * (1-(Blend-0.5))) +
+    //(Blend <= 0.5) * (Target * (Blend+0.5))    
 };
 
 colorUtil.blendDarken = function(a, b) {
@@ -262,19 +266,57 @@ colorUtil.blendExclusion = function(a, b) {
 };
 
 colorUtil.blendColorBurn = function(a, b) {
-    if (a === 255) {
+    if (a === 255)
         return 255;
-    }       
-    if (b === 0) {
+    if (b === 0)
         return 0;
-    }   
     a /= 255;
-    b /= 255;   
-    return mathUtil.clamp(0, 255, 255. * (1. - (1. - a) / b ));
+    b /= 255;
+    return mathUtil.clamp(0, 255, 255. * (1. - (1. - a) / b));
 };
 
 colorUtil.blendLinearBurn = function(a, b) {
     return mathUtil.clamp(0, 255, a + b - 255.);
+};
+
+colorUtil.blendVividLight = function(a, b) {
+    if (b === 0)
+        return 0;
+    if (b === 255)
+        return 255;
+    a /= 255;
+    b /= 255;
+    return mathUtil.clamp(0, 255, 255 * (b <= .5 ?
+            1 - (1 - a) / (2 * (b)) :
+            a / (2 * (1 - b))));
+};
+
+colorUtil.blendLinearLight = function(a, b) {
+    a /= 255;
+    b /= 255;
+    return mathUtil.clamp(0, 255, 255 * (b <= .5 ?
+            (a + 2 * b - 1) :
+            (a + 2 * (b - 0.5))));
+};
+
+colorUtil.blendPinLight = function(a, b) {
+    a /= 255;
+    b /= 255;
+    return 255 * (b <= .5 ?
+            (Math.min(a, 2 * b)) :
+            (Math.max(a, 2 * (b - 0.5))));
+};
+
+colorUtil.blendColorDodge = function(a, b) {
+    if (a === 0)
+        return 0;
+    if (b === 255)
+        return 255;
+    return mathUtil.clamp(0, 255, 255. * a / (255 - b));
+};
+
+colorUtil.blendLinearDodge = function(a, b) {
+    return mathUtil.clamp(0, 255, a + b);
 };
 
 mathUtil = {
