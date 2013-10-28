@@ -946,12 +946,64 @@ CanvasBuffer.drawRasterizer = function(dataCtx, targetCtx, raster, clipRect,
                              br.x, br.y, br.w, br.h);
     } else if (mode === PictureEvent.Mode.erase) {
         raster.erase(targetData, opacity, br.x, br.y, br.w, br.h);
-    } else if (mode === PictureEvent.Mode.multiply) {
-        raster.multiply(targetData, color, opacity, br.x, br.y, br.w, br.h);
-    } else if (mode === PictureEvent.Mode.screen) {
-        raster.screen(targetData, color, opacity, br.x, br.y, br.w, br.h);
-    } else if (mode === PictureEvent.Mode.overlay) {
-        raster.overlay(targetData, color, opacity, br.x, br.y, br.w, br.h);
+    } else {
+        var blendFunction = null;
+        switch (mode) {
+            case PictureEvent.Mode.multiply:
+                blendFunction = colorUtil.blendMultiply;
+                break;
+            case PictureEvent.Mode.screen:
+                blendFunction = colorUtil.blendScreen;
+                break;
+            case PictureEvent.Mode.overlay:
+                blendFunction = colorUtil.blendOverlay;
+                break;
+            case PictureEvent.Mode.darken:
+                blendFunction = colorUtil.blendDarken;
+                break;
+            case PictureEvent.Mode.darken:
+                blendFunction = colorUtil.blendDarken;
+                break;
+            case PictureEvent.Mode.lighten:
+                blendFunction = colorUtil.blendLighten;
+                break;
+            case PictureEvent.Mode.difference:
+                blendFunction = colorUtil.blendDifference;
+                break;
+            case PictureEvent.Mode.exclusion:
+                blendFunction = colorUtil.blendExclusion;
+                break;
+            case PictureEvent.Mode.hardlight:
+                blendFunction = colorUtil.blendHardLight;
+                break;
+            case PictureEvent.Mode.softlight:
+                blendFunction = colorUtil.blendSoftLight;
+                break;
+            case PictureEvent.Mode.colorburn:
+                blendFunction = colorUtil.blendColorBurn;
+                break;
+            case PictureEvent.Mode.linearburn:
+                blendFunction = colorUtil.blendLinearBurn;
+                break;
+            case PictureEvent.Mode.vividlight:
+                blendFunction = colorUtil.blendVividLight;
+                break;
+            case PictureEvent.Mode.linearlight:
+                blendFunction = colorUtil.blendLinearLight;
+                break;
+            case PictureEvent.Mode.pinlight:
+                blendFunction = colorUtil.blendPinLight;
+                break;
+            case PictureEvent.Mode.colordodge:
+                blendFunction = colorUtil.blendColorDodge;
+                break;
+            case PictureEvent.Mode.lineardodge:
+                blendFunction = colorUtil.blendLinearDodge;
+                break;
+        }
+        if (blendFunction !== null) {
+            raster.blendPerChannel(targetData, color, opacity, br.x, br.y, br.w, br.h, blendFunction);
+        }
     }
     targetCtx.putImageData(targetData, br.x, br.y);
 };

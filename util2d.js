@@ -36,7 +36,23 @@ colorUtil = {
     serializeRGB: null,
     nBlends: null,
     alphaForNBlends: null,
-    differentColor: null
+    differentColor: null,
+    blendMultiply: null,
+    blendScreen: null,
+    blendDarken: null,
+    blendLighten: null,
+    blendDifference: null,
+    blendExclusion: null,
+    blendOverlay: null,
+    blendHardLight: null,
+    blendSoftLight: null,
+    blendColorBurn: null,
+    blendLinearBurn: null,
+    blendVividLight: null,
+    blendLinearLight: null,
+    blendPinLight: null,
+    blendColorDodge: null,
+    blendLinearDodge: null
 };
 
 /**
@@ -202,9 +218,207 @@ colorUtil.differentColor = function(color) {
     return hslToRgb(hsl[0], hsl[1], hsl[2]);
 };
 
+/**
+ * Multiply blend mode.
+ * @param {number} a Value between/or 0 and 255
+ * @param {number} b Value between/or 0 and 255
+ * @return {number} Blended value between/or 0 and 255
+ */
+colorUtil.blendMultiply = function(a, b) {
+    return a * b / 255.;
+};
+
+/**
+ * Screen blend mode.
+ * @param {number} a Value between/or 0 and 255
+ * @param {number} b Value between/or 0 and 255
+ * @return {number} Blended value between/or 0 and 255
+ */
+colorUtil.blendScreen = function(a, b) {
+    return 255. - (1. - a / 255.) * (255. - b);
+};
+
+/**
+ * Overlay blend mode.
+ * @param {number} a Value between/or 0 and 255
+ * @param {number} b Value between/or 0 and 255
+ * @return {number} Blended value between/or 0 and 255
+ */
+colorUtil.blendOverlay = function(a, b) {
+    return a < 127.5 ?
+            (2.0 / 255.0 * a * b) :
+            (255.0 - 2.0 * (1.0 - b / 255.0) * (255.0 - a));
+};
+
+/**
+ * Hard Light blend mode.
+ * @param {number} a Value between/or 0 and 255
+ * @param {number} b Value between/or 0 and 255
+ * @return {number} Blended value between/or 0 and 255
+ */
+colorUtil.blendHardLight = function(a, b) {
+    return b < 127.5 ?
+            (2.0 / 255.0 * a * b) :
+            (255.0 - 2.0 * (1.0 - b / 255.0) * (255.0 - a));
+};
+
+/**
+ * Soft Light blend mode.
+ * @param {number} a Value between/or 0 and 255
+ * @param {number} b Value between/or 0 and 255
+ * @return {number} Blended value between/or 0 and 255
+ */
+colorUtil.blendSoftLight = function(a, b) {
+    a /= 255;
+    b /= 255;
+    return 255 * (b <= .5 ?
+            2 * a * b + a * a * (1 - 2 * b) :
+            Math.sqrt(a) * (2 * b - 1) + (2 * a) * (1 - b));
+    // b < .5 ? (2 * a * b + a * a * (1 – 2 * b)) : (sqrt(a) * (2 * b – 1) + (2 * a) * (1 – b))
+    //(Blend > 0.5) * (1 - (1-Target) * (1-(Blend-0.5))) +
+    //(Blend <= 0.5) * (Target * (Blend+0.5))
+};
+
+/**
+ * Darken blend mode.
+ * @param {number} a Value between/or 0 and 255
+ * @param {number} b Value between/or 0 and 255
+ * @return {number} Blended value between/or 0 and 255
+ */
+colorUtil.blendDarken = function(a, b) {
+    return a < b ? a : b;
+};
+
+/**
+ * Lighten blend mode.
+ * @param {number} a Value between/or 0 and 255
+ * @param {number} b Value between/or 0 and 255
+ * @return {number} Blended value between/or 0 and 255
+ */
+colorUtil.blendLighten = function(a, b) {
+    return a > b ? a : b;
+};
+
+/**
+ * Difference blend mode.
+ * @param {number} a Value between/or 0 and 255
+ * @param {number} b Value between/or 0 and 255
+ * @return {number} Blended value between/or 0 and 255
+ */
+colorUtil.blendDifference = function(a, b) {
+    return Math.abs(a - b);
+};
+
+/**
+ * Exclusion blend mode.
+ * @param {number} a Value between/or 0 and 255
+ * @param {number} b Value between/or 0 and 255
+ * @return {number} Blended value between/or 0 and 255
+ */
+colorUtil.blendExclusion = function(a, b) {
+    return a + b - 2.0 / 255.0 * a * b;
+};
+
+/**
+ * Color Burn blend mode.
+ * @param {number} a Value between/or 0 and 255
+ * @param {number} b Value between/or 0 and 255
+ * @return {number} Blended value between/or 0 and 255
+ */
+colorUtil.blendColorBurn = function(a, b) {
+    if (a === 255)
+        return 255;
+    if (b === 0)
+        return 0;
+    a /= 255;
+    b /= 255;
+    return mathUtil.clamp(0, 255, 255. * (1. - (1. - a) / b));
+};
+
+/**
+ * Linear Burn blend mode.
+ * @param {number} a Value between/or 0 and 255
+ * @param {number} b Value between/or 0 and 255
+ * @return {number} Blended value between/or 0 and 255
+ */
+colorUtil.blendLinearBurn = function(a, b) {
+    return mathUtil.clamp(0, 255, a + b - 255.);
+};
+
+/**
+ * Vivid Light blend mode.
+ * @param {number} a Value between/or 0 and 255
+ * @param {number} b Value between/or 0 and 255
+ * @return {number} Blended value between/or 0 and 255
+ */
+colorUtil.blendVividLight = function(a, b) {
+    if (b === 0)
+        return 0;
+    if (b === 255)
+        return 255;
+    a /= 255;
+    b /= 255;
+    return mathUtil.clamp(0, 255, 255 * (b <= .5 ?
+            1 - (1 - a) / (2 * (b)) :
+            a / (2 * (1 - b))));
+};
+
+/**
+ * Linear Light blend mode.
+ * @param {number} a Value between/or 0 and 255
+ * @param {number} b Value between/or 0 and 255
+ * @return {number} Blended value between/or 0 and 255
+ */
+colorUtil.blendLinearLight = function(a, b) {
+    a /= 255;
+    b /= 255;
+    return mathUtil.clamp(0, 255, 255 * (b <= .5 ?
+            (a + 2 * b - 1) :
+            (a + 2 * (b - 0.5))));
+};
+
+/**
+ * Pin Light blend mode.
+ * @param {number} a Value between/or 0 and 255
+ * @param {number} b Value between/or 0 and 255
+ * @return {number} Blended value between/or 0 and 255
+ */
+colorUtil.blendPinLight = function(a, b) {
+    a /= 255;
+    b /= 255;
+    return 255 * (b <= .5 ?
+            (Math.min(a, 2 * b)) :
+            (Math.max(a, 2 * (b - 0.5))));
+};
+
+/**
+ * Color Dodge blend mode.
+ * @param {number} a Value between/or 0 and 255
+ * @param {number} b Value between/or 0 and 255
+ * @return {number} Blended value between/or 0 and 255
+ */
+colorUtil.blendColorDodge = function(a, b) {
+    if (a === 0)
+        return 0;
+    if (b === 255)
+        return 255;
+    return mathUtil.clamp(0, 255, 255. * a / (255 - b));
+};
+
+/**
+ * Linear Dodge blend mode.
+ * @param {number} a Value between/or 0 and 255
+ * @param {number} b Value between/or 0 and 255
+ * @return {number} Blended value between/or 0 and 255
+ */
+colorUtil.blendLinearDodge = function(a, b) {
+    return mathUtil.clamp(0, 255, a + b);
+};
+
 mathUtil = {
     mix: null,
-    ease: null
+    ease: null,
+    clamp: null
 };
 
 /**
@@ -227,6 +441,17 @@ mathUtil.mix = function(a, b, f) {
  */
 mathUtil.ease = function(a, b, f) {
     return a + Math.sin(f * Math.PI * 0.5) * (b - a);
+};
+
+/**
+ * Clamps value to range.
+ * @param {number} min Minimum bound
+ * @param {number} max Maximum bound
+ * @param {number} value Value to be calmpped
+ * @return {number} Clampped value
+ */
+mathUtil.clamp = function(min, max, value) {
+    return value < min ? min : (value > max ? max : value);
 };
 
 /**

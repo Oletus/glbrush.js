@@ -75,45 +75,75 @@ compositingShader.getFragmentSource = function(layers) {
                 ' = texture2D(uLayer' + i + ', vTexCoord);');
         ++i;
         while (i < layers.length &&
-               layers[i].type === CanvasCompositor.Element.rasterizer) {
+                layers[i].type === CanvasCompositor.Element.rasterizer) {
             if (layers[i].rasterizer.format === GLRasterizerFormat.alpha) {
                 src.push('  float layer' + i + 'Alpha' +
-                    ' = texture2D(uLayer' + i + ', vTexCoord).w;');
+                        ' = texture2D(uLayer' + i + ', vTexCoord).w;');
             } else {
                 src.push('  vec4 layer' + i +
-                    ' = texture2D(uLayer' + i + ', vTexCoord);');
+                        ' = texture2D(uLayer' + i + ', vTexCoord);');
                 src.push('  float layer' + i + 'Alpha = ' +
-                         'layer' + i + '.x + ' +
-                         'layer' + i + '.y / 256.0;');
+                        'layer' + i + '.x + ' +
+                        'layer' + i + '.y / 256.0;');
             }
             // Unpremultiplied color
             src.push('  vec4 layer' + i + 'Color = vec4(uColor' + i + '.xyz,' +
-            'layer' + i + 'Alpha * uColor' + i + '.w);');
+                    'layer' + i + 'Alpha * uColor' + i + '.w);');
             if (layers[i].mode === PictureEvent.Mode.normal) {
                 // premultiply
                 src.push('  layer' + i + 'Color = vec4(layer' + i +
-                         'Color.xyz * layer' + i + 'Color.w, layer' + i +
-                         'Color.w);');
+                        'Color.xyz * layer' + i + 'Color.w, layer' + i +
+                        'Color.w);');
                 blendingSource(bufferColor, 'layer' + i + 'Color');
             } else if (layers[i].mode === PictureEvent.Mode.erase) {
                 src.push('  ' + bufferColor + ' = ' + bufferColor +
-                         ' * (1.0 - layer' + i + 'Color.w);');
+                        ' * (1.0 - layer' + i + 'Color.w);');
             } else {
                 if (layers[i].mode === PictureEvent.Mode.multiply) {
                     blendEq('dstColor * (1.0 + srcAlpha * (srcColor - 1.0))');
                 } else if (layers[i].mode === PictureEvent.Mode.screen) {
-                    blendEq('srcAlpha * ' +
-                            '(1.0 - (1.0 - srcColor) * (1.0 - dstColor)) + ' +
-                            '(1.0 - srcAlpha) * dstColor');
+                    blendEq('srcAlpha * (1.0 - (1.0 - srcColor) * (1.0 - dstColor)) + (1.0 - srcAlpha) * dstColor');
                 } else if (layers[i].mode === PictureEvent.Mode.overlay) {
-                    blendEqPerComponent(
-                            'mix(dstColor, (srcColor < 0.5 ?' +
-                            '(2.0 * dstColor * srcColor) :' +
-                            '(1.0 - 2.0 * (1.0 - srcColor) * ' +
-                            '(1.0 - dstColor))),  srcAlpha)');
+                    blendEqPerComponent('mix(dstColor, (dstColor <= 0.5 ? (2.0 / 1.0 * srcColor * dstColor) : ' +
+                            '(1.0 - 2.0 * (1.0 - dstColor) * (1.0 - srcColor))),  srcAlpha)');
+                } else if (layers[i].mode === PictureEvent.Mode.hardlight) {
+                    blendEqPerComponent('mix(dstColor, (srcColor <= 0.5 ? (2.0 / 1.0 * srcColor * dstColor) : ' +
+                            '(1.0 - 2.0 * (1.0 - dstColor) * (1.0 - srcColor))),  srcAlpha)');
+                } else if (layers[i].mode === PictureEvent.Mode.softlight) {
+                    blendEqPerComponent('mix(dstColor, (srcColor <= 0.5 ?' +
+                            '2. * dstColor * srcColor + dstColor * dstColor * (1. - 2. * srcColor) : ' +
+                            '(sqrt(dstColor) * (2. * srcColor - 1.) + (2. * dstColor) * (1. - srcColor))), srcAlpha)');
+                } else if (layers[i].mode === PictureEvent.Mode.darken) {
+                    blendEqPerComponent('mix(dstColor, dstColor < srcColor ? dstColor : srcColor, srcAlpha)');
+                } else if (layers[i].mode === PictureEvent.Mode.lighten) {
+                    blendEqPerComponent('mix(dstColor, dstColor > srcColor ? dstColor : srcColor, srcAlpha)');
+                } else if (layers[i].mode === PictureEvent.Mode.difference) {
+                    blendEq('mix(dstColor, abs(srcColor - dstColor), srcAlpha)');
+                } else if (layers[i].mode === PictureEvent.Mode.exclusion) {
+                    blendEq('mix(dstColor, dstColor + srcColor - vec3(2) * dstColor * srcColor, srcAlpha)');
+                } else if (layers[i].mode === PictureEvent.Mode.colorburn) {
+                    blendEqPerComponent('mix(dstColor, dstColor >= 1. ? 1.0 : srcColor <= 0. ? 0.0 : ' +
+                            'clamp(1. - (1. - dstColor) / srcColor, 0., 1.), srcAlpha)');
+                } else if (layers[i].mode === PictureEvent.Mode.linearburn) {
+                    blendEq('mix(dstColor, clamp(dstColor + srcColor - vec3(1), vec3(0), vec3(1)), srcAlpha)');
+                } else if (layers[i].mode === PictureEvent.Mode.vividlight) {
+                    blendEqPerComponent('mix(dstColor, srcColor >= 1. ? 1.0 : srcColor <= 0. ? 0.0 : ' +
+                            'clamp((srcColor <= .5 ? 1. - (1. - dstColor) / (2. * (srcColor)) :' +
+                            'dstColor / (2. * (1. - srcColor))), 0., 1.), srcAlpha)');
+                } else if (layers[i].mode === PictureEvent.Mode.linearlight) {
+                    blendEqPerComponent('mix(dstColor,' +
+                            'clamp(srcColor <= .5 ? (dstColor + 2. * srcColor - 1.) : ' +
+                            '(dstColor + 2. * (srcColor - 0.5)), 0., 1.), srcAlpha)');
+                } else if (layers[i].mode === PictureEvent.Mode.pinlight) {
+                    blendEqPerComponent('mix(dstColor, (srcColor <= .5 ? (min(dstColor, 2. * srcColor)) : ' +
+                            'max(dstColor, 2. * (srcColor - 0.5))), srcAlpha)');
+                } else if (layers[i].mode === PictureEvent.Mode.colordodge) {
+                    blendEqPerComponent('mix(dstColor, dstColor <= 0. ? 0.0 : srcColor >= 1. ? 1.0 : ' +
+                            'clamp(dstColor / (1. - srcColor), 0., 1.), srcAlpha)');
+                } else if (layers[i].mode === PictureEvent.Mode.lineardodge) {
+                    blendEq('mix(dstColor, clamp(dstColor + srcColor, vec3(0), vec3(1)), srcAlpha)');
                 } else {
-                    console.log('Unexpected mode in shader generation ' +
-                                layers[i].mode);
+                    console.log('Unexpected mode in shader generation ' + layers[i].mode);
                 }
             }
             ++i;
