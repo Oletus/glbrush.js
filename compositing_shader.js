@@ -118,14 +118,14 @@ compositingShader.getFragmentSource = function(layers) {
                 } else if (layers[i].mode === PictureEvent.Mode.lighten) {
                     blendEqPerComponent('mix(dstColor, dstColor > srcColor ? dstColor : srcColor, srcAlpha)');
                 } else if (layers[i].mode === PictureEvent.Mode.difference) {
-                    blendEqPerComponent('mix(dstColor, abs(srcColor - dstColor), srcAlpha)');
+                    blendEq('mix(dstColor, abs(srcColor - dstColor), srcAlpha)');
                 } else if (layers[i].mode === PictureEvent.Mode.exclusion) {
-                    blendEqPerComponent('mix(dstColor, dstColor + srcColor - 2.0 * dstColor * srcColor, srcAlpha)');
+                    blendEq('mix(dstColor, dstColor + srcColor - vec3(2) * dstColor * srcColor, srcAlpha)');
                 } else if (layers[i].mode === PictureEvent.Mode.colorburn) {
                     blendEqPerComponent('mix(dstColor, dstColor >= 1. ? 1.0 : srcColor <= 0. ? 0.0 : ' +
                             'clamp(1. - (1. - dstColor) / srcColor, 0., 1.), srcAlpha)');
                 } else if (layers[i].mode === PictureEvent.Mode.linearburn) {
-                    blendEqPerComponent('mix(dstColor, clamp(dstColor + srcColor - 1.0, 0., 1.), srcAlpha)');
+                    blendEq('mix(dstColor, clamp(dstColor + srcColor - vec3(1), vec3(0), vec3(1)), srcAlpha)');
                 } else if (layers[i].mode === PictureEvent.Mode.vividlight) {
                     blendEqPerComponent('mix(dstColor, srcColor >= 1. ? 1.0 : srcColor <= 0. ? 0.0 : ' +
                             'clamp((srcColor <= .5 ? 1. - (1. - dstColor) / (2. * (srcColor)) :' +
@@ -141,7 +141,7 @@ compositingShader.getFragmentSource = function(layers) {
                     blendEqPerComponent('mix(dstColor, dstColor <= 0. ? 0.0 : srcColor >= 1. ? 1.0 : ' +
                             'clamp(dstColor / (1. - srcColor), 0., 1.), srcAlpha)');
                 } else if (layers[i].mode === PictureEvent.Mode.lineardodge) {
-                    blendEqPerComponent('mix(dstColor, clamp(dstColor + srcColor, 0., 1.), srcAlpha)');
+                    blendEq('mix(dstColor, clamp(dstColor + srcColor, vec3(0), vec3(1)), srcAlpha)');
                 } else {
                     console.log('Unexpected mode in shader generation ' + layers[i].mode);
                 }
