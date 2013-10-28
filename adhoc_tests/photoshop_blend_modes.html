@@ -1,6 +1,7 @@
 <html>
     <head>
         <!-- Copyright Jerry Ylilammi 2013 -->
+        <!-- Copyright Olli Etuaho 2013 -->
         <title>Photoshop blend mode comparison</title>
         <script type="text/javascript" src="../util2d.js"></script>
         <script type="text/javascript">
@@ -14,7 +15,7 @@
 
             // Compare blendFunction with reference data from Photoshop CS5, the reference data was generated with
             // input1.png as base layer and input2.png on top with 100% opacity and given blend mode selected.
-            function testBlendFunction(name, blendFunction) {
+            function testBlendFunction(name, blendFunction, callback) {
                 var img = new Image();
                 img.onload = function() {
                     var canvas = document.createElement("canvas");
@@ -25,9 +26,14 @@
                     var data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
                     var errorTotal = 0.;
                     var errorMax = 0.;
+                    var resultData = ctx.createImageData(27, 27); // For displaying the blending code results
                     for (var x = 0; x < 27; x++)
                         for (var y = 0; y < 27; y++) {
                             var result = Math.round(blendFunction(inputs[x], inputs[y]));
+                            for (var i = 0; i < 3; ++i) {
+                                resultData.data[(x + y * 27) * 4 + i] = result;
+                            }
+                            resultData.data[(x + y * 27) * 4 + 3] = 255;
                             var error = Math.abs(data[(x + y * 27) * 4] - result);
                             errorTotal += error;
                             errorMax = errorMax < error ? error : errorMax;
@@ -38,30 +44,40 @@
 
                     var averageError = errorTotal / (27 * 27) * (100 / 255);
                     var maximumError = errorMax;
-                    document.body.innerHTML += "<div>Testing function <b>" + name + "</b>, average error is <b>" +
-                            averageError + " %</b>, maximum error is <b>" + maximumError + " / 255</b></div>";
+                    var report = document.createElement('div');
+                    report.innerHTML = "Testing function <b>" + name + "</b>, average error is <b>" +
+                            averageError + " %</b>, maximum error is <b>" + maximumError + " / 255</b>";
+                    document.body.appendChild(report);
+
+                    document.body.appendChild(img);
+                    var displayOnCanvas = function(imageData) {
+                        var dataCanvas = document.createElement('canvas');
+                        dataCanvas.width = 27;
+                        dataCanvas.height = 27;
+                        var ctx = dataCanvas.getContext('2d');
+                        ctx.putImageData(imageData, 0, 0);
+                        document.body.appendChild(dataCanvas);
+                    };
+                    displayOnCanvas(resultData);
+                    window.setTimeout(callback, 0);
                 };
                 img.src = "img/photoshop_cs5_" + name + ".png";
             }
 
+            var tests = [
+                "Multiply", "Screen", "Overlay", "HardLight", "SoftLight", "Darken", "Lighten", "Difference",
+                "Exclusion", "ColorBurn", "LinearBurn", "VividLight", "LinearLight", "PinLight", "ColorDodge",
+                "LinearDodge"
+            ];
+
+            var testIndex = 0;
             function runTest() {
-                //testBlendFunction("multiply", function(a,b) { return a * (b / 255); });
-                testBlendFunction("multiply", colorUtil.blendMultiply);
-                testBlendFunction("screen", colorUtil.blendScreen);
-                testBlendFunction("overlay", colorUtil.blendOverlay);
-                testBlendFunction("hardlight", colorUtil.blendHardLight);
-                testBlendFunction("softlight", colorUtil.blendSoftLight);
-                testBlendFunction("darken", colorUtil.blendDarken);
-                testBlendFunction("lighten", colorUtil.blendLighten);
-                testBlendFunction("difference", colorUtil.blendDifference);
-                testBlendFunction("exclusion", colorUtil.blendExclusion);
-                testBlendFunction("colorburn", colorUtil.blendColorBurn);
-                testBlendFunction("linearburn", colorUtil.blendLinearBurn);
-                testBlendFunction("vividlight", colorUtil.blendVividLight);
-                testBlendFunction("linearlight", colorUtil.blendLinearLight);
-                testBlendFunction("pinlight", colorUtil.blendPinLight);
-                testBlendFunction("colordodge", colorUtil.blendColorDodge);
-                testBlendFunction("lineardodgeadd", colorUtil.blendLinearDodge);
+                // Since image loading is asynchronous, run the next test as a callback from there to ensure tests are
+                // run in the same order.
+                if (testIndex < tests.length) {
+                    testBlendFunction(tests[testIndex].toLowerCase(), colorUtil['blend' + tests[testIndex]], runTest);
+                    ++testIndex;
+                }
             }
 
         </script>
