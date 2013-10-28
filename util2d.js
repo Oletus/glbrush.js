@@ -447,8 +447,8 @@ mathUtil.ease = function(a, b, f) {
  * Clamps value to range.
  * @param {number} min Minimum bound
  * @param {number} max Maximum bound
- * @param {number} value Value to be calmpped
- * @return {number} Clampped value
+ * @param {number} value Value to be clamped
+ * @return {number} Clamped value
  */
 mathUtil.clamp = function(min, max, value) {
     return value < min ? min : (value > max ? max : value);

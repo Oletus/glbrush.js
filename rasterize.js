@@ -335,10 +335,9 @@ Rasterizer.prototype.erase = function(targetData, opacity, x, y, w, h) {
  * @param {number} w Width of the targetData buffer and the area to copy there.
  * Must be an integer.
  * @param {number} h Height of the targetData buffer and the area to copy there.
- * Must be an integer
+ * Must be an integer.
  * @param {function()} blendFunction Blend function that takes inputs three inputs; base color, top color and returns
- * the resulting
- * color.
+ * the resulting color.
  */
 Rasterizer.prototype.blendPerChannel = function(targetData, color, opacity, x, y, w, h, blendFunction) {
     var tData = targetData.data;
