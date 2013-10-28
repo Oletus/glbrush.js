@@ -15,6 +15,8 @@
 
             // Compare blendFunction with reference data from Photoshop CS5, the reference data was generated with
             // input1.png as base layer and input2.png on top with 100% opacity and given blend mode selected.
+            // Note that blending works differently for tools in Photoshop than it does for layers. We don't emulate
+            // the tool blending behavior at least for now, only the simpler layer blending behavior.
             function testBlendFunction(name, blendFunction, callback) {
                 var img = new Image();
                 img.onload = function() {
