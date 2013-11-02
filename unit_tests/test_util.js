@@ -11,7 +11,7 @@ function testRGB() {
 }
 
 function testBrushEvent() {
-    return new BrushEvent(0, 1, false, testRGB(), 0.78, 0.9, 25, 1.0,
+    return new BrushEvent(0, 1, false, testRGB(), 0.78, 0.9, 25, 0, 1.0,
                           PictureEvent.Mode.normal);
 }
 
@@ -27,7 +27,7 @@ function fillingBrushEvent(widthToFill, heightToFill, color, opacity, mode,
         flow = 1.0;
     }
     var radius = Math.max(widthToFill, heightToFill) + 2;
-    var event = new BrushEvent(0, 1, false, color, flow, opacity, radius, 0.0,
+    var event = new BrushEvent(0, 1, false, color, flow, opacity, radius, 0, 0.0,
                           mode);
     event.pushCoordTriplet(0, 0, 1.0);
     event.pushCoordTriplet(widthToFill, heightToFill, 1.0);
@@ -42,13 +42,14 @@ function expectTestBrushEvent(brushEvent) {
     expect(brushEvent.flow).toBe(0.78);
     expect(brushEvent.opacity).toBe(0.9);
     expect(brushEvent.radius).toBe(25);
+    expect(brushEvent.textureId).toBe(0);
     expect(brushEvent.soft).toBe(true);
     expect(brushEvent.coords.length).toBe(0);
     expect(brushEvent.mode).toBe(PictureEvent.Mode.normal);
 }
 
 function testScatterEvent() {
-    return new ScatterEvent(0, 1, false, testRGB(), 0.78, 0.9, 25, 1.0,
+    return new ScatterEvent(0, 1, false, testRGB(), 0.78, 0.9, 25, 0, 1.0,
                             PictureEvent.Mode.normal);
 }
 

@@ -152,10 +152,10 @@ PictureEvent.Mode = {
 /**
  * Generate a constructor for an event conforming to the brush event format.
  * @return {function(number, number, boolean, Uint8Array|Array.<number>, number,
- * number, number, number, PictureEvent.Mode)} Constructor for the event.
+ * number, number, number, number, PictureEvent.Mode)} Constructor for the event.
  */
 var brushEventConstructor = function() {
-    return function(sid, sessionEventId, undone, color, flow, opacity, radius,
+    return function(sid, sessionEventId, undone, color, flow, opacity, radius, textureId,
                     softness, mode) {
         // TODO: assert(color.length == 3);
         this.undone = undone;
@@ -167,6 +167,7 @@ var brushEventConstructor = function() {
         this.radius = radius;
         this.coords = []; // holding x,y,pressure triplets
         this.boundingBoxRasterizer = new BrushEvent.BBRasterizer();
+        this.textureId = textureId; // Id 0 is a circle, others are bitmap textures.
         this.soft = softness > 0.5;
         this.mode = mode;
         this.hideCount = 0;
@@ -191,6 +192,7 @@ var brushEventConstructor = function() {
  * @param {number} opacity Alpha value controlling blending the rasterizer
  * stroke to the target buffer. Range 0 to 1.
  * @param {number} radius The stroke radius in pixels.
+ * @param {number} textureId Id of the brush tip shape texture. 0 is a circle, others are bitmap textures.
  * @param {number} softness Value controlling the softness. Range 0 to 1.
  * @param {PictureEvent.Mode} mode Blending mode to use.
  */
@@ -213,6 +215,7 @@ BrushEvent.prototype.serialize = function(scale) {
     eventMessage += ' ' + colorUtil.serializeRGB(this.color);
     eventMessage += ' ' + this.flow + ' ' + this.opacity;
     eventMessage += ' ' + (this.radius * scale);
+    eventMessage += ' ' + this.textureId;
     if (this.soft) {
         eventMessage += ' 1.0';
     } else {
@@ -245,10 +248,14 @@ var brushEventParser = function(constructor) {
         var flow = parseFloat(arr[i++]);
         var opacity = parseFloat(arr[i++]);
         var radius = parseFloat(arr[i++]);
+        var textureId = 0;
+        if (version > 1) {
+            textureId = parseInt(arr[i++]);
+        }
         var softness = parseFloat(arr[i++]);
         var mode = parseInt(arr[i++]);
         var pictureEvent = new constructor(sid, sessionEventId, undone, color,
-                                           flow, opacity, radius, softness,
+                                           flow, opacity, radius, textureId, softness,
                                            mode);
         while (i <= arr.length - BrushEvent.coordsStride) {
             var x = parseFloat(arr[i++]);
@@ -559,6 +566,7 @@ BrushEvent.prototype.isRasterized = function() {
  * @param {number} opacity Alpha value controlling blending the rasterizer
  * data to the target buffer. Range 0 to 1.
  * @param {number} radius The stroke radius in pixels.
+ * @param {number} textureId Id of the brush tip shape texture. 0 is a circle, others are bitmap textures.
  * @param {number} softness Value controlling the softness. Range 0 to 1.
  * @param {PictureEvent.Mode} mode Blending mode to use.
  */

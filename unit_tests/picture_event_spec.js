@@ -61,12 +61,53 @@ describe('PictureEvent', function() {
         }
     };
 
+    var serializeLegacyBrushEvent = function(scale, version) {
+        var eventMessage = this.serializePictureEvent();
+        eventMessage += ' ' + colorUtil.serializeRGB(this.color);
+        eventMessage += ' ' + this.flow + ' ' + this.opacity;
+        eventMessage += ' ' + (this.radius * scale);
+        if (version > 1) {
+            eventMessage += ' ' + this.textureId;
+        }
+        if (this.soft) {
+            eventMessage += ' 1.0';
+        } else {
+            eventMessage += ' 0.0';
+        }
+        eventMessage += ' ' + this.mode;
+        var i = 0;
+        while (i < this.coords.length) {
+            eventMessage += ' ' + this.coords[i++] * scale;
+            eventMessage += ' ' + this.coords[i++] * scale;
+            eventMessage += ' ' + this.coords[i++];
+        }
+        return eventMessage;
+    };
+
     describe('BrushEvent', function() {
         commonEventTests(testBrushEvent, expectTestBrushEvent);
+        it('parses a version 1 event', function() {
+            var version = 1;
+            var testEvent = testBrushEvent();
+            testEvent.serializeLegacy = serializeLegacyBrushEvent;
+            var serialization = testEvent.serializeLegacy(1.0, version);
+            var splitSerialization = serialization.split(' ');
+            var parsedEvent = PictureEvent.parse(splitSerialization, 0, version);
+            expectTestBrushEvent(parsedEvent);
+        });
     });
 
     describe('ScatterEvent', function() {
         commonEventTests(testScatterEvent, expectTestScatterEvent);
+        it('parses a version 1 event', function() {
+            var version = 1;
+            var testEvent = testScatterEvent();
+            testEvent.serializeLegacy = serializeLegacyBrushEvent;
+            var serialization = testEvent.serializeLegacy(1.0, version);
+            var splitSerialization = serialization.split(' ');
+            var parsedEvent = PictureEvent.parse(splitSerialization, 0, version);
+            expectTestScatterEvent(parsedEvent);
+        });
     });
 
     describe('GradientEvent', function() {

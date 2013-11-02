@@ -32,7 +32,7 @@ var runTest = function() {
     var radius = 30;
     var softness = 1.0;
     var mode = PictureEvent.Mode.normal;
-    var event = testPic.createBrushEvent(color, flow, opacity, radius, softness,
+    var event = testPic.createBrushEvent(color, flow, opacity, radius, 0, softness,
                                          mode);
     for (var j = 0; j < 101; ++j) {
         var x = (0.005 * j + 0.2) * w;
@@ -40,7 +40,7 @@ var runTest = function() {
         event.pushCoordTriplet(x, y, (x * 1.2) / w);
     }
     testPic.pushEvent(0, event);
-    event = testPic.createBrushEvent(color, flow, opacity, radius, softness,
+    event = testPic.createBrushEvent(color, flow, opacity, radius, 0, softness,
                                          mode);
     for (var j = 0; j < 2; ++j) {
         var x = (0.5 * j + 0.2) * w;
@@ -49,7 +49,7 @@ var runTest = function() {
     }
     testPic.pushEvent(0, event);
     softness = 0.0;
-    event = testPic.createBrushEvent(color, flow, opacity, radius, softness,
+    event = testPic.createBrushEvent(color, flow, opacity, radius, 0, softness,
                                          mode);
     for (var j = 0; j < 101; ++j) {
         var x = (0.005 * j + 0.2) * w;
@@ -57,7 +57,7 @@ var runTest = function() {
         event.pushCoordTriplet(x, y, (x * 1.2) / w);
     }
     testPic.pushEvent(0, event);
-    event = testPic.createBrushEvent(color, flow, opacity, radius, softness,
+    event = testPic.createBrushEvent(color, flow, opacity, radius, 0, softness,
                                          mode);
     for (var j = 0; j < 2; ++j) {
         var x = (0.5 * j + 0.2) * w;

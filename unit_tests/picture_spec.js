@@ -71,7 +71,7 @@ var doPictureTest = function(mode) {
         pic.addBuffer(1337, clearColor, false);
         pic.addBuffer(123, clearColor, false);
         pic.addBuffer(9001, clearColor, false);
-        var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 1, 0,
+        var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 1, 0, 0,
                                               PictureEvent.Mode.normal);
         brushEvent.pushCoordTriplet(0, 0, 1.0);
         brushEvent.pushCoordTriplet(width, height, 1.0);
@@ -84,7 +84,7 @@ var doPictureTest = function(mode) {
         var clearColor = [12, 23, 34];
         pic.addBuffer(1337, clearColor, false);
         expect(pic.getEventCount()).toBe(1);
-        var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 1, 0,
+        var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 1, 0, 0,
                                               PictureEvent.Mode.normal);
         brushEvent.pushCoordTriplet(0, 0, 1.0);
         brushEvent.pushCoordTriplet(width, height, 1.0);
@@ -134,7 +134,7 @@ var doPictureTest = function(mode) {
         var pic = testPicture();
         var clearColor = [12, 23, 34];
         pic.addBuffer(1337, clearColor, false);
-        var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 10, 0,
+        var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 10, 0, 0,
                                               PictureEvent.Mode.normal);
         brushEvent.pushCoordTriplet(0, 0, 1.0);
         brushEvent.pushCoordTriplet(width, height, 1.0);
@@ -157,7 +157,7 @@ var doPictureTest = function(mode) {
         var pic = testPicture();
         var clearColor = [12, 23, 34];
         pic.addBuffer(1337, clearColor, false);
-        var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 0.5, 10, 0,
+        var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 0.5, 10, 0, 0,
                                               PictureEvent.Mode.normal);
         brushEvent.pushCoordTriplet(0, 0, 1.0);
         brushEvent.pushCoordTriplet(width, height, 1.0);
@@ -278,7 +278,7 @@ var doPictureTest = function(mode) {
         var pic = testPicture();
         var clearColor = [12, 23, 34];
         pic.addBuffer(1337, clearColor, false);
-        var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 10, 0,
+        var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 10, 0, 0,
                                               PictureEvent.Mode.normal);
         brushEvent.pushCoordTriplet(0, 0, 1.0);
         brushEvent.pushCoordTriplet(pic.bitmapWidth(), pic.bitmapHeight(), 1.0);
@@ -353,7 +353,7 @@ var doPictureTest = function(mode) {
         var pic = testPicture();
         var clearColor = [12, 23, 34];
         pic.addBuffer(1337, clearColor, false);
-        var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 10, 0,
+        var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 10, 0, 0,
                                               PictureEvent.Mode.normal);
         brushEvent.pushCoordTriplet(0, 0, 1.0);
         brushEvent.pushCoordTriplet(pic.bitmapWidth(), pic.bitmapHeight(), 1.0);
@@ -371,7 +371,7 @@ var doPictureTest = function(mode) {
         var pic = testPicture();
         var clearColor = [12, 23, 34];
         pic.addBuffer(1337, clearColor, false);
-        var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 10, 0,
+        var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 10, 0, 0,
                                               PictureEvent.Mode.normal);
         brushEvent.pushCoordTriplet(0, 0, 1.0);
         brushEvent.pushCoordTriplet(pic.bitmapWidth(), pic.bitmapHeight(), 1.0);
@@ -387,7 +387,7 @@ var doPictureTest = function(mode) {
         var pic = testPicture();
         var clearColor = [12, 23, 34];
         pic.addBuffer(1337, clearColor, false);
-        var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 10, 0,
+        var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 10, 0, 0,
                                               PictureEvent.Mode.normal);
         brushEvent.pushCoordTriplet(0, 0, 1.0);
         brushEvent.pushCoordTriplet(pic.bitmapWidth(), pic.bitmapHeight(), 1.0);
@@ -612,7 +612,7 @@ var doPictureTest = function(mode) {
         expect(pic.memoryUse).toBeLessThan(memoryUseWas);
         expect(pic.memoryUse).toBe(memoryUseBeforeBuffers);
         // Freed buffers' contents may still be changed, test that:
-        var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 10, 0,
+        var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 10, 0, 0,
                                               PictureEvent.Mode.normal);
         brushEvent.pushCoordTriplet(0, 0, 1.0);
         brushEvent.pushCoordTriplet(pic.bitmapWidth(), pic.bitmapHeight(), 1.0);
@@ -633,7 +633,7 @@ var doPictureTest = function(mode) {
         var clearColor = [12, 23, 34];
         pic.addBuffer(1337, clearColor, false);
         pic.addBuffer(9001, clearColor, false);
-        var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 5, 0,
+        var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 5, 0, 0,
                                               PictureEvent.Mode.normal);
         brushEvent.pushCoordTriplet(0, 0, 1.0);
         brushEvent.pushCoordTriplet(5, 5, 1.0);
@@ -689,7 +689,7 @@ var doPictureTest = function(mode) {
         var pic = testPicture();
         var clearColor = [12, 23, 34];
         pic.addBuffer(1337, clearColor, false);
-        var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 5, 0,
+        var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 5, 0, 0,
                                               PictureEvent.Mode.normal);
         brushEvent.pushCoordTriplet(0, 0, 1.0);
         brushEvent.pushCoordTriplet(5, 5, 1.0);

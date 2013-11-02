@@ -373,7 +373,7 @@ Picture.prototype.maxBitmapScale = function() {
 };
 
 /** @const */
-Picture.formatVersion = 1;
+Picture.formatVersion = 2;
 
 /**
  * @return {string} A serialization of this Picture. Can be parsed into a new
@@ -442,14 +442,15 @@ Picture.prototype.setActiveSession = function(sid) {
  * @param {number} opacity Alpha value controlling blending the rasterizer
  * stroke to the target buffer. Range 0 to 1.
  * @param {number} radius The stroke radius in pixels.
- * @param {number} softness Value controlling the softness. Range 0 to 1.
+ * @param {number} textureId Id of the brush tip shape texture. 0 is a circle, others are bitmap textures.
+ * @param {number} softness Value controlling the softness. Range 0 to 1. Only applies to circles.
  * @param {PictureEvent.Mode} mode Blending mode to use.
  * @return {BrushEvent} The created brush event.
  */
 Picture.prototype.createBrushEvent = function(color, flow, opacity, radius,
-                                              softness, mode) {
+                                              textureId, softness, mode) {
     var event = new BrushEvent(this.activeSid, this.activeSessionEventId, false,
-                               color, flow, opacity, radius, softness, mode);
+                               color, flow, opacity, radius, textureId, softness, mode);
     this.activeSessionEventId++;
     return event;
 };
@@ -464,14 +465,15 @@ Picture.prototype.createBrushEvent = function(color, flow, opacity, radius,
  * @param {number} opacity Alpha value controlling blending the rasterizer data
  * to the target buffer. Range 0 to 1.
  * @param {number} radius The circle radius in pixels.
- * @param {number} softness Value controlling the softness. Range 0 to 1.
+ * @param {number} textureId Id of the brush tip shape texture. 0 is a circle, others are bitmap textures.
+ * @param {number} softness Value controlling the softness. Range 0 to 1. Only applies to circles.
  * @param {PictureEvent.Mode} mode Blending mode to use.
  * @return {BrushEvent} The created brush event.
  */
 Picture.prototype.createScatterEvent = function(color, flow, opacity, radius,
-                                                softness, mode) {
+                                                textureId, softness, mode) {
     var event = new ScatterEvent(this.activeSid, this.activeSessionEventId,
-                                 false, color, flow, opacity, radius, softness,
+                                 false, color, flow, opacity, radius, textureId, softness,
                                  mode);
     this.activeSessionEventId++;
     return event;

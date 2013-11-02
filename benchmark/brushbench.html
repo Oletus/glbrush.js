@@ -29,7 +29,7 @@ measureBrushStrokeTime = function(testPic, eventCount, radius, softness, mode,
     var startTime = new Date().getTime();
     for (var i = 0; i < eventCount; ++i) {
         var event = testPic.createBrushEvent(color, flow, opacity, radius,
-                                             softness, mode);
+                                             0, softness, mode);
         angle += 0.2;
         var xa = Math.cos(angle) / 100;
         var ya = Math.sin(angle) / 100;

@@ -61,7 +61,7 @@ loadApp = function() {
         var green = Math.random() * 255; //33;
         var blue = Math.random() * 255; //42;
         currentEvent = picture.createBrushEvent([red, green, blue], 0.8, 1.0,
-                                                20, 1,
+                                                20, 0, 1,
                                                 drawingBlendMode);
     };
     drawArea.onmouseup = function(e) {
