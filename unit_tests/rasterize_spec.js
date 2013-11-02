@@ -28,7 +28,7 @@ describe('Rasterizing system', function() {
         if (testFillCircleCalls === undefined) {
             testFillCircleCalls = false;
         }
-        testRasterizer.beginCircleLines(true, false, 0.1);
+        testRasterizer.beginCircleLines(true, 0, 0.1);
         expect(testRasterizer.soft).toBe(true);
         expect(testRasterizer.flowAlpha).toBe(0.1);
         expect(testRasterizer.t).toBe(0);
@@ -77,7 +77,7 @@ describe('Rasterizing system', function() {
 
     describe('BaseRasterizer', function() {
         var TestRasterizer = function(width, height) {
-            this.initBaseRasterizer(width, height);
+            this.initBaseRasterizer(width, height, null);
             this.fillCircleCalls = [];
         };
 
@@ -171,32 +171,34 @@ describe('Rasterizing system', function() {
 
             rasterizer.free();
         });
+
+        // TODO: Test brush textures
     };
 
     describe('Rasterizer', function() {
         var createRasterizer = function() {
-            return new Rasterizer(123, 456);
+            return new Rasterizer(123, 456, null);
         };
 
         commonRasterizerTests(createRasterizer);
 
         it('can draw a line', function() {
-            var rasterizer = new Rasterizer(123, 456);
+            var rasterizer = new Rasterizer(123, 456, null);
             testLineDrawingBasics(rasterizer);
         });
 
         it('has a clip rectangle', function() {
-            var rasterizer = new Rasterizer(123, 456);
+            var rasterizer = new Rasterizer(123, 456, null);
             var clipRect = new Rect(10, 20, 30, 40);
             rasterizer.setClip(clipRect);
             expect(rasterizer.clipRect).toEqual(clipRect);
         });
 
         it('does not overflow when drawing', function() {
-            var rasterizer = new Rasterizer(123, 456);
+            var rasterizer = new Rasterizer(123, 456, null);
             var clipRect = new Rect(-100, 223, -100, 556);
             rasterizer.setClip(clipRect);
-            rasterizer.beginCircleLines(true, false, 0.1);
+            rasterizer.beginCircleLines(true, 0, 0.1);
             rasterizer.circleLineTo(123, 0, 1);
             rasterizer.circleLineTo(123, 100, 1);
             var coords = new Vec2(0, 1);
@@ -210,7 +212,7 @@ describe('Rasterizing system', function() {
         var createRasterizer = function() {
             var gl = initTestGl();
             var glManager = glStateManager(gl);
-            return new GLDoubleBufferedRasterizer(gl, glManager, 123, 456);
+            return new GLDoubleBufferedRasterizer(gl, glManager, 123, 456, null);
         };
 
         commonRasterizerTests(createRasterizer);
@@ -220,7 +222,7 @@ describe('Rasterizing system', function() {
         var createRasterizer = function() {
             var gl = initTestGl();
             var glManager = glStateManager(gl);
-            return new GLFloatRasterizer(gl, glManager, 123, 456);
+            return new GLFloatRasterizer(gl, glManager, 123, 456, null);
         };
 
         commonRasterizerTests(createRasterizer);
@@ -230,7 +232,7 @@ describe('Rasterizing system', function() {
         var createRasterizer = function() {
             var gl = initTestGl();
             var glManager = glStateManager(gl);
-            return new GLFloatTexDataRasterizer(gl, glManager, 123, 456);
+            return new GLFloatTexDataRasterizer(gl, glManager, 123, 456, null);
         };
 
         commonRasterizerTests(createRasterizer);

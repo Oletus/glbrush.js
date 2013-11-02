@@ -778,7 +778,7 @@ var CanvasBuffer = function(createEvent, width, height, hasUndoStates) {
         this.createCanvas();
     }
 
-    this.blameRasterizer = new Rasterizer(width, height);
+    this.blameRasterizer = new Rasterizer(width, height, null);
     this.insertEvent(createEvent, null); // will clear the buffer
 };
 
@@ -1068,7 +1068,7 @@ var GLBuffer = function(gl, glManager, compositor, texBlitProgram, createEvent,
         this.createTex();
     }
 
-    this.blameRasterizer = new Rasterizer(this.width(), this.height());
+    this.blameRasterizer = new Rasterizer(this.width(), this.height(), null);
     this.insertEvent(createEvent, null); // will clear the buffer
 };
 

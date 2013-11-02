@@ -59,6 +59,7 @@ var Picture = function(id, boundsRect, bitmapScale, mode) {
     } else if (this.mode === 'canvas') {
         this.ctx = this.canvas.getContext('2d');
         this.compositor = new CanvasCompositor(this.ctx);
+        this.brushTextures = null;
         this.initRasterizers();
     } else {
         this.mode = undefined;
@@ -67,11 +68,35 @@ var Picture = function(id, boundsRect, bitmapScale, mode) {
 };
 
 /**
+ * Initialize brush texture data to use in rasterizers.
+ */
+Picture.prototype.initBrushTextureData = function() {
+    // TODO: Proper brush textures, this is just for testing...
+    var image = document.createElement('canvas');
+    image.width = 128;
+    image.height = 128;
+    var ctx = image.getContext('2d');
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, 128, 128);
+    ctx.fillStyle = '#fff';
+    ctx.shadowColor = '#000';
+    ctx.shadowBlur = 3; // Slight blurriness is required for an antialiased look
+    ctx.fillRect(5, 5, 64, 64);
+    ctx.fillRect(59, 59, 64, 64);
+    ctx.fillRect(20, 84, 24, 24);
+    ctx.fillRect(84, 20, 24, 24);
+    this.brushTextures.addTexture(image);
+};
+
+/**
  * Set up state in an existing gl context.
  * @return {boolean} Whether buffer initialization succeeded.
  */
 Picture.prototype.setupGLState = function() {
     this.glManager = glStateManager(this.gl);
+
+    this.brushTextures = new GLBrushTextures(this.gl, this.glManager);
+    this.initBrushTextureData();
 
     var useFloatRasterizer = (this.mode === 'webgl' ||
                               this.mode === 'no-texdata-webgl');
@@ -823,14 +848,14 @@ Picture.prototype.createRasterizer = function(saveMemory) {
         if (saveMemory) {
             return new GLDoubleBufferedRasterizer(this.gl, this.glManager,
                                                   this.bitmapWidth(),
-                                                  this.bitmapHeight());
+                                                  this.bitmapHeight(), this.brushTextures);
         } else {
             return new this.glRasterizerConstructor(this.gl, this.glManager,
                                                     this.bitmapWidth(),
-                                                    this.bitmapHeight());
+                                                    this.bitmapHeight(), this.brushTextures);
         }
     } else {
-        return new Rasterizer(this.bitmapWidth(), this.bitmapHeight());
+        return new Rasterizer(this.bitmapWidth(), this.bitmapHeight(), this.brushTextures);
     }
 };
 

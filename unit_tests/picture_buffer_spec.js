@@ -793,7 +793,7 @@ describe('CanvasBuffer', function() {
                                 params.hasUndoStates);
     };
     var createRasterizer = function(params) {
-        return new Rasterizer(params.width, params.height);
+        return new Rasterizer(params.width, params.height, null);
     };
     testBuffer(createBuffer, createRasterizer, testBufferParams);
 });
@@ -823,7 +823,7 @@ describe('GLBuffer', function() {
     };
     var createRasterizer = function(params) {
         return new GLDoubleBufferedRasterizer(gl, glManager, params.width,
-                                              params.height);
+                                              params.height, null);
     };
 
     testBuffer(createBuffer, createRasterizer, params);

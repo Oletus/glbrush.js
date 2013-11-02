@@ -16,11 +16,13 @@ var BaseRasterizer = function() {};
  * Initialize the generic rasterizer data.
  * @param {number} width Width of the rasterizer bitmap in pixels.
  * @param {number} height Height of the rasterizer bitmap in pixels.
+ * @param {GLBrushTextures} brushTextures Collection of brush tip textures to use.
  */
-BaseRasterizer.prototype.initBaseRasterizer = function(width, height) {
+BaseRasterizer.prototype.initBaseRasterizer = function(width, height, brushTextures) {
     this.clipRect = new Rect(0, width, 0, height);
     this.width = width;
     this.height = height;
+    this.brushTextures = brushTextures;
     this.soft = false;
     this.texturized = false;
     this.flowAlpha = 0; // range [0, 1]
@@ -93,13 +95,16 @@ BaseRasterizer.prototype.getDrawEventState = function(event, stateConstructor) {
 /**
  * Initialize drawing circle lines with the given parameters.
  * @param {boolean} soft Use soft edged circles.
- * @param {boolean} texturized Use texturized circles.
+ * @param {number} textureId Id of the brush tip texture to use. 0 means to draw only circles.
  * @param {number} flowAlpha The alpha value to use to rasterize individual
  * circles.
  */
-BaseRasterizer.prototype.beginCircleLines = function(soft, texturized, flowAlpha) {
+BaseRasterizer.prototype.beginCircleLines = function(soft, textureId, flowAlpha) {
     this.soft = soft;
-    this.texturized = texturized;
+    this.texturized = textureId > 0;
+    if (this.texturized && this.brushTextures !== null) {
+        this.brushTex = this.brushTextures.getTexture(textureId - 1);
+    }
     this.minRadius = this.soft ? 1.0 : 0.5;
     this.flowAlpha = flowAlpha;
     this.prevX = null;
@@ -192,7 +197,7 @@ BaseRasterizer.prototype.checkSanity = function() {
     this.drawEvent = null;
     this.resetClip();
     this.clear();
-    this.beginCircleLines(false, false, 1.0);
+    this.beginCircleLines(false, 0, 1.0);
     this.circleLineTo(1.5, 1.5, 2.0);
     this.circleLineTo(4.5, 4.5, 2.0);
     this.flushCircles();
@@ -204,7 +209,7 @@ BaseRasterizer.prototype.checkSanity = function() {
         }
     }
     this.clear();
-    this.beginCircleLines(false, false, 0.5);
+    this.beginCircleLines(false, 0, 0.5);
     this.circleLineTo(3.5, 3.5, 2.0);
     this.circleLineTo(13.5, 13.5, 2.0);
     this.flushCircles();
@@ -233,9 +238,10 @@ BaseRasterizer.prototype.checkSanity = function() {
  * @constructor
  * @param {number} width Width of the rasterizer bitmap in pixels.
  * @param {number} height Height of the rasterizer bitmap in pixels.
+ * @param {GLBrushTextures} brushTextures Collection of brush tip textures to use. TODO: SW mode textures
  */
-var Rasterizer = function(width, height) {
-    this.initBaseRasterizer(width, height);
+var Rasterizer = function(width, height, brushTextures) {
+    this.initBaseRasterizer(width, height, brushTextures);
     this.buffer = new ArrayBuffer(width * height * 4);
     this.data = new Float32Array(this.buffer);
     this.clear();
@@ -417,7 +423,7 @@ Rasterizer.prototype.getPixel = function(coords) {
 
 /**
  * Fill a circle to the rasterizer's bitmap at the given coordinates. Uses the
- * soft, texturized and flowAlpha values set using beginCircleLines, and clips the circle to
+ * soft, textureId and flowAlpha values set using beginCircleLines, and clips the circle to
  * the current clipping rectangle.
  * @param {number} centerX The x coordinate of the center of the circle.
  * @param {number} centerY The y coordinate of the center of the circle.
@@ -619,9 +625,10 @@ GLRasterizerFormat = {
  * utilgl.
  * @param {number} width Width of the rasterizer bitmap in pixels.
  * @param {number} height Height of the rasterizer bitmap in pixels.
+ * @param {GLBrushTextures} brushTextures Collection of brush tip textures to use.
  */
-var GLDoubleBufferedRasterizer = function(gl, glManager, width, height) {
-    this.initBaseRasterizer(width, height);
+var GLDoubleBufferedRasterizer = function(gl, glManager, width, height, brushTextures) {
+    this.initBaseRasterizer(width, height, brushTextures);
     this.initGLRasterizer(gl, glManager, GLRasterizerFormat.redGreen,
                           GLDoubleBufferedRasterizer.maxCircles, 3);
     // TODO: Move to gl.RG if EXT_texture_RG becomes available in WebGL
@@ -712,8 +719,7 @@ GLDoubleBufferedRasterizer.prototype.getMemoryBytes = function() {
  * padding, so paramsStride should be at least 3. Must be an integer.
  * @protected
  */
-GLDoubleBufferedRasterizer.prototype.initGLRasterizer = function(gl, glManager,
-                                             format, maxCircles, paramsStride) {
+GLDoubleBufferedRasterizer.prototype.initGLRasterizer = function(gl, glManager, format, maxCircles, paramsStride) {
     this.gl = gl;
     this.glManager = glManager;
     this.format = format;
@@ -728,30 +734,7 @@ GLDoubleBufferedRasterizer.prototype.initGLRasterizer = function(gl, glManager,
     this.circleRect = new Rect();
     this.circleInd = 0;
 
-    this.brushTex = this.gl.createTexture();
-
-    // TODO: Proper brush texture management, this is just for testing...
-    var image = document.createElement('canvas');
-    image.width = 128;
-    image.height = 128;
-    var ctx = image.getContext('2d');
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, 128, 128);
-    ctx.fillStyle = '#fff';
-    ctx.shadowColor = '#000';
-    ctx.shadowBlur = 3; // Slight blurriness is required for an antialiased look
-    ctx.fillRect(5, 5, 64, 64);
-    ctx.fillRect(59, 59, 64, 64);
-    ctx.fillRect(20, 84, 24, 24);
-    ctx.fillRect(84, 20, 24, 24);
-    var that = this;
-    that.gl.bindTexture(that.gl.TEXTURE_2D, that.brushTex);
-    that.gl.texImage2D(that.gl.TEXTURE_2D, 0, that.gl.RGBA, that.gl.RGBA, that.gl.UNSIGNED_BYTE, image);
-    that.gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    that.gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-    that.gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    that.gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    that.gl.generateMipmap(that.gl.TEXTURE_2D);
+    this.brushTex = null;
 };
 
 /**
@@ -952,7 +935,7 @@ GLDoubleBufferedRasterizer.prototype.postDraw = function(invalRect) {
 
 /**
  * Fill a circle to the rasterizer's bitmap at the given coordinates. Uses the
- * soft, texturized and flowAlpha values set using beginCircleLines, and clips the circle to
+ * soft, textureId and flowAlpha values set using beginCircleLines, and clips the circle to
  * the current clipping rectangle. The circle is added to the queue, which is
  * automatically flushed when it's full. Flushing manually should be done at the
  * end of drawing circles.
@@ -1068,10 +1051,11 @@ GLDoubleBufferedRasterizer.prototype.getPixel = function(coords) {
  * utilgl.
  * @param {number} width Width of the rasterizer bitmap in pixels.
  * @param {number} height Height of the rasterizer bitmap in pixels.
+ * @param {GLBrushTextures} brushTextures Collection of brush tip textures to use.
  */
-var GLFloatRasterizer = function(gl, glManager, width, height) {
+var GLFloatRasterizer = function(gl, glManager, width, height, brushTextures) {
     var i;
-    this.initBaseRasterizer(width, height);
+    this.initBaseRasterizer(width, height, brushTextures);
     this.initGLRasterizer(gl, glManager, GLRasterizerFormat.alpha,
                           GLFloatRasterizer.maxCircles, 3);
     this.tex = glUtils.createTexture(gl, width, height, this.gl.RGBA,
@@ -1254,9 +1238,10 @@ GLFloatRasterizer.prototype.getPixel =
  * utilgl.
  * @param {number} width Width of the rasterizer bitmap in pixels.
  * @param {number} height Height of the rasterizer bitmap in pixels.
+ * @param {GLBrushTextures} brushTextures Collection of brush tip textures to use.
  */
-var GLFloatTexDataRasterizer = function(gl, glManager, width, height) {
-    this.initBaseRasterizer(width, height);
+var GLFloatTexDataRasterizer = function(gl, glManager, width, height, brushTextures) {
+    this.initBaseRasterizer(width, height, brushTextures);
     // TODO: Possible to use RGB texture and paramsStride 3?
     // Not useful if more parameters are added.
     this.initGLRasterizer(gl, glManager, GLRasterizerFormat.alpha,
