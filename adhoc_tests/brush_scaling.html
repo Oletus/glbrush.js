@@ -37,7 +37,7 @@ var runTest = function() {
                                          mode);
     for (var j = 0; j < 101; ++j) {
         var x = (0.005 * j + 0.2) * w;
-        var y = 0.18 * w;
+        var y = 0.19 * w - Math.sin(x / w * Math.PI * 4) * 0.03 * w;
         event.pushCoordTriplet(x, y, (x * 1.2) / w);
     }
     testPic.pushEvent(0, event);
@@ -54,7 +54,7 @@ var runTest = function() {
                                          mode);
     for (var j = 0; j < 101; ++j) {
         var x = (0.005 * j + 0.2) * w;
-        var y = 0.61 * w;
+        var y = 0.62 * w - Math.sin(x / w * Math.PI * 4) * 0.03 * w;
         event.pushCoordTriplet(x, y, (x * 1.2) / w);
     }
     testPic.pushEvent(0, event);
