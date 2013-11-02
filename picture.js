@@ -5,14 +5,16 @@
 /**
  * @constructor
  * @param {number} id Picture's unique id number.
+ * @param {string} name Name of the picture. May be null.
  * @param {Rect} boundsRect Picture bounds. x and y should always be zero.
  * @param {number} bitmapScale Scale for rasterizing the picture. Events that
  * are pushed to this picture get this scale applied to them.
  * @param {string=} mode Either 'webgl', 'no-texdata-webgl' or 'canvas'.
  * Defaults to 'webgl'.
  */
-var Picture = function(id, boundsRect, bitmapScale, mode) {
+var Picture = function(id, name, boundsRect, bitmapScale, mode) {
     this.id = id;
+    this.name = name;
     if (mode === undefined) {
         mode = 'webgl';
     }
@@ -279,6 +281,7 @@ Picture.prototype.setBufferOpacity = function(bufferId, opacity) {
 /**
  * Create a Picture object.
  * @param {number} id Picture's unique id number.
+ * @param {string} name Name of the picture. May be null.
  * @param {number} width Picture width.
  * @param {number} height Picture height.
  * @param {number} bitmapScale Scale for rasterizing the picture. Events that
@@ -288,14 +291,14 @@ Picture.prototype.setBufferOpacity = function(bufferId, opacity) {
  * Modes are tried in the order they are in the array.
  * @return {Picture} The created picture or null if one couldn't be created.
  */
-Picture.create = function(id, width, height, bitmapScale, modesToTry) {
+Picture.create = function(id, name, width, height, bitmapScale, modesToTry) {
     var pictureBounds = new Rect(0, width, 0, height);
     var i = 0;
     var pic = null;
     while (i < modesToTry.length && pic === null) {
         var mode = modesToTry[i];
         if (glUtils.supportsTextureUnits(4) || mode === 'canvas') {
-            pic = new Picture(id, pictureBounds, bitmapScale, mode);
+            pic = new Picture(id, name, pictureBounds, bitmapScale, mode);
             if (pic.mode === undefined) {
                 pic = null;
             }
@@ -327,6 +330,7 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry) {
     var version = 0;
     var width = 0;
     var height = 0;
+    var name = null;
     if (pictureParams[1] !== 'version') {
         width = parseInt(pictureParams[1]);
         height = parseInt(pictureParams[2]);
@@ -335,7 +339,13 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry) {
         width = parseInt(pictureParams[3]);
         height = parseInt(pictureParams[4]);
     }
-    var pic = Picture.create(id, width, height, bitmapScale, modesToTry);
+    if (version > 2) {
+        var hasName = pictureParams[5];
+        if (hasName === 'named') {
+            name = window.atob(pictureParams[6]);
+        }
+    }
+    var pic = Picture.create(id, name, width, height, bitmapScale, modesToTry);
     pic.parsedVersion = version;
     pic.moveBufferInternal = function() {}; // Move events can be processed out
     // of order here, so we don't apply them. Instead rely on buffers being
@@ -398,7 +408,7 @@ Picture.prototype.maxBitmapScale = function() {
 };
 
 /** @const */
-Picture.formatVersion = 2;
+Picture.formatVersion = 3;
 
 /**
  * @return {string} A serialization of this Picture. Can be parsed into a new
@@ -407,8 +417,9 @@ Picture.formatVersion = 2;
  */
 Picture.prototype.serialize = function() {
     var serializationScale = 1.0 / this.bitmapScale;
+    var nameSerialization = this.name === null ? 'unnamed' : 'named ' + window.btoa(this.name);
     var serialization = ['picture version ' + Picture.formatVersion + ' ' +
-                         this.width() + ' ' + this.height()];
+                         this.width() + ' ' + this.height() + ' ' + nameSerialization];
     var i;
     var buffer;
     for (i = 0; i < this.mergedBuffers.length; ++i) {

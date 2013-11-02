@@ -6,12 +6,13 @@ var doPictureTest = function(mode) {
     var width = 122;
     var height = 234;
     function testPicture() {
-        return new Picture(-1, new Rect(0, width, 0, height), 2.0, mode, 0);
+        return new Picture(-1, 'testpicturename', new Rect(0, width, 0, height), 2.0, mode, 0);
     }
 
     it('initializes', function() {
         var pic = testPicture();
         expect(pic.id).toBe(-1);
+        expect(pic.name).toBe('testpicturename');
         expect(pic.bitmapScale).toBe(2.0);
         expect(pic.mode).toEqual(mode);
         expect(pic.width()).toBe(width);
@@ -26,6 +27,7 @@ var doPictureTest = function(mode) {
         var pic = parsed.picture;
         expect(pic.parsedVersion).toBe(0);
         expect(pic.id).toBe(-1);
+        expect(pic.name).toBe(null);
         expect(pic.bitmapScale).toBe(2.0);
         expect(pic.mode).toEqual(mode);
         expect(pic.width()).toBe(122);
