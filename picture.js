@@ -1625,7 +1625,7 @@ Picture.prototype.toBlob = function(callback) {
         for (var i = 0; i < binary.length; i++) {
             array[i] = binary.charCodeAt(i);
         }
-        return new Blob([array], {type: dataType});
+        return new Blob([array], {'type': dataType});
     };
     callback(dataURLtoBlob(this.toDataURL(), 'image/png'));
     // TODO: When this is supported widely enough:
