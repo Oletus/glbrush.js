@@ -1586,3 +1586,22 @@ Picture.prototype.toDataURL = function() {
     this.display();
     return this.canvas.toDataURL();
 };
+
+/**
+ * Generate a PNG blob representing this picture. Displays the latest changes to the picture as a side effect.
+ * @param {function(Blob)} callback Callback to process the resulting blob. May be called asynchronously.
+ */
+Picture.prototype.toBlob = function(callback) {
+    var dataURLtoBlob = function(dataURL, dataType) {
+        var binary = window.atob(dataURL.split(',')[1]);
+        var array = new Uint8Array(binary.length);
+        for (var i = 0; i < binary.length; i++) {
+            array[i] = binary.charCodeAt(i);
+        }
+        return new Blob([array], {type: dataType});
+    };
+    callback(dataURLtoBlob(this.toDataURL(), 'image/png'));
+    // TODO: When this is supported widely enough:
+    // this.display();
+    // this.canvas.toBlob(callback);
+};
