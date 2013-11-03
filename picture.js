@@ -390,7 +390,7 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry, brushTextur
 Picture.resize = function(pic, bitmapScale) {
     var serialization = pic.serialize();
     var pic2 = Picture.parse(pic.id, serialization, bitmapScale,
-                             [pic.mode]).picture;
+                             [pic.mode], pic.brushTextureData).picture;
     pic2.setCurrentEventAttachment(pic.currentEventAttachment);
     return pic2;
 };
