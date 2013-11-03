@@ -81,7 +81,7 @@ Picture.prototype.initBrushTextureData = function() {
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, 128, 128);
     ctx.fillStyle = '#fff';
-    ctx.shadowColor = '#000';
+    ctx.shadowColor = '#fff';
     ctx.shadowBlur = 3; // Slight blurriness is required for an antialiased look
     ctx.fillRect(5, 5, 64, 64);
     ctx.fillRect(59, 59, 64, 64);

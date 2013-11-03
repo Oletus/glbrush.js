@@ -1,0 +1,87 @@
+<html>
+<head>
+<!-- Copyright Olli Etuaho 2013 -->
+<title>glbrush.js brush test</title>
+<script type="text/javascript" src="../util2d.js"></script>
+<script type="text/javascript" src="../utilgl.js"></script>
+<script type="text/javascript" src="../blit_shader.js"></script>
+<script type="text/javascript" src="../rasterize_shader.js"></script>
+<script type="text/javascript" src="../gradient_shader.js"></script>
+<script type="text/javascript" src="../compositing_shader.js"></script>
+<script type="text/javascript" src="../brush_textures.js"></script>
+<script type="text/javascript" src="../compositor.js"></script>
+<script type="text/javascript" src="../picture_event.js"></script>
+<script type="text/javascript" src="../rasterize.js"></script>
+<script type="text/javascript" src="../picture_buffer.js"></script>
+<script type="text/javascript" src="../undo_state.js"></script>
+<script type="text/javascript" src="../picture.js"></script>
+<script type="text/javascript">
+
+// Test textured brush scaling by scaling the brush tip texture.
+
+var runTest = function() {
+    var w = 384;
+    var pictureMode = 'webgl';
+    var bitmapScale = 1.0;
+    var t = 0;
+    var testPic = Picture.create(0, null, w, w, bitmapScale, [pictureMode]);
+    testPic.addBuffer(0, [255, 255, 255, 255], false);
+    testPic.setCurrentEventAttachment(0);
+
+    var parent = document.getElementById('parent');
+    parent.innerHTML = '';
+    var picElement = testPic.pictureElement();
+    picElement.style.width = '100%';
+    picElement.style.height = '100%';
+    parent.appendChild(picElement);
+
+    var color = [0, 0, 0];
+    var flow = 1.0;
+    var opacity = 1.0;
+    var softness = 0.0;
+    var mode = PictureEvent.Mode.normal;
+
+    var textureId = 1;
+    var textureSelect = document.getElementById('textureSelect');
+    for (var i = 0; i < testPic.brushTextures.textures.length + 1; ++i) {
+        var option = document.createElement('option');
+        option.innerHTML = 'texture ' + i;
+        option.id = i;
+        textureSelect.appendChild(option);
+    }
+    textureSelect.selectedIndex = textureId;
+    textureSelect.onchange = function() {
+        textureId = this.selectedIndex;
+    };
+
+    var startTime = new Date().getTime();
+    
+    var drawFrame = function() {
+        var currentTime = new Date().getTime();
+        var t = (currentTime - startTime) * 0.001;
+        var radius = 160 * (Math.sin(t * 0.5) * 0.5 + 0.5);
+        var event = testPic.createScatterEvent(color, flow, opacity, radius, textureId, softness, mode);
+        event.pushCoordTriplet(0.5 * w, 0.5 * w, 1.0);
+        testPic.setCurrentEvent(event);
+        testPic.display();
+        requestAnimationFrame(drawFrame);
+    };
+
+    if (testPic === null) {
+        console.log('Could not test mode ' + pictureMode);
+    } else {
+        requestAnimationFrame(drawFrame);
+    }
+};
+
+</script>
+</head>
+<body onload="runTest()" style="background:#888;">
+<div id="parent" style="width: 768px; height: 768px;">
+</div>
+<select id="textureSelect">
+</select>
+<p id="description">Ideally the appearance should change as little as possible 
+as the brush tip texture is scaled, and maintain a slightly blurry anti-aliasing (the image is scaled 2x).</p>
+</body>
+</html>
