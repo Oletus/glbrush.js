@@ -9,10 +9,11 @@
  * @param {Rect} boundsRect Picture bounds. x and y should always be zero.
  * @param {number} bitmapScale Scale for rasterizing the picture. Events that
  * are pushed to this picture get this scale applied to them.
- * @param {string=} mode Either 'webgl', 'no-texdata-webgl' or 'canvas'.
- * Defaults to 'webgl'.
+ * @param {string=} mode Either 'webgl', 'no-texdata-webgl' or 'canvas'. Defaults to 'webgl'.
+ * @param {Array.<HTMLImageElement|HTMLCanvasElement>=} brushTextureData Set of brush textures to use. Can be undefined
+ * if no textures are needed.
  */
-var Picture = function(id, name, boundsRect, bitmapScale, mode) {
+var Picture = function(id, name, boundsRect, bitmapScale, mode, brushTextureData) {
     this.id = id;
     this.name = name;
     if (mode === undefined) {
@@ -20,6 +21,7 @@ var Picture = function(id, name, boundsRect, bitmapScale, mode) {
     }
     this.mode = mode;
     this.parsedVersion = null;
+    this.brushTextureData = brushTextureData;
 
     this.animating = false;
 
@@ -70,24 +72,16 @@ var Picture = function(id, name, boundsRect, bitmapScale, mode) {
 };
 
 /**
- * Initialize brush texture data to use in rasterizers.
+ * Initialize brush textures to use in rasterizers from the given brush texture data.
+ * @protected
  */
-Picture.prototype.initBrushTextureData = function() {
-    // TODO: Proper brush textures, this is just for testing...
-    var image = document.createElement('canvas');
-    image.width = 128;
-    image.height = 128;
-    var ctx = image.getContext('2d');
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, 128, 128);
-    ctx.fillStyle = '#fff';
-    ctx.shadowColor = '#fff';
-    ctx.shadowBlur = 3; // Slight blurriness is required for an antialiased look
-    ctx.fillRect(5, 5, 64, 64);
-    ctx.fillRect(59, 59, 64, 64);
-    ctx.fillRect(20, 84, 24, 24);
-    ctx.fillRect(84, 20, 24, 24);
-    this.brushTextures.addTexture(image);
+Picture.prototype.initBrushTextures = function() {
+    if (!this.brushTextureData) {
+        return;
+    }
+    for (var i = 0; i < this.brushTextureData.length; ++i) {
+        this.brushTextures.addTexture(this.brushTextureData[i]);
+    }
 };
 
 /**
@@ -98,7 +92,7 @@ Picture.prototype.setupGLState = function() {
     this.glManager = glStateManager(this.gl);
 
     this.brushTextures = new GLBrushTextures(this.gl, this.glManager);
-    this.initBrushTextureData();
+    this.initBrushTextures();
 
     var useFloatRasterizer = (this.mode === 'webgl' ||
                               this.mode === 'no-texdata-webgl');
@@ -289,16 +283,18 @@ Picture.prototype.setBufferOpacity = function(bufferId, opacity) {
  * @param {Array.<string>} modesToTry Modes to try to initialize the picture.
  * Can contain either 'webgl', 'no-texdata-webgl', 'no-float-webgl' or 'canvas'.
  * Modes are tried in the order they are in the array.
+ * @param {Array.<HTMLImageElement|HTMLCanvasElement>=} brushTextureData Set of brush textures to use. Can be undefined
+ * if no textures are needed.
  * @return {Picture} The created picture or null if one couldn't be created.
  */
-Picture.create = function(id, name, width, height, bitmapScale, modesToTry) {
+Picture.create = function(id, name, width, height, bitmapScale, modesToTry, brushTextureData) {
     var pictureBounds = new Rect(0, width, 0, height);
     var i = 0;
     var pic = null;
     while (i < modesToTry.length && pic === null) {
         var mode = modesToTry[i];
         if (glUtils.supportsTextureUnits(4) || mode === 'canvas') {
-            pic = new Picture(id, name, pictureBounds, bitmapScale, mode);
+            pic = new Picture(id, name, pictureBounds, bitmapScale, mode, brushTextureData);
             if (pic.mode === undefined) {
                 pic = null;
             }
@@ -319,11 +315,13 @@ Picture.create = function(id, name, width, height, bitmapScale, modesToTry) {
  * @param {Array.<string>} modesToTry Modes to try to initialize the picture.
  * Can contain either 'webgl', 'no-texdata-webgl', 'no-float-webgl' or 'canvas'.
  * Modes are tried in the order they are in the array.
+ * @param {Array.<HTMLImageElement|HTMLCanvasElement>=} brushTextureData Set of brush textures to use. Can be undefined
+ * if no textures are needed.
  * @return {Object} Object containing key 'picture' for the created picture, key
  * 'metadata' for the metadata lines, and 'generationTime' for generation time
  * in milliseconds, or null if picture couldn't be created.
  */
-Picture.parse = function(id, serialization, bitmapScale, modesToTry) {
+Picture.parse = function(id, serialization, bitmapScale, modesToTry, brushTextureData) {
     var startTime = new Date().getTime();
     var eventStrings = serialization.split(/\r?\n/);
     var pictureParams = eventStrings[0].split(' ');
@@ -345,7 +343,7 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry) {
             name = window.atob(pictureParams[6]);
         }
     }
-    var pic = Picture.create(id, name, width, height, bitmapScale, modesToTry);
+    var pic = Picture.create(id, name, width, height, bitmapScale, modesToTry, brushTextureData);
     pic.parsedVersion = version;
     pic.moveBufferInternal = function() {}; // Move events can be processed out
     // of order here, so we don't apply them. Instead rely on buffers being

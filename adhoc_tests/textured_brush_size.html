@@ -19,12 +19,31 @@
 
 // Test textured brush scaling by scaling the brush tip texture.
 
+var testTextureData = function() {
+    var brushTextureData = [];
+    var image = document.createElement('canvas');
+    image.width = 128;
+    image.height = 128;
+    var ctx = image.getContext('2d');
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, 128, 128);
+    ctx.fillStyle = '#fff';
+    ctx.shadowColor = '#fff';
+    ctx.shadowBlur = 3; // Slight blurriness is required for an antialiased look
+    ctx.fillRect(5, 5, 64, 64);
+    ctx.fillRect(59, 59, 64, 64);
+    ctx.fillRect(20, 84, 24, 24);
+    ctx.fillRect(84, 20, 24, 24);
+    brushTextureData.push(image);
+    return brushTextureData;
+};
+
 var runTest = function() {
     var w = 384;
     var pictureMode = 'webgl';
     var bitmapScale = 1.0;
     var t = 0;
-    var testPic = Picture.create(0, null, w, w, bitmapScale, [pictureMode]);
+    var testPic = Picture.create(0, null, w, w, bitmapScale, [pictureMode], testTextureData());
     testPic.addBuffer(0, [255, 255, 255, 255], false);
     testPic.setCurrentEventAttachment(0);
 
