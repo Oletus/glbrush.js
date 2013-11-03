@@ -261,7 +261,7 @@ RasterizeShader.prototype.varyingSource = function() {
  * @return {number} Minimum circle radius.
  */
 RasterizeShader.prototype.minRadius = function() {
-    return (this.texturized || this.soft) ? 1.0 : 0.5;
+    return (!this.texturized && this.soft) ? 1.0 : 0.5;
 };
 
 /**
@@ -280,12 +280,13 @@ RasterizeShader.prototype.fragmentAlphaSource = function(assignTo, indent) {
             'uFlowAlpha * circleRadius * circleRadius * ' + Math.pow(1.0 / this.minRadius(), 2).toFixed(1) +
             ': uFlowAlpha;');
     if (this.texturized) {
+        // Usage of antialiasMult increases accuracy at small brush sizes and ensures that the brush stays inside the
+        // bounding box even when rotated (rotation support is TODO)
+        src.push(indent + 'float antialiasMult = ' + 'clamp((radius + 1.0 - length(centerDiff)) * 0.5, 0.0, 1.0);');
         src.push(indent + 'vec2 texCoords = centerDiff / radius * 0.5 + 0.5;');
         // Note: remember to keep the texture2D call outside non-uniform flow control.
-        // TODO: Consider using negative bias and more blurred mipmaps to improve quality at small sizes.
         src.push(indent + 'float texValue = texture2D(uBrushTex, texCoords).r;');
-        src.push(indent + assignTo + ' = max(abs(centerDiff.x), abs(centerDiff.y)) < radius ? ' +
-                 'flowAlpha * texValue : 0.0;');
+        src.push(indent + assignTo + ' = flowAlpha * antialiasMult * texValue;');
     } else {
         src.push(indent + 'float antialiasMult = ' + 'clamp((radius + 1.0 - centerDist) * 0.5, 0.0, 1.0);');
         if (this.soft) {
