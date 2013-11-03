@@ -786,9 +786,8 @@ var doPictureTest = function(mode) {
             var createObjectURL = null;
             try {
                 createObjectURL = URL.createObjectURL;
-            } catch (e) {
-            }
-            if (createObjectURL === null) {
+            } catch (e) {}
+            if (!createObjectURL) {
                 createObjectURL = webkitURL.createObjectURL;
             }
             i.src = createObjectURL(blob);
@@ -805,9 +804,8 @@ var doPictureTest = function(mode) {
             var revokeObjectURL = null;
             try {
                 revokeObjectURL = URL.revokeObjectURL;
-            } catch (e) {
-            }
-            if (revokeObjectURL === null) {
+            } catch (e) {}
+            if (!revokeObjectURL) {
                 revokeObjectURL = webkitURL.revokeObjectURL;
             }
             revokeObjectURL(objURL);
