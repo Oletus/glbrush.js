@@ -732,6 +732,87 @@ var doPictureTest = function(mode) {
         expect(pic.buffers[0].undoStateBudget).toBeLessThan(3);
         expect(pic.memoryUse).toBe(pic.memoryBudget);
     });
+
+    it('converts to a dataURL', function() {
+        var clearColor = [12, 23, 34];
+        var img = null;
+        runs(function() {
+            var pic = testPicture();
+            pic.addBuffer(1337, clearColor, false);
+            var dataURL = pic.toDataURL();
+            var i = document.createElement('img');
+            i.onload = function() {
+                img = i;
+            };
+            i.src = dataURL;
+        });
+        waitsFor(function() {
+            return img !== null;
+        });
+        runs(function() {
+            clearColor.push(255); // imageData is always RGBA
+            expect(clearColor.length).toBe(4);
+            expect(countColoredPixelsInImage(img, clearColor, 4)).toBe(img.width * img.height);
+        });
+    });
+
+    it('converts to a Blob', function() {
+        var blob = null;
+        var clearColor = [12, 23, 34];
+        var img = null;
+        var blobCallback = function(b) {
+            blob = b;
+        };
+        runs(function() {
+            var pic = testPicture();
+            pic.addBuffer(1337, clearColor, false);
+            // Make this test always asynchronous since toBlob is allowed to be asynchronous.
+            setTimeout(function() {
+                pic.toBlob(blobCallback);
+            }, 0);
+        });
+        waitsFor(function() {
+            return blob !== null;
+        });
+        runs(function() {
+            var i;
+            expect(blob instanceof Blob).toBe(true);
+            expect(blob.type).toBe('image/png');
+            var i = document.createElement('img');
+            i.onload = function() {
+                img = i;
+            };
+            // TODO: Check the spec of createObjectURL once it's stable (also revokeObjectURL below)
+            var createObjectURL = null;
+            try {
+                createObjectURL = URL.createObjectURL;
+            } catch (e) {
+            }
+            if (createObjectURL === null) {
+                createObjectURL = webkitURL.createObjectURL;
+            }
+            i.src = createObjectURL(blob);
+        });
+        waitsFor(function() {
+            return img !== null;
+        });
+        runs(function() {
+            clearColor.push(255); // imageData is always RGBA
+            expect(clearColor.length).toBe(4);
+            expect(countColoredPixelsInImage(img, clearColor, 4)).toBe(img.width * img.height);
+            var objURL = img.src;
+            img.src = '';
+            var revokeObjectURL = null;
+            try {
+                revokeObjectURL = URL.revokeObjectURL;
+            } catch (e) {
+            }
+            if (revokeObjectURL === null) {
+                revokeObjectURL = webkitURL.revokeObjectURL;
+            }
+            revokeObjectURL(objURL);
+        });
+    });
 };
 
 describe('Picture', function() {

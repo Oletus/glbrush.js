@@ -248,3 +248,28 @@ function expectBufferCorrect(buffer, rasterizer, tolerance) {
         displayData(correctData, buffer.width(), buffer.height());
     }
 }
+
+/**
+ * @param {HTMLImageElement} img Image to test.
+ * @param {Array.<number>|Uint8Array} color RGBA color to test for, channel values in range 0 to 255.
+ * @param {number} tolerance Tolerance value.
+ * @return {number} Amount of pixels inside the tolerance.
+ */
+function countColoredPixelsInImage(img, color, tolerance) {
+    var canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    var ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    var pixels = 0;
+    for (i = 0; i < imageData.data.length; i += 4) {
+        if (Math.abs(imageData.data[i] - color[0]) < tolerance &&
+            Math.abs(imageData.data[i + 1] - color[1]) < tolerance &&
+            Math.abs(imageData.data[i + 2] - color[2]) < tolerance &&
+            Math.abs(imageData.data[i + 3] - color[3]) < tolerance) {
+            pixels++;
+        }
+    }
+    return pixels;
+}
