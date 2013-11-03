@@ -261,7 +261,7 @@ RasterizeShader.prototype.varyingSource = function() {
  * @return {number} Minimum circle radius.
  */
 RasterizeShader.prototype.minRadius = function() {
-    return this.soft ? 1.0 : 0.5;
+    return (this.texturized || this.soft) ? 1.0 : 0.5;
 };
 
 /**
@@ -275,22 +275,21 @@ RasterizeShader.prototype.fragmentAlphaSource = function(assignTo, indent) {
     // 1. circleRadius contains the intended perceived radius of the circle.
     // 2. centerDist contains the fragment's distance from the circle center.
     var src = [];
+    src.push(indent + 'float radius = max(circleRadius, ' + this.minRadius().toFixed(1) + ');');
+    src.push(indent + 'float flowAlpha = (circleRadius < ' + this.minRadius().toFixed(1) + ') ? ' +
+            'uFlowAlpha * circleRadius * circleRadius * ' + Math.pow(1.0 / this.minRadius(), 2).toFixed(1) +
+            ': uFlowAlpha;');
     if (this.texturized) {
-        src.push(indent + 'vec2 texCoords = centerDiff / circleRadius * 0.5 + 0.5;');
+        src.push(indent + 'vec2 texCoords = centerDiff / radius * 0.5 + 0.5;');
         // Note: remember to keep the texture2D call outside non-uniform flow control.
+        // TODO: Consider using negative bias and more blurred mipmaps to improve quality at small sizes.
         src.push(indent + 'float texValue = texture2D(uBrushTex, texCoords).r;');
-        src.push(indent + assignTo + ' = max(abs(centerDiff.x), abs(centerDiff.y)) < circleRadius ? ' +
-                 'uFlowAlpha * texValue : 0.0;');
+        src.push(indent + assignTo + ' = max(abs(centerDiff.x), abs(centerDiff.y)) < radius ? ' +
+                 'flowAlpha * texValue : 0.0;');
     } else {
-        src.push(indent + 'float radius = max(circleRadius, ' + this.minRadius().toFixed(1) + ');');
-        src.push(indent + 'float flowAlpha = (circleRadius < ' + this.minRadius().toFixed(1) + ') ? ' +
-                'uFlowAlpha * circleRadius * circleRadius * ' + Math.pow(1.0 / this.minRadius(), 2).toFixed(1) +
-                ': uFlowAlpha;');
-        src.push(indent + 'float antialiasMult = ' +
-                 'clamp((radius + 1.0 - centerDist) * 0.5, 0.0, 1.0);');
+        src.push(indent + 'float antialiasMult = ' + 'clamp((radius + 1.0 - centerDist) * 0.5, 0.0, 1.0);');
         if (this.soft) {
-            src.push(indent + assignTo + ' = max((1.0 - centerDist / radius) ' +
-                     '* flowAlpha * antialiasMult, 0.0);');
+            src.push(indent + assignTo + ' = max((1.0 - centerDist / radius) ' + '* flowAlpha * antialiasMult, 0.0);');
         } else {
             src.push(indent + assignTo + ' = flowAlpha * antialiasMult;');
         }
