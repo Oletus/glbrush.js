@@ -20,7 +20,7 @@ var SWMipmap = function(imageSource) {
     this.levelWidths = [];
     var width = canvas.width;
     this.levels.push(new Float64Array(width * width));
-    this.levelWidths.push(width - 1);
+    this.levelWidths.push(width);
     for (var i = 0; i < width * width; ++i) {
         this.levels[0][i] = sourceData.data[i * 4] / 255;
     }
@@ -29,7 +29,7 @@ var SWMipmap = function(imageSource) {
         width = width >> 1;
         ++level;
         this.levels.push(new Float64Array(width * width));
-        this.levelWidths.push(width - 1);
+        this.levelWidths.push(width);
         for (var x = 0; x < width; ++x) {
             for (var y = 0; y < width; ++y) {
                 this.levels[level][x + y * width] = (this.levels[level - 1][x * 2 + y * 2 * width * 2] +
@@ -56,12 +56,12 @@ var SWMipmap = function(imageSource) {
  * @protected
  */
 SWMipmap.prototype.sampleFromRow = function(s, rowInd, lod) {
-    if (s <= 0) {
+    if (s <= 0.5 / this.levelWidths[lod]) {
         return this.levels[lod][rowInd];
-    } else if (s >= 1.0) {
-        return this.levels[lod][this.levelWidths[lod] + rowInd];
+    } else if (s >= 1.0 - 0.5 / this.levelWidths[lod]) {
+        return this.levels[lod][this.levelWidths[lod] - 1 + rowInd];
     }
-    var sInd = s * this.levelWidths[lod];
+    var sInd = s * this.levelWidths[lod] - 0.5;
     var floorSInd = Math.floor(sInd);
     var weight = sInd - floorSInd;
     return this.levels[lod][floorSInd + rowInd] * (1.0 - weight) +
@@ -78,18 +78,17 @@ SWMipmap.prototype.sampleFromRow = function(s, rowInd, lod) {
  */
 SWMipmap.prototype.sampleFromLevel = function(s, t, lod) {
     // TODO: assert(lod >= 0 && lod < this.levels.length);
-    var w = this.levelWidths[lod] + 1;
-    if (t <= 0) {
+    if (t <= 0.5 / this.levelWidths[lod]) {
         return this.sampleFromRow(s, 0, lod);
-    } else if (t >= 1.0) {
-        return this.sampleFromRow(s, this.levelWidths[lod] * w, lod);
+    } else if (t >= 1.0 - 0.5 / this.levelWidths[lod]) {
+        return this.sampleFromRow(s, (this.levelWidths[lod] - 1) * this.levelWidths[lod], lod);
     }
-    var tInd = t * this.levelWidths[lod];
+    var tInd = t * this.levelWidths[lod] - 0.5;
     var floorTInd = Math.floor(tInd);
-    var tIndW = floorTInd * w;
+    var tIndW = floorTInd * this.levelWidths[lod];
     var weight = tInd - floorTInd;
     return this.sampleFromRow(s, tIndW, lod) * (1.0 - weight) +
-           this.sampleFromRow(s, tIndW + w, lod) * weight;
+           this.sampleFromRow(s, tIndW + this.levelWidths[lod], lod) * weight;
 };
 
 /**
