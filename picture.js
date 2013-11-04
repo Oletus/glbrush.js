@@ -63,7 +63,8 @@ var Picture = function(id, name, boundsRect, bitmapScale, mode, brushTextureData
     } else if (this.mode === 'canvas') {
         this.ctx = this.canvas.getContext('2d');
         this.compositor = new CanvasCompositor(this.ctx);
-        this.brushTextures = null;
+        this.brushTextures = new CanvasBrushTextures();
+        this.initBrushTextures();
         this.initRasterizers();
     } else {
         this.mode = undefined;

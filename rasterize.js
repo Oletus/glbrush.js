@@ -443,14 +443,58 @@ Rasterizer.prototype.fillCircle = function(centerX, centerY, radius) {
     // compensate by moving the center.
     centerX -= 0.5;
     centerY -= 0.5;
-    if (this.soft) {
+    if (this.texturized) {
+        this.fillTexturizedCircleBlending(circleRect, centerX, centerY,
+                                          this.drawRadius(radius), this.drawAlpha(radius));
+    } else if (this.soft) {
         this.fillSoftCircleBlending(circleRect, centerX, centerY,
-                                    this.drawRadius(radius),
-                                    this.drawAlpha(radius));
+                                    this.drawRadius(radius), this.drawAlpha(radius));
     } else {
         this.fillCircleBlending(circleRect, centerX, centerY,
-                                this.drawRadius(radius),
-                                this.drawAlpha(radius));
+                                this.drawRadius(radius), this.drawAlpha(radius));
+    }
+};
+
+/**
+ * Helper to rasterize a texturized circle.
+ * @param {Rect} boundsRect The rect to rasterize to.
+ * @param {number} centerX The x coordinate of the center of the circle.
+ * @param {number} centerY The y coordinate of the center of the circle.
+ * @param {number} radius The radius of the circle.
+ * @param {number} alpha Alpha to draw with.
+ * @protected
+ */
+Rasterizer.prototype.fillTexturizedCircleBlending = function(boundsRect, centerX, centerY, radius, alpha) {
+    var rad2 = (radius + 1.0) * (radius + 1.0);
+    var coordMult = 0.5 / radius;
+    var lod = Math.round(Math.log(this.brushTex.levelWidths[0] + 1) / Math.log(2) - Math.log(radius * 2) / Math.log(2));
+    if (lod <= 0) {
+        lod = 0;
+    } else if (lod >= this.brushTex.levels.length - 1) {
+        lod = this.brushTex.levels.length - 1;
+    }
+    for (var y = boundsRect.top; y < boundsRect.bottom; ++y) {
+        var ind = boundsRect.left + y * this.width;
+        var powy = Math.pow(y - centerY, 2);
+        for (var x = boundsRect.left; x < boundsRect.right; ++x) {
+            var xdiff = x - centerX;
+            var dist2 = Math.pow(x - centerX, 2) + powy;
+            if (dist2 < rad2) {
+                // Trilinear interpolation is too expensive, so do bilinear.
+                var texValue = this.brushTex.sampleFromLevel((x - centerX) * coordMult + 0.5,
+                                                             (y - centerY) * coordMult + 0.5,
+                                                             lod);
+                if (dist2 > (radius - 1.0) * (radius - 1.0)) {
+                    // hacky antialias
+                    var mult = (radius + 1.0 - Math.sqrt(dist2)) * 0.5;
+                    this.data[ind] = alpha * mult * texValue + this.data[ind] *
+                                     (1.0 - alpha * mult * texValue);
+                } else {
+                    this.data[ind] = alpha * texValue + this.data[ind] * (1.0 - alpha * texValue);
+                }
+            }
+            ++ind;
+        }
     }
 };
 
@@ -463,8 +507,7 @@ Rasterizer.prototype.fillCircle = function(centerX, centerY, radius) {
  * @param {number} alpha Alpha to draw with.
  * @protected
  */
-Rasterizer.prototype.fillCircleBlending = function(boundsRect, centerX, centerY,
-                                                   radius, alpha) {
+Rasterizer.prototype.fillCircleBlending = function(boundsRect, centerX, centerY, radius, alpha) {
     var rad2 = (radius + 1.0) * (radius + 1.0);
     for (var y = boundsRect.top; y < boundsRect.bottom; ++y) {
         var ind = boundsRect.left + y * this.width;
@@ -495,8 +538,7 @@ Rasterizer.prototype.fillCircleBlending = function(boundsRect, centerX, centerY,
  * @param {number} alpha Alpha to draw with.
  * @protected
  */
-Rasterizer.prototype.fillSoftCircleBlending = function(boundsRect, centerX,
-                                                       centerY, radius, alpha) {
+Rasterizer.prototype.fillSoftCircleBlending = function(boundsRect, centerX, centerY, radius, alpha) {
     var rad2 = (radius + 1.0) * (radius + 1.0);
     for (var y = boundsRect.top; y < boundsRect.bottom; ++y) {
         var ind = boundsRect.left + y * this.width;
