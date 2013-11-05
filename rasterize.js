@@ -473,17 +473,20 @@ Rasterizer.prototype.fillTexturizedCircleBlending = function(boundsRect, centerX
     } else if (lod >= this.brushTex.levels.length - 1) {
         lod = this.brushTex.levels.length - 1;
     }
+    var sIndStep = this.brushTex.getSIndStep(radius * 2, lod);
     for (var y = boundsRect.top; y < boundsRect.bottom; ++y) {
         var ind = boundsRect.left + y * this.width;
         var powy = Math.pow(y - centerY, 2);
+        var t = (y - centerY) * coordMult + 0.5;
+        var rowInd = this.brushTex.getRowInd(t, lod);
+        var rowBelowWeight = this.brushTex.getRowBelowWeight(t, lod);
+        var sInd = this.brushTex.getSInd((boundsRect.left - centerX) * coordMult + 0.5, lod);
         for (var x = boundsRect.left; x < boundsRect.right; ++x) {
             var xdiff = x - centerX;
             var dist2 = Math.pow(x - centerX, 2) + powy;
             if (dist2 < rad2) {
                 // Trilinear interpolation is too expensive, so do bilinear.
-                var texValue = this.brushTex.sampleFromLevel((x - centerX) * coordMult + 0.5,
-                                                             (y - centerY) * coordMult + 0.5,
-                                                             lod);
+                var texValue = this.brushTex.sampleUnsafe(sInd, rowInd, rowBelowWeight, lod);
                 if (dist2 > (radius - 1.0) * (radius - 1.0)) {
                     // hacky antialias
                     var mult = (radius + 1.0 - Math.sqrt(dist2)) * 0.5;
@@ -494,6 +497,7 @@ Rasterizer.prototype.fillTexturizedCircleBlending = function(boundsRect, centerX
                 }
             }
             ++ind;
+            sInd += sIndStep;
         }
     }
 };
