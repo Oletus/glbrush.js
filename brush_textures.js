@@ -16,7 +16,8 @@ var SWMipmap = function(imageSource) {
     ctx.drawImage(imageSource, 0, 0);
     var sourceData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-    this.padding = 2;
+    this.padding = 3; // Note that sampler functions assume this is larger than 0. Larger values give more leeway for
+    // stepping out of the 0.0 to 1.0 texture coordinate range in sampleUnsafe().
     var padding = this.padding;
     this.levels = [];
     this.levelWidths = [];

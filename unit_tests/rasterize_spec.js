@@ -2,6 +2,58 @@
  * Copyright Olli Etuaho 2013.
  */
 
+describe('SWMipmap', function() {
+    var canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 128;
+    var ctx = canvas.getContext('2d');
+    var grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    grad.addColorStop(0.0, '#000');
+    grad.addColorStop(1.0, '#fff');
+    ctx.fillStyle = grad;
+    ctx.rect(0, 0, canvas.width, canvas.height);
+    ctx.fill();
+    var mipmap = new SWMipmap(canvas);
+
+    it('samples bilinearly from all lod levels', function() {
+        var s = 0.5;
+        var t = 0.5;
+        for (var lod = 0; lod < mipmap.levels.length; ++lod) {
+            expect(mipmap.sampleFromLevel(s, t, lod)).toBeNear(0.5, 0.02);
+        }
+    });
+
+    it('clamps out-of-range s and t values when sampling bilinearly', function() {
+        var s = -0.5;
+        var t = 1.5;
+        for (var lod = 0; lod < mipmap.levels.length; ++lod) {
+            expect(mipmap.sampleFromLevel(s, t, lod)).toBeNear(0.5, 0.02);
+        }
+    });
+
+    it('clamps out-of-range lod levels when sampling trilinearly', function() {
+        var s = 0.5;
+        var t = 0.5;
+        for (var lod = -5; lod < mipmap.levels.length + 5; ++lod) {
+            expect(mipmap.sample(s, t, lod)).toBeNear(0.5, 0.02);
+        }
+    });
+
+    it('returns same values from safe and unsafe bilinear sampling', function() {
+        for (var lod = 0; lod < mipmap.levels.length; ++lod) {
+            for (var s = 0.0; s <= 1.0; s += 0.1) {
+                var t = 1.0 - s;
+                var sInd = mipmap.getSInd(s, lod);
+                var rowInd = mipmap.getRowInd(t, lod);
+                var rowW = mipmap.getRowBelowWeight(t, lod);
+                var unsafeSample = mipmap.sampleUnsafe(sInd, rowInd, rowW, lod);
+                expect(isNaN(unsafeSample)).toBe(false);
+                expect(unsafeSample).toBeNear(mipmap.sampleFromLevel(s, t, lod), 0.001);
+            }
+        }
+    });
+});
+
 describe('Rasterizing system', function() {
 
     function initTestGl() {
