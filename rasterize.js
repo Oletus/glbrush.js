@@ -101,8 +101,8 @@ BaseRasterizer.prototype.getDrawEventState = function(event, stateConstructor) {
  */
 BaseRasterizer.prototype.beginCircleLines = function(soft, textureId, flowAlpha) {
     this.soft = soft;
-    this.texturized = textureId > 0;
-    if (this.texturized && this.brushTextures !== null) {
+    this.texturized = textureId > 0 && this.brushTextures !== null;
+    if (this.texturized) {
         this.brushTex = this.brushTextures.getTexture(textureId - 1);
     }
     this.minRadius = this.soft ? 1.0 : 0.5;
