@@ -16,10 +16,11 @@ describe('SWMipmap', function() {
     var mipmap = new SWMipmap(canvas);
 
     it('samples bilinearly from all lod levels', function() {
-        var s = 0.5;
-        var t = 0.5;
         for (var lod = 0; lod < mipmap.levels.length; ++lod) {
-            expect(mipmap.sampleFromLevel(s, t, lod)).toBeNear(0.5, 0.02);
+            expect(mipmap.sampleFromLevel(0.5, 0.5, lod)).toBeNear(0.5, 0.02);
+            for (var s = 0.0; s <= 1.0; s += 0.1) {
+                expect(mipmap.sampleFromLevel(s, s, lod)).toBeNear(s, 0.6 / mipmap.levelWidths[lod]);
+            }
         }
     });
 
@@ -40,15 +41,21 @@ describe('SWMipmap', function() {
     });
 
     it('returns same values from safe and unsafe bilinear sampling', function() {
+        var unsafe = function(s, t, lod) {
+            var sInd = mipmap.getSInd(s, lod);
+            var rowInd = mipmap.getRowInd(t, lod);
+            var rowW = mipmap.getRowBelowWeight(t, lod);
+            return mipmap.sampleUnsafe(sInd, rowInd, rowW, lod);
+        };
         for (var lod = 0; lod < mipmap.levels.length; ++lod) {
             for (var s = 0.0; s <= 1.0; s += 0.1) {
                 var t = 1.0 - s;
-                var sInd = mipmap.getSInd(s, lod);
-                var rowInd = mipmap.getRowInd(t, lod);
-                var rowW = mipmap.getRowBelowWeight(t, lod);
-                var unsafeSample = mipmap.sampleUnsafe(sInd, rowInd, rowW, lod);
+                var unsafeSample = unsafe(s, t, lod);
                 expect(isNaN(unsafeSample)).toBe(false);
                 expect(unsafeSample).toBeNear(mipmap.sampleFromLevel(s, t, lod), 0.001);
+                var unsafeSample = unsafe(t, s, lod);
+                expect(isNaN(unsafeSample)).toBe(false);
+                expect(unsafeSample).toBeNear(mipmap.sampleFromLevel(t, s, lod), 0.001);
             }
         }
     });
