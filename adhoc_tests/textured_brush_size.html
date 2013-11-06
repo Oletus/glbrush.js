@@ -30,17 +30,18 @@ var testTextureData = function() {
     ctx.fillStyle = '#fff';
     ctx.shadowColor = '#fff';
     ctx.shadowBlur = 3; // Slight blurriness is required for an antialiased look
-    ctx.fillRect(5, 5, 64, 64);
+    ctx.fillRect(5, 5, 40, 40);
     ctx.fillRect(59, 59, 64, 64);
-    ctx.fillRect(20, 84, 24, 24);
-    ctx.fillRect(84, 20, 24, 24);
+    ctx.fillRect(20, 84, 20, 20);
+    ctx.fillRect(84, 20, 30, 30);
+    document.body.appendChild(image);
     brushTextureData.push(image);
     return brushTextureData;
 };
 
 var runTest = function() {
     var w = 384;
-    var pictureMode = 'webgl';
+    var pictureMode = 'no-float-webgl';
     var bitmapScale = 1.0;
     var t = 0;
     var testPic = Picture.create(0, null, w, w, bitmapScale, [pictureMode], testTextureData());

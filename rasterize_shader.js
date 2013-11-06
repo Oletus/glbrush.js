@@ -414,8 +414,8 @@ RasterizeShader.prototype.vertexInnerLoopSource = function(index, arrayIndex) {
         } else {
             src.push('  {');
         }
-        src.push('    vec2 relPosition = (uCircle' + arrayIndex +
-                 '.xy - aVertexPosition) / uPixelPitch;');
+        src.push('    vec2 relPosition = vec2(aVertexPosition.x - uCircle' + arrayIndex + '.x, ' +
+                 'uCircle' + arrayIndex + '.y - aVertexPosition.y) / uPixelPitch;');
         src.push('    vCircle' + arrayIndex + ' = vec3(relPosition, uCircle' +
                  arrayIndex + '.z);');
         if (this.dynamicCircles) {
