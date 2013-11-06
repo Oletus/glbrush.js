@@ -15,6 +15,28 @@ describe('SWMipmap', function() {
     ctx.fill();
     var mipmap = new SWMipmap(canvas);
 
+    it('is padded', function() {
+        var padding = mipmap.padding;
+        for (var lod = 0; lod < mipmap.levels.length; ++lod) {
+            var dataWidth = mipmap.levelWidths[lod] + padding * 2;
+            expect(mipmap.levels[lod].length).toBe(dataWidth * dataWidth);
+            for (var p = 0; p < mipmap.padding; ++p) {
+                for (var x = 0; x < dataWidth; ++x) {
+                    var topEdge = mipmap.levels[lod][x + padding * dataWidth];
+                    expect(mipmap.levels[lod][x + p * dataWidth]).toBe(topEdge);
+                    var bottomEdge = mipmap.levels[lod][x + (dataWidth - 1 - padding) * dataWidth];
+                    expect(mipmap.levels[lod][x + (dataWidth - 1 - p) * dataWidth]).toBe(bottomEdge);
+                }
+                for (var y = 0; y < dataWidth; ++y) {
+                    var leftEdge = mipmap.levels[lod][padding + y * dataWidth];
+                    expect(mipmap.levels[lod][p + y * dataWidth]).toBe(leftEdge);
+                    var rightEdge = mipmap.levels[lod][dataWidth - 1 - padding + y * dataWidth];
+                    expect(mipmap.levels[lod][dataWidth - 1 - p + y * dataWidth]).toBe(rightEdge);
+                }
+            }
+        }
+    });
+
     it('samples bilinearly from all lod levels', function() {
         for (var lod = 0; lod < mipmap.levels.length; ++lod) {
             expect(mipmap.sampleFromLevel(0.5, 0.5, lod)).toBeNear(0.5, 0.02);
