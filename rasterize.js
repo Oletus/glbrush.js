@@ -467,7 +467,9 @@ Rasterizer.prototype.fillCircle = function(centerX, centerY, radius) {
 Rasterizer.prototype.fillTexturizedCircleBlending = function(boundsRect, centerX, centerY, radius, alpha) {
     var rad2 = (radius + 1.0) * (radius + 1.0);
     var coordMult = 0.5 / radius;
-    var lod = Math.round(Math.log(this.brushTex.levelWidths[0] + 1) / Math.log(2) - Math.log(radius * 2) / Math.log(2));
+    // 0.3 negative lod bias to improve quality a bit (brush textures are assumed to be slightly blurred)
+    var lod = Math.round(Math.log(this.brushTex.levelWidths[0] + 1) / Math.log(2) -
+                         Math.log(radius * 2) / Math.log(2) - 0.3);
     if (lod <= 0) {
         lod = 0;
     } else if (lod >= this.brushTex.levels.length - 1) {
