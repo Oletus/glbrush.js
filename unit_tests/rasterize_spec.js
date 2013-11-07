@@ -85,10 +85,15 @@ describe('SWMipmap', function() {
 
 describe('Rasterizing system', function() {
 
-    function initTestGl() {
+    function initTestGl(width, height) {
         var canvas = document.createElement('canvas');
-        canvas.width = 123;
-        canvas.height = 456;
+        if (width === undefined) {
+            canvas.width = 123;
+            canvas.height = 456;
+        } else {
+            canvas.width = width;
+            canvas.height = height;
+        }
         return Picture.initWebGL(canvas);
     }
 
@@ -154,6 +159,21 @@ describe('Rasterizing system', function() {
             expect(testRasterizer.fillCircleCalls[2].radius).toBeNear(4.75,
                                                                       0.001);
         }
+    }
+
+    function testTextureCanvas() {
+        var image = document.createElement('canvas');
+        image.width = 128;
+        image.height = 128;
+        var ctx = image.getContext('2d');
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, 128, 128);
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(5, 5, 40, 40);
+        ctx.fillRect(59, 59, 64, 64);
+        ctx.fillRect(20, 84, 20, 20);
+        ctx.fillRect(84, 20, 30, 30);
+        return image;
     }
 
     describe('BaseRasterizer', function() {
@@ -253,12 +273,98 @@ describe('Rasterizing system', function() {
             rasterizer.free();
         });
 
-        // TODO: Test brush textures
+        it('draws a texturized circle', function() {
+            var brushTextureData = [];
+            var canvas = testTextureCanvas();
+            brushTextureData.push(canvas);
+            expect(canvas.width).toBe(canvas.height);
+            var w = canvas.width;
+            var canvasData = canvas.getContext('2d').getImageData(0, 0, w, w);
+
+            var rasterizer = createRasterizer(w, w, brushTextureData);
+            if (!(rasterizer instanceof Rasterizer)) {
+                expect(rasterizer.gl.canvas.width).toBe(w);
+                expect(rasterizer.gl.canvas.height).toBe(w);
+            }
+            expect(rasterizer.checkSanity()).toBe(true);
+
+            var radius = w * 0.5;
+            var center = new Vec2(w * 0.5, w * 0.5);
+
+            rasterizer.beginCircleLines(false, 1, 1.0);
+            rasterizer.fillCircle(center.x, center.y, radius);
+            rasterizer.flushCircles();
+
+            var wrongPixelsOutsideCircle = 0;
+            var wrongPixels = 0;
+            var pixels = [];
+            var wrongMap = [];
+            var step = 4;
+            for (var y = step / 2; y < w; y += step) {
+                for (var x = step / 2; x < w; x += step) {
+                    var pixel = rasterizer.getPixel(new Vec2(x + 0.5, y + 0.5));
+                    var wrong = 0;
+                    var centerDist = center.distance(new Vec2(x + 0.5, y + 0.5));
+                    if (centerDist > radius + 2) {
+                        if (pixel !== 0) {
+                            ++wrongPixelsOutsideCircle;
+                            wrong = 1;
+                        }
+                    } else if (centerDist < radius - 2) {
+                        var canvasPixel = canvasData.data[(x + y * canvas.width) * 4] / 255;
+                        if (Math.abs(pixel - canvasPixel) > 0.01) {
+                            ++wrongPixels;
+                            wrong = 1;
+                        }
+                    }
+                    pixels.push(pixel);
+                    wrongMap.push(wrong);
+                }
+            }
+            expect(wrongPixelsOutsideCircle).toBe(0);
+            expect(wrongPixels).toBe(0);
+            if (wrongPixels > 0) {
+                var debugCanvas = document.createElement('canvas');
+                var debugW = Math.sqrt(pixels.length);
+                console.log(debugW);
+                debugCanvas.width = debugW;
+                debugCanvas.height = debugW;
+                var debugCtx = debugCanvas.getContext('2d');
+                var imageData = debugCtx.createImageData(debugW, debugW);
+                for (var i = 0; i < pixels.length; ++i) {
+                    imageData.data[i * 4] = pixels[i] * 128 + wrongMap[i] * 100;
+                    imageData.data[i * 4 + 1] = pixels[i] * 128;
+                    imageData.data[i * 4 + 2] = pixels[i] * 128;
+                    imageData.data[i * 4 + 3] = 255;
+                }
+                debugCtx.putImageData(imageData, 0, 0);
+                debugCanvas.style.width = canvas.width + 'px';
+                debugCanvas.style.height = canvas.height + 'px';
+                document.body.appendChild(debugCanvas);
+                document.body.appendChild(canvas);
+            }
+
+            rasterizer.free();
+        });
     };
 
     describe('Rasterizer', function() {
-        var createRasterizer = function() {
-            return new Rasterizer(123, 456, null);
+        var createRasterizer = function(width, height, brushTextureData) {
+            if (width === undefined) {
+                width = 123;
+            }
+            if (height === undefined) {
+                height = 456;
+            }
+            if (brushTextureData === undefined) {
+                return new Rasterizer(width, height, null);
+            } else {
+                var brushTextures = new CanvasBrushTextures();
+                for (var i = 0; i < brushTextureData.length; ++i) {
+                    brushTextures.addTexture(brushTextureData[i]);
+                }
+                return new Rasterizer(width, height, brushTextures);
+            }
         };
 
         commonRasterizerTests(createRasterizer);
@@ -290,30 +396,72 @@ describe('Rasterizing system', function() {
     });
 
     describe('GLDoubleBufferedRasterizer', function() {
-        var createRasterizer = function() {
-            var gl = initTestGl();
+        var createRasterizer = function(width, height, brushTextureData) {
+            if (width === undefined) {
+                width = 123;
+            }
+            if (height === undefined) {
+                height = 456;
+            }
+            var gl = initTestGl(width, height);
             var glManager = glStateManager(gl);
-            return new GLDoubleBufferedRasterizer(gl, glManager, 123, 456, null);
+            if (brushTextureData === undefined) {
+                return new GLDoubleBufferedRasterizer(gl, glManager, width, height, null);
+            } else {
+                var brushTextures = new GLBrushTextures(gl, glManager);
+                for (var i = 0; i < brushTextureData.length; ++i) {
+                    brushTextures.addTexture(brushTextureData[i]);
+                }
+                return new GLDoubleBufferedRasterizer(gl, glManager, width, height, brushTextures);
+            }
         };
 
         commonRasterizerTests(createRasterizer);
     });
 
     describe('GLFloatRasterizer', function() {
-        var createRasterizer = function() {
-            var gl = initTestGl();
+        var createRasterizer = function(width, height, brushTextureData) {
+            if (width === undefined) {
+                width = 123;
+            }
+            if (height === undefined) {
+                height = 456;
+            }
+            var gl = initTestGl(width, height);
             var glManager = glStateManager(gl);
-            return new GLFloatRasterizer(gl, glManager, 123, 456, null);
+            if (brushTextureData === undefined) {
+                return new GLFloatRasterizer(gl, glManager, width, height, null);
+            } else {
+                var brushTextures = new GLBrushTextures(gl, glManager);
+                for (var i = 0; i < brushTextureData.length; ++i) {
+                    brushTextures.addTexture(brushTextureData[i]);
+                }
+                return new GLFloatRasterizer(gl, glManager, width, height, brushTextures);
+            }
         };
 
         commonRasterizerTests(createRasterizer);
     });
 
     describe('GLFloatTexDataRasterizer', function() {
-        var createRasterizer = function() {
-            var gl = initTestGl();
+        var createRasterizer = function(width, height, brushTextureData) {
+            if (width === undefined) {
+                width = 123;
+            }
+            if (height === undefined) {
+                height = 456;
+            }
+            var gl = initTestGl(width, height);
             var glManager = glStateManager(gl);
-            return new GLFloatTexDataRasterizer(gl, glManager, 123, 456, null);
+            if (brushTextureData === undefined) {
+                return new GLFloatTexDataRasterizer(gl, glManager, width, height, null);
+            } else {
+                var brushTextures = new GLBrushTextures(gl, glManager);
+                for (var i = 0; i < brushTextureData.length; ++i) {
+                    brushTextures.addTexture(brushTextureData[i]);
+                }
+                return new GLFloatTexDataRasterizer(gl, glManager, width, height, brushTextures);
+            }
         };
 
         commonRasterizerTests(createRasterizer);

@@ -19,8 +19,7 @@
 
 // Test textured brush scaling by scaling the brush tip texture.
 
-var testTextureData = function() {
-    var brushTextureData = [];
+var testTextureCanvas = function() {
     var image = document.createElement('canvas');
     image.width = 128;
     image.height = 128;
@@ -35,25 +34,37 @@ var testTextureData = function() {
     ctx.fillRect(20, 84, 20, 20);
     ctx.fillRect(84, 20, 30, 30);
     document.body.appendChild(image);
-    brushTextureData.push(image);
-    return brushTextureData;
+    return image;
 };
 
 var runTest = function() {
     var w = 384;
-    var pictureMode = 'no-float-webgl';
+    var pictureMode = 'webgl';
     var bitmapScale = 1.0;
     var t = 0;
-    var testPic = Picture.create(0, null, w, w, bitmapScale, [pictureMode], testTextureData());
+    var brushTextureData = [testTextureCanvas()];
+    var testPic = Picture.create(0, null, w, w, bitmapScale, [pictureMode], brushTextureData);
     testPic.addBuffer(0, [255, 255, 255, 255], false);
     testPic.setCurrentEventAttachment(0);
 
     var parent = document.getElementById('parent');
     parent.innerHTML = '';
     var picElement = testPic.pictureElement();
-    picElement.style.width = '100%';
-    picElement.style.height = '100%';
-    parent.appendChild(picElement);
+    var fitIn = function(element, parent) {
+        element.style.position = 'absolute';
+        element.style.width = '100%';
+        element.style.height = '100%';
+        element.style.left = '0';
+        element.style.top = '0';
+        parent.appendChild(element);
+    };
+    fitIn(picElement, parent);
+    var compareCanvas = document.createElement('canvas');
+    compareCanvas.style.opacity = 0.2;
+    compareCanvas.width = w;
+    compareCanvas.height = w;
+    var compareCtx = compareCanvas.getContext('2d');
+    fitIn(compareCanvas, parent);
 
     var color = [0, 0, 0];
     var flow = 1.0;
@@ -85,6 +96,12 @@ var runTest = function() {
         testPic.setCurrentEvent(event);
         testPic.display();
         requestAnimationFrame(drawFrame);
+        
+        compareCtx.clearRect(0, 0, compareCanvas.width, compareCanvas.height);
+        compareCtx.drawImage(brushTextureData[0],
+                             compareCanvas.width * 0.5 - radius,
+                             compareCanvas.height * 0.5 - radius,
+                             radius * 2, radius * 2);
     };
 
     if (testPic === null) {
@@ -97,7 +114,7 @@ var runTest = function() {
 </script>
 </head>
 <body onload="runTest()" style="background:#888;">
-<div id="parent" style="width: 768px; height: 768px;">
+<div id="parent" style="width: 768px; height: 768px; position: relative;">
 </div>
 <select id="textureSelect">
 </select>

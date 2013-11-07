@@ -858,8 +858,7 @@ GLDoubleBufferedRasterizer.prototype.getTex = function() {
  * opacity value.
  * @param {PictureEvent.Mode} mode Blending mode to use for drawing.
  */
-GLDoubleBufferedRasterizer.prototype.drawWithColor = function(color, opacity,
-                                                              mode) {
+GLDoubleBufferedRasterizer.prototype.drawWithColor = function(color, opacity, mode) {
     if (mode === PictureEvent.Mode.erase) {
         this.gl.blendFunc(this.gl.ZERO, this.gl.ONE_MINUS_SRC_ALPHA);
     }
@@ -1080,7 +1079,7 @@ GLDoubleBufferedRasterizer.prototype.getPixel = function(coords) {
     glUtils.updateClip(this.gl, new Rect(left, left + 1, top, top + 1),
                        this.height);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
-    this.drawWithColor([255, 255, 255], 1.0);
+    this.drawWithColor([255, 255, 255], 1.0, PictureEvent.Mode.normal);
     var pixel = new Uint8Array([0, 0, 0, 0]);
     this.gl.readPixels(left, this.height - 1 - top, 1, 1, this.gl.RGBA,
                        this.gl.UNSIGNED_BYTE, pixel);
