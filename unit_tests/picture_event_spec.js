@@ -123,6 +123,8 @@ describe('PictureEvent', function() {
         it('normalizes its pressure', function() {
             var testEvent = creator();
             var radius = 3;
+            var nBlends = Math.ceil(testEvent.radius * 2);
+            var brushFlowAlpha = colorUtil.alphaForNBlends(testEvent.flow, nBlends);
             testEvent.radius = radius;
             testEvent.pushCoordTriplet(0, 0, 10);
             testEvent.pushCoordTriplet(1, 1, 1);
@@ -130,6 +132,11 @@ describe('PictureEvent', function() {
             expect(testEvent.radius).toBeNear(30, 0.0001);
             expect(testEvent.coords[2]).toBeNear(1.0, 0.0001);
             expect(testEvent.coords[BrushEvent.coordsStride + 2]).toBeNear(0.1, 0.0001);
+            if (testEvent instanceof BrushEvent) {
+                nBlends = Math.ceil(testEvent.radius * 2);
+                var newFlowAlpha = colorUtil.alphaForNBlends(testEvent.flow, nBlends);
+                expect(newFlowAlpha).toBeCloseTo(brushFlowAlpha, 0.02);
+            }
         });
     };
 

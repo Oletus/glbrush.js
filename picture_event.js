@@ -356,8 +356,20 @@ BrushEvent.prototype.normalizePressure = function() {
     for (i = 0; i < this.coords.length; i += BrushEvent.coordsStride) {
         this.coords[i + 2] = Math.round(this.coords[i + 2] / maxPressure * 100000) / 100000;
     }
-    this.radius *= maxPressure;
+    this.scaleRadiusPreservingFlow(maxPressure);
     ++this.generation;
+};
+
+/**
+ * Scale radius while preserving the stroke's appearance.
+ * @param {number} radiusScale Multiplier for radius.
+ */
+BrushEvent.prototype.scaleRadiusPreservingFlow = function(radiusScale) {
+    var nBlends = Math.ceil(this.radius * 2);
+    var drawAlpha = colorUtil.alphaForNBlends(this.flow, nBlends);
+    this.radius *= radiusScale;
+    nBlends = Math.ceil(this.radius * 2);
+    this.flow = colorUtil.nBlends(drawAlpha, nBlends);
 };
 
 /**
@@ -619,6 +631,14 @@ ScatterEvent.prototype.translate = BrushEvent.prototype.translate;
 
 /** @inheritDoc */
 ScatterEvent.prototype.normalizePressure = BrushEvent.prototype.normalizePressure;
+
+/**
+ * Scale radius while preserving the event's appearance.
+ * @param {number} radiusScale Multiplier for radius.
+ */
+ScatterEvent.prototype.scaleRadiusPreservingFlow = function(radiusScale) {
+    this.radius *= radiusScale;
+};
 
 /** @inheritDoc */
 ScatterEvent.prototype.getBoundingBox = BrushEvent.prototype.getBoundingBox;
