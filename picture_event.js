@@ -320,8 +320,7 @@ BrushEvent.prototype.scale = function(scale) {
             this.coords[i] *= scale;
         }
     }
-    this.boundingBoxRasterizer.boundingBox = null;
-    ++this.generation; // This invalidates any real rasterizers which have this event cached.
+    ++this.generation; // This invalidates any rasterizers (including BBRasterizer) which have this event cached.
 };
 
 /**
@@ -336,8 +335,8 @@ BrushEvent.prototype.translate = function(offset) {
             this.coords[i] += offset.y;
         }
     }
-    this.boundingBoxRasterizer.translate(offset);
     ++this.generation; // This invalidates any real rasterizers which have this event cached.
+    this.boundingBoxRasterizer.translate(offset, this.generation);
 };
 
 /**
@@ -353,6 +352,7 @@ BrushEvent.lineSegmentLength = 5.0;
 BrushEvent.BBRasterizer = function() {
     this.state = null;
     this.boundingBox = null;
+    this.generation = -1;
 };
 
 /**
@@ -371,11 +371,11 @@ BrushEvent.BBRasterizer.prototype.clearDirty = function() {
  * rasterizer's bitmap.
  * @return {Object} Draw event state for the given event.
  */
-BrushEvent.BBRasterizer.prototype.getDrawEventState = function(event,
-                                                             stateConstructor) {
-    if (this.boundingBox === null) {
+BrushEvent.BBRasterizer.prototype.getDrawEventState = function(event, stateConstructor) {
+    if (this.boundingBox === null || event.generation !== this.generation) {
         this.state = new stateConstructor();
         this.boundingBox = new Rect();
+        this.generation = event.generation;
     }
     return this.state;
 };
@@ -412,13 +412,15 @@ BrushEvent.BBRasterizer.prototype.fillCircle = function(centerX, centerY,
 /**
  * Translate the bounding box.
  * @param {Vec2} offset Amount to translate with.
+ * @param {number} generation Generation to set in case bounding box can be updated.
  */
-BrushEvent.BBRasterizer.prototype.translate = function(offset) {
-    if (this.boundingBox !== null) {
+BrushEvent.BBRasterizer.prototype.translate = function(offset, generation) {
+    if (this.boundingBox !== null && this.generation === generation - 1) {
         this.boundingBox.left += offset.x;
         this.boundingBox.right += offset.x;
         this.boundingBox.top += offset.y;
         this.boundingBox.bottom += offset.y;
+        this.generation = generation;
     }
 };
 
@@ -535,11 +537,7 @@ BrushEvent.prototype.drawTo = function(rasterizer, untilCoord) {
  * change its earlier return values as a side effect.
  */
 BrushEvent.prototype.getBoundingBox = function(clipRect) {
-    if (this.boundingBoxRasterizer.boundingBox === null ||
-        this.boundingBoxRasterizer.state.coordsInd !==
-        this.coords.length - BrushEvent.coordsStride) {
-        this.drawTo(this.boundingBoxRasterizer);
-    }
+    this.drawTo(this.boundingBoxRasterizer);
     return this.boundingBoxRasterizer.boundingBox;
 };
 
@@ -608,20 +606,13 @@ ScatterEvent.prototype.getBoundingBox = BrushEvent.prototype.getBoundingBox;
  */
 ScatterEvent.prototype.drawTo = function(rasterizer, untilCoord) {
     var drawState = rasterizer.getDrawEventState(this, BrushEventState);
-    var needsClear = false;
     if (untilCoord === undefined) {
         untilCoord = this.coords.length;
     } else {
-        if (drawState.coordsInd + BrushEvent.coordsStride > untilCoord) {
-            needsClear = true;
+        if (drawState.coordsInd > untilCoord) {
+            rasterizer.clearDirty();
+            drawState = rasterizer.getDrawEventState(this, BrushEventState);
         }
-    }
-    // TODO: Maybe make it possible to change arbitrary parameters in the event
-    // and be able to determine if the rasterizer state is the same.
-    if (needsClear || drawState.radius !== this.radius) {
-        rasterizer.clearDirty();
-        drawState = rasterizer.getDrawEventState(this, BrushEventState);
-        drawState.radius = this.radius;
     }
     var i = drawState.coordsInd;
     if (i === 0) {

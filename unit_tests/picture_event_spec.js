@@ -60,6 +60,66 @@ describe('PictureEvent', function() {
             });
         }
     };
+    
+    var commonBrushEventBBTests = function(creator) {
+        it('updates its bounding box if more coords are pushed', function() {
+            var testEvent = creator();
+            testEvent.radius = 3;
+            testEvent.pushCoordTriplet(0, 0, 1);
+            testEvent.pushCoordTriplet(1, 0, 1);
+            var oldBox = testEvent.getBoundingBox(new Rect(-10, 10, -10, -10));
+            var oldLeft = oldBox.left;
+            var oldRight = oldBox.right;
+            var oldTop = oldBox.top;
+            var oldBottom = oldBox.bottom;
+            testEvent.pushCoordTriplet(3, 0, 1);
+            var box = testEvent.getBoundingBox(new Rect(-10, 10, -10, -10));
+            expect(box).toBe(oldBox);
+            expect(box.right).toBeNear(oldRight + 2, 0.01);
+            expect(box.left).toBeNear(oldLeft, 0.01);
+            expect(box.top).toBeNear(oldTop, 0.01);
+            expect(box.bottom).toBeNear(oldBottom, 0.01);
+        });
+
+        it('updates its bounding box if it is translated', function() {
+            var testEvent = creator();
+            testEvent.radius = 3;
+            testEvent.pushCoordTriplet(0, 0, 1);
+            testEvent.pushCoordTriplet(1, 1, 1);
+            var oldBox = testEvent.getBoundingBox(new Rect(-10, 10, -10, -10));
+            var oldLeft = oldBox.left;
+            var oldRight = oldBox.right;
+            var oldTop = oldBox.top;
+            var oldBottom = oldBox.bottom;
+            testEvent.translate(new Vec2(2, 1));
+            var box = testEvent.getBoundingBox(new Rect(-10, 10, -10, -10));
+            expect(box).toBe(oldBox);
+            expect(box.right).toBeNear(oldRight + 2, 0.01);
+            expect(box.left).toBeNear(oldLeft + 2, 0.01);
+            expect(box.top).toBeNear(oldTop + 1, 0.01);
+            expect(box.bottom).toBeNear(oldBottom + 1, 0.01);
+        });
+
+        it('updates its bounding box if it is scaled', function() {
+            var testEvent = creator();
+            var radius = 3;
+            testEvent.radius = radius;
+            testEvent.pushCoordTriplet(0, 0, 1);
+            testEvent.pushCoordTriplet(1, 1, 1);
+            var oldBox = testEvent.getBoundingBox(new Rect(-10, 10, -10, -10));
+            var oldLeft = oldBox.left;
+            var oldRight = oldBox.right;
+            var oldTop = oldBox.top;
+            var oldBottom = oldBox.bottom;
+            testEvent.scale(2.0);
+            var box = testEvent.getBoundingBox(new Rect(-10, 10, -10, -10));
+            expect(box).not.toBe(oldBox);
+            expect(box.right).toBeGreaterThan(oldRight + radius - 0.1);
+            expect(box.left).toBeLessThan(oldLeft - radius + 0.1);
+            expect(box.top).toBeLessThan(oldTop - radius + 0.1);
+            expect(box.bottom).toBeGreaterThan(oldBottom + radius - 0.1);
+        });
+    };
 
     var serializeLegacyBrushEvent = function(scale, version) {
         var eventMessage = this.serializePictureEvent();
@@ -86,6 +146,9 @@ describe('PictureEvent', function() {
 
     describe('BrushEvent', function() {
         commonEventTests(testBrushEvent, expectTestBrushEvent);
+
+        commonBrushEventBBTests(testBrushEvent);
+
         it('parses a version 1 event', function() {
             var version = 1;
             var testEvent = testBrushEvent();
@@ -99,6 +162,24 @@ describe('PictureEvent', function() {
 
     describe('ScatterEvent', function() {
         commonEventTests(testScatterEvent, expectTestScatterEvent);
+
+        commonBrushEventBBTests(testScatterEvent);
+
+        it('updates its bounding box if its generation is changed', function() {
+            var testEvent = testScatterEvent();
+            testEvent.radius = 3;
+            testEvent.pushCoordTriplet(0, 0, 1);
+            var oldBox = testEvent.getBoundingBox(new Rect(-10, 10, -10, -10));
+            testEvent.radius = 5;
+            ++testEvent.generation;
+            var box = testEvent.getBoundingBox(new Rect(-10, 10, -10, -10));
+            expect(box).not.toBe(oldBox);
+            expect(box.right).toBeNear(oldBox.right + 2, 0.01);
+            expect(box.left).toBeNear(oldBox.left - 2, 0.01);
+            expect(box.top).toBeNear(oldBox.top - 2, 0.01);
+            expect(box.bottom).toBeNear(oldBox.bottom + 2, 0.01);
+        });
+
         it('parses a version 1 event', function() {
             var version = 1;
             var testEvent = testScatterEvent();
