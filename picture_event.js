@@ -340,6 +340,27 @@ BrushEvent.prototype.translate = function(offset) {
 };
 
 /**
+ * Normalize pressure to the range 0 to 1. Adjusts the radius accordingly.
+ */
+BrushEvent.prototype.normalizePressure = function() {
+    var i;
+    var maxPressure = 0;
+    for (i = 0; i < this.coords.length; i += BrushEvent.coordsStride) {
+        if (this.coords[i + 2] > maxPressure) {
+            maxPressure = this.coords[i + 2];
+        }
+    }
+    if (maxPressure <= 1.0) {
+        return;
+    }
+    for (i = 0; i < this.coords.length; i += BrushEvent.coordsStride) {
+        this.coords[i + 2] = Math.round(this.coords[i + 2] / maxPressure * 100000) / 100000;
+    }
+    this.radius *= maxPressure;
+    ++this.generation;
+};
+
+/**
  * @const
  */
 BrushEvent.lineSegmentLength = 5.0;
@@ -595,6 +616,9 @@ ScatterEvent.prototype.scale = BrushEvent.prototype.scale;
 
 /** @inheritDoc */
 ScatterEvent.prototype.translate = BrushEvent.prototype.translate;
+
+/** @inheritDoc */
+ScatterEvent.prototype.normalizePressure = BrushEvent.prototype.normalizePressure;
 
 /** @inheritDoc */
 ScatterEvent.prototype.getBoundingBox = BrushEvent.prototype.getBoundingBox;

@@ -60,8 +60,8 @@ describe('PictureEvent', function() {
             });
         }
     };
-    
-    var commonBrushEventBBTests = function(creator) {
+
+    var commonBrushEventTests = function(creator) {
         it('updates its bounding box if more coords are pushed', function() {
             var testEvent = creator();
             testEvent.radius = 3;
@@ -119,6 +119,18 @@ describe('PictureEvent', function() {
             expect(box.top).toBeLessThan(oldTop - radius + 0.1);
             expect(box.bottom).toBeGreaterThan(oldBottom + radius - 0.1);
         });
+
+        it('normalizes its pressure', function() {
+            var testEvent = creator();
+            var radius = 3;
+            testEvent.radius = radius;
+            testEvent.pushCoordTriplet(0, 0, 10);
+            testEvent.pushCoordTriplet(1, 1, 1);
+            testEvent.normalizePressure();
+            expect(testEvent.radius).toBeNear(30, 0.0001);
+            expect(testEvent.coords[2]).toBeNear(1.0, 0.0001);
+            expect(testEvent.coords[BrushEvent.coordsStride + 2]).toBeNear(0.1, 0.0001);
+        });
     };
 
     var serializeLegacyBrushEvent = function(scale, version) {
@@ -147,7 +159,7 @@ describe('PictureEvent', function() {
     describe('BrushEvent', function() {
         commonEventTests(testBrushEvent, expectTestBrushEvent);
 
-        commonBrushEventBBTests(testBrushEvent);
+        commonBrushEventTests(testBrushEvent);
 
         it('parses a version 1 event', function() {
             var version = 1;
@@ -163,7 +175,7 @@ describe('PictureEvent', function() {
     describe('ScatterEvent', function() {
         commonEventTests(testScatterEvent, expectTestScatterEvent);
 
-        commonBrushEventBBTests(testScatterEvent);
+        commonBrushEventTests(testScatterEvent);
 
         it('updates its bounding box if its generation is changed', function() {
             var testEvent = testScatterEvent();
