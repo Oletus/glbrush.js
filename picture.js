@@ -628,7 +628,7 @@ Picture.initWebGL = function(canvas) {
         return null;
     }
 
-    gl.clearColor(1.0, 1.0, 1.0, 1.0);
+    gl.clearColor(0.0, 0.0, 0.0, 0.0);
     gl.disable(gl.DEPTH_TEST);
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
     gl.enable(gl.BLEND);
