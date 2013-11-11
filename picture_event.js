@@ -510,9 +510,17 @@ BrushEvent.prototype.drawTo = function(rasterizer, untilCoord) {
         var d = Math.sqrt(dx * dx + dy * dy);
 
         if (d < 1.0) {
-            if (p2 > p1) {
+            if (d > 0.05) {
+                var drawFlowAlpha = colorUtil.alphaForNBlends(this.flow, Math.ceil(this.radius * 2 / d));
+                rasterizer.fillCircle((x1 + x2) * 0.5, (y1 + y2) * 0.5, (p1 + p2) * 0.5 * r, drawFlowAlpha);
+                x1 = x2;
+                y1 = y2;
+                p1 = p2;
+                drawState.coordsInd = i - BrushEvent.coordsStride;
+                drawState.usePrevDirection = false;
+            } else if (p2 > p1) {
                 // Avoid leaving high-pressure events undrawn
-                // even if the x/y points are close to each other.
+                // even if the x/y points are very close to each other.
                 p1 = p2;
             }
             continue;
