@@ -204,24 +204,22 @@ RasterizeShader.prototype.uniforms = function(width, height) {
     } else {
         if (this.unroll) {
             for (i = 0; i < this.circles; ++i) {
-                us.push({name: 'uCircle' + i, type: 'vec3', shortType: '3fv',
-                         inFragment: false, inVertex: true,
-                         defaultValue: [0.0, 0.0, 1.0],
+                us.push({name: 'uCircle' + i, type: 'vec4', shortType: '4fv',
+                         inFragment: true, inVertex: true,
+                         defaultValue: [0.0, 0.0, 1.0, 1.0],
                          comment: 'in gl viewport space, radius in pixels'});
             }
         } else {
             var def = [];
             for (i = 0; i < this.circles; ++i) {
-                def.push(0.0, 0.0, 1.0);
+                def.push(0.0, 0.0, 1.0, 1.0);
             }
-            us.push({name: 'uCircle', type: 'vec3', arraySize: this.circles,
-                     shortType: '3fv', inFragment: false, inVertex: true,
+            us.push({name: 'uCircle', type: 'vec4', arraySize: this.circles,
+                     shortType: '4fv', inFragment: true, inVertex: true,
                      defaultValue: def,
                      comment: 'in gl viewport space, radius in pixels'});
         }
     }
-    us.push({name: 'uFlowAlpha', type: 'float', shortType: '1f',
-             inFragment: true, inVertex: false, defaultValue: 1.0});
     us.push({name: 'uPixelPitch', type: 'vec2', shortType: '2fv',
              inFragment: false, inVertex: true,
              defaultValue: [2.0 / width, 2.0 / height],
@@ -247,10 +245,10 @@ RasterizeShader.prototype.varyingSource = function() {
     } else {
         if (this.unroll) {
             for (var i = 0; i < this.circles; ++i) {
-                src.push('varying vec3 vCircle' + i + ';');
+                src.push('varying vec4 vCircle' + i + ';');
             }
         } else {
-            src.push('varying vec3 vCircle[' + this.circles + '];');
+            src.push('varying vec4 vCircle[' + this.circles + '];');
         }
     }
     return src;
@@ -273,12 +271,13 @@ RasterizeShader.prototype.minRadius = function() {
 RasterizeShader.prototype.fragmentAlphaSource = function(assignTo, indent) {
     // Generated shader assumes that:
     // 1. circleRadius contains the intended perceived radius of the circle.
+    // 1. circleFlowAlpha contains the intended perceived alpha of the circle.
     // 2. centerDist contains the fragment's distance from the circle center.
     var src = [];
     src.push(indent + 'float radius = max(circleRadius, ' + this.minRadius().toFixed(1) + ');');
     src.push(indent + 'float flowAlpha = (circleRadius < ' + this.minRadius().toFixed(1) + ') ? ' +
-            'uFlowAlpha * circleRadius * circleRadius * ' + Math.pow(1.0 / this.minRadius(), 2).toFixed(1) +
-            ': uFlowAlpha;');
+            'circleFlowAlpha * circleRadius * circleRadius * ' + Math.pow(1.0 / this.minRadius(), 2).toFixed(1) +
+            ': circleFlowAlpha;');
     if (this.texturized) {
         // Usage of antialiasMult increases accuracy at small brush sizes and ensures that the brush stays inside the
         // bounding box even when rotated (rotation support is TODO)
@@ -327,6 +326,7 @@ RasterizeShader.prototype.fragmentInnerLoopSource = function(index,
                  '.0, 0.5));');
         src.push('      vec2 center = parameterColor.xy;');
         src.push('      float circleRadius = parameterColor.z;');
+        src.push('      float circleFlowAlpha = parameterColor.w;');
         if (this.texturized) {
             src.push('      vec2 centerDiff = vPixelCoords - center;');
         } else {
@@ -337,14 +337,14 @@ RasterizeShader.prototype.fragmentInnerLoopSource = function(index,
             arrayIndex = '[' + index + ']';
         }
         src.push('      float circleRadius = vCircle' + arrayIndex + '.z;');
+        src.push('      float circleFlowAlpha = vCircle' + arrayIndex + '.w;');
         if (this.texturized) {
             src.push('      vec2 centerDiff = vCircle' + arrayIndex + '.xy;');
         } else {
             src.push('      float centerDist = length(vCircle' + arrayIndex + '.xy);');
         }
     }
-    src.push.apply(src, this.fragmentAlphaSource('float circleAlpha',
-                   '      '));
+    src.push.apply(src, this.fragmentAlphaSource('float circleAlpha', '      '));
     if (this.texturized && this.dynamicCircles) {
         // The mipmapped brush texture can't be accessed inside non-uniform flow control,
         // so the if is here instead of before doing the operations.
@@ -416,11 +416,11 @@ RasterizeShader.prototype.vertexInnerLoopSource = function(index, arrayIndex) {
         }
         src.push('    vec2 relPosition = vec2(aVertexPosition.x - uCircle' + arrayIndex + '.x, ' +
                  'uCircle' + arrayIndex + '.y - aVertexPosition.y) / uPixelPitch;');
-        src.push('    vCircle' + arrayIndex + ' = vec3(relPosition, uCircle' +
-                 arrayIndex + '.z);');
+        src.push('    vCircle' + arrayIndex + ' = vec4(relPosition, uCircle' +
+                 arrayIndex + '.z, uCircle' + arrayIndex + '.w);');
         if (this.dynamicCircles) {
             src.push('  } else {');
-            src.push('    vCircle' + arrayIndex + ' = vec3(0.0, 0.0, 0.0);');
+            src.push('    vCircle' + arrayIndex + ' = vec3(0.0, 0.0, 0.0, 0.0);');
         }
         src.push('  }');
     }

@@ -114,11 +114,10 @@ describe('Rasterizing system', function() {
         if (testFillCircleCalls === undefined) {
             testFillCircleCalls = false;
         }
-        testRasterizer.beginCircleLines(true, 0, 0.1);
+        testRasterizer.beginCircleLines(true, 0);
         expect(testRasterizer.soft).toBe(true);
-        expect(testRasterizer.flowAlpha).toBe(0.1);
         expect(testRasterizer.t).toBe(0);
-        testRasterizer.circleLineTo(0, 0, 1);
+        testRasterizer.circleLineTo(0, 0, 1, 0.1);
         expect(testRasterizer.prevX).toBe(0);
         expect(testRasterizer.prevY).toBe(0);
         expect(testRasterizer.prevR).toBe(1);
@@ -127,7 +126,7 @@ describe('Rasterizing system', function() {
             expect(testRasterizer.fillCircleCalls.length).toBe(0);
         }
 
-        testRasterizer.circleLineTo(0, 0.5, 4);
+        testRasterizer.circleLineTo(0, 0.5, 4, 0.1);
         expect(testRasterizer.prevX).toBe(0);
         expect(testRasterizer.prevY).toBe(0.5);
         expect(testRasterizer.prevR).toBe(4);
@@ -137,27 +136,24 @@ describe('Rasterizing system', function() {
             expect(testRasterizer.fillCircleCalls[0].centerX).toBe(0);
             expect(testRasterizer.fillCircleCalls[0].centerY).toBe(0);
             expect(testRasterizer.fillCircleCalls[0].radius).toBe(1);
+            expect(testRasterizer.fillCircleCalls[0].flowAlpha).toBe(0.1);
         }
 
-        testRasterizer.circleLineTo(2, 0.5, 5);
+        testRasterizer.circleLineTo(2, 0.5, 5, 0.2);
         expect(testRasterizer.prevX).toBe(2);
         expect(testRasterizer.prevY).toBe(0.5);
         expect(testRasterizer.prevR).toBe(5);
         expect(testRasterizer.t).toBeNear(0.5, 0.001);
         if (testFillCircleCalls) {
             expect(testRasterizer.fillCircleCalls.length).toBe(3);
-            expect(testRasterizer.fillCircleCalls[1].centerX).toBeNear(0.5,
-                                                                       0.001);
-            expect(testRasterizer.fillCircleCalls[1].centerY).toBeNear(0.5,
-                                                                       0.001);
-            expect(testRasterizer.fillCircleCalls[1].radius).toBeNear(4.25,
-                                                                      0.001);
-            expect(testRasterizer.fillCircleCalls[2].centerX).toBeNear(1.5,
-                                                                       0.001);
-            expect(testRasterizer.fillCircleCalls[2].centerY).toBeNear(0.5,
-                                                                       0.001);
-            expect(testRasterizer.fillCircleCalls[2].radius).toBeNear(4.75,
-                                                                      0.001);
+            expect(testRasterizer.fillCircleCalls[1].centerX).toBeNear(0.5, 0.001);
+            expect(testRasterizer.fillCircleCalls[1].centerY).toBeNear(0.5, 0.001);
+            expect(testRasterizer.fillCircleCalls[1].radius).toBeNear(4.25, 0.001);
+            expect(testRasterizer.fillCircleCalls[1].flowAlpha).toBe(0.2);
+            expect(testRasterizer.fillCircleCalls[2].centerX).toBeNear(1.5, 0.001);
+            expect(testRasterizer.fillCircleCalls[2].centerY).toBeNear(0.5, 0.001);
+            expect(testRasterizer.fillCircleCalls[2].radius).toBeNear(4.75, 0.001);
+            expect(testRasterizer.fillCircleCalls[2].flowAlpha).toBe(0.2);
         }
     }
 
@@ -185,10 +181,11 @@ describe('Rasterizing system', function() {
         TestRasterizer.prototype = new BaseRasterizer();
 
         TestRasterizer.prototype.fillCircle = function(centerX, centerY,
-                                                       radius) {
+                                                       radius, flowAlpha) {
             this.fillCircleCalls.push({centerX: centerX,
                                        centerY: centerY,
-                                       radius: radius});
+                                       radius: radius,
+                                       flowAlpha: flowAlpha});
         };
 
         it('initializes', function() {
@@ -291,8 +288,8 @@ describe('Rasterizing system', function() {
             var radius = w * 0.5;
             var center = new Vec2(w * 0.5, w * 0.5);
 
-            rasterizer.beginCircleLines(false, 1, 1.0);
-            rasterizer.fillCircle(center.x, center.y, radius);
+            rasterizer.beginCircleLines(false, 1);
+            rasterizer.fillCircle(center.x, center.y, radius, 1.0);
             rasterizer.flushCircles();
 
             var wrongPixelsOutsideCircle = 0;
@@ -385,9 +382,9 @@ describe('Rasterizing system', function() {
             var rasterizer = new Rasterizer(123, 456, null);
             var clipRect = new Rect(-100, 223, -100, 556);
             rasterizer.setClip(clipRect);
-            rasterizer.beginCircleLines(true, 0, 0.1);
-            rasterizer.circleLineTo(123, 0, 1);
-            rasterizer.circleLineTo(123, 100, 1);
+            rasterizer.beginCircleLines(true, 0);
+            rasterizer.circleLineTo(123, 0, 1, 0.1);
+            rasterizer.circleLineTo(123, 100, 1, 0.1);
             var coords = new Vec2(0, 1);
             expect(rasterizer.getPixel(coords)).toBe(0);
             coords.x = 122;

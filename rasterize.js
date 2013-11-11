@@ -5,7 +5,7 @@
 /**
  * A base object for a rasterizer that can blend together monochrome circles and
  * draw gradients. Do not instance this directly.
- * Inheriting objects are expected to implement fillCircle(x, y, radius),
+ * Inheriting objects are expected to implement fillCircle(x, y, radius, flowAlpha),
  * getPixel(coords), clear(), linearGradient(coords1, coords0) and if need be,
  * flushCircles() and free().
  * @constructor
@@ -96,17 +96,14 @@ BaseRasterizer.prototype.getDrawEventState = function(event, stateConstructor) {
  * Initialize drawing circle lines with the given parameters.
  * @param {boolean} soft Use soft edged circles.
  * @param {number} textureId Id of the brush tip texture to use. 0 means to draw only circles.
- * @param {number} flowAlpha The alpha value to use to rasterize individual
- * circles.
  */
-BaseRasterizer.prototype.beginCircleLines = function(soft, textureId, flowAlpha) {
+BaseRasterizer.prototype.beginCircleLines = function(soft, textureId) {
     this.soft = soft;
     this.texturized = textureId > 0 && this.brushTextures !== null;
     if (this.texturized) {
         this.brushTex = this.brushTextures.getTexture(textureId - 1);
     }
     this.minRadius = this.soft ? 1.0 : 0.5;
-    this.flowAlpha = flowAlpha;
     this.prevX = null;
     this.prevY = null;
     this.prevR = null;
@@ -124,15 +121,18 @@ BaseRasterizer.prototype.beginCircleLines = function(soft, textureId, flowAlpha)
  * @param {number} centerY The y coordinate of the center of the circle at the
  * end of the line.
  * @param {number} radius The radius at the end of the line.
+ * @param {number} flowAlpha The alpha value to use to rasterize individual
+ * circles. Same for every circle.
  */
-BaseRasterizer.prototype.circleLineTo = function(centerX, centerY, radius) {
+BaseRasterizer.prototype.circleLineTo = function(centerX, centerY, radius, flowAlpha) {
     if (this.prevX !== null) {
         var diff = new Vec2(centerX - this.prevX, centerY - this.prevY);
         var d = diff.length();
         while (this.t < d) {
             this.fillCircle(this.prevX + diff.x * (this.t / d),
                             this.prevY + diff.y * (this.t / d),
-                            this.prevR + (radius - this.prevR) * (this.t / d));
+                            this.prevR + (radius - this.prevR) * (this.t / d),
+                            flowAlpha);
             this.t++;
         }
         this.t -= d;
@@ -164,15 +164,14 @@ BaseRasterizer.prototype.drawBoundingRadius = function(radius) {
 };
 
 /**
- * Get the actual alpha of the drawn circle when the appearance of the given
+ * Get the alpha multiplier for the drawn circle when the appearance of the given
  * radius is desired. Very small circles get drawn with the minimum radius with
  * reduced alpha to avoid aliasing.
  * @param {number} radius The radius of the circle.
- * @return {number} The actual alpha value to use.
+ * @return {number} The alpha multiplier to use.
  */
-BaseRasterizer.prototype.drawAlpha = function(radius) {
-    return this.flowAlpha *
-           Math.pow(Math.min(radius / this.minRadius, 1.0), 2.0);
+BaseRasterizer.prototype.circleAlpha = function(radius) {
+    return Math.pow(Math.min(radius / this.minRadius, 1.0), 2.0);
 };
 
 /**
@@ -197,9 +196,9 @@ BaseRasterizer.prototype.checkSanity = function() {
     this.drawEvent = null;
     this.resetClip();
     this.clear();
-    this.beginCircleLines(false, 0, 1.0);
-    this.circleLineTo(1.5, 1.5, 2.0);
-    this.circleLineTo(4.5, 4.5, 2.0);
+    this.beginCircleLines(false, 0);
+    this.circleLineTo(1.5, 1.5, 2.0, 1.0);
+    this.circleLineTo(4.5, 4.5, 2.0, 1.0);
     this.flushCircles();
     for (i = 1; i <= 4; ++i) {
         pix = this.getPixel(new Vec2(i, i));
@@ -209,9 +208,9 @@ BaseRasterizer.prototype.checkSanity = function() {
         }
     }
     this.clear();
-    this.beginCircleLines(false, 0, 0.5);
-    this.circleLineTo(3.5, 3.5, 2.0);
-    this.circleLineTo(13.5, 13.5, 2.0);
+    this.beginCircleLines(false, 0);
+    this.circleLineTo(3.5, 3.5, 2.0, 0.5);
+    this.circleLineTo(13.5, 13.5, 2.0, 0.5);
     this.flushCircles();
     var lastPix = -1.0;
     for (i = 3; i <= 9; ++i) {
@@ -428,8 +427,9 @@ Rasterizer.prototype.getPixel = function(coords) {
  * @param {number} centerX The x coordinate of the center of the circle.
  * @param {number} centerY The y coordinate of the center of the circle.
  * @param {number} radius The radius of the circle.
+ * @param {number} flowAlpha The alpha value for rasterizing the circle.
  */
-Rasterizer.prototype.fillCircle = function(centerX, centerY, radius) {
+Rasterizer.prototype.fillCircle = function(centerX, centerY, radius, flowAlpha) {
     if (!this.clipRect.mightIntersectCircleRoundedOut(centerX, centerY,
                                              this.drawBoundingRadius(radius))) {
         return;
@@ -445,13 +445,13 @@ Rasterizer.prototype.fillCircle = function(centerX, centerY, radius) {
     centerY -= 0.5;
     if (this.texturized) {
         this.fillTexturizedCircleBlending(circleRect, centerX, centerY,
-                                          this.drawRadius(radius), this.drawAlpha(radius));
+                                          this.drawRadius(radius), this.circleAlpha(radius) * flowAlpha);
     } else if (this.soft) {
         this.fillSoftCircleBlending(circleRect, centerX, centerY,
-                                    this.drawRadius(radius), this.drawAlpha(radius));
+                                    this.drawRadius(radius), this.circleAlpha(radius) * flowAlpha);
     } else {
         this.fillCircleBlending(circleRect, centerX, centerY,
-                                this.drawRadius(radius), this.drawAlpha(radius));
+                                this.drawRadius(radius), this.circleAlpha(radius) * flowAlpha);
     }
 };
 
@@ -678,7 +678,7 @@ GLRasterizerFormat = {
 var GLDoubleBufferedRasterizer = function(gl, glManager, width, height, brushTextures) {
     this.initBaseRasterizer(width, height, brushTextures);
     this.initGLRasterizer(gl, glManager, GLRasterizerFormat.redGreen,
-                          GLDoubleBufferedRasterizer.maxCircles, 3);
+                          GLDoubleBufferedRasterizer.maxCircles, 4);
     // TODO: Move to gl.RG if EXT_texture_RG becomes available in WebGL
     this.tex0 = glUtils.createTexture(gl, width, height, gl.RGB);
     this.tex1 = glUtils.createTexture(gl, width, height, gl.RGB);
@@ -763,8 +763,8 @@ GLDoubleBufferedRasterizer.prototype.getMemoryBytes = function() {
  * pass. Must be an integer > 0.
  * @param {number} paramsStride The amount of floating point parameter slots
  * per circle to allocate. In GLDoubleBufferedRasterizer.fillCircle(), first
- * three parameters for each circle are set to x, y, and radius, and the rest is
- * padding, so paramsStride should be at least 3. Must be an integer.
+ * four parameters for each circle are set to x, y, radius, and alpha, and the
+ * rest is padding, so paramsStride should be at least 4. Must be an integer.
  * @protected
  */
 GLDoubleBufferedRasterizer.prototype.initGLRasterizer = function(gl, glManager, format, maxCircles, paramsStride) {
@@ -924,12 +924,14 @@ GLDoubleBufferedRasterizer.prototype.clear = function() {
  * @param {number} centerX The x coordinate of the circle center in pixels.
  * @param {number} centerY The y coordinate of the circle center in pixels.
  * @param {number} radius The radius of the circle in pixels.
+ * @param {number} flowAlpha Flow alpha value of the circle, in range 0 to 1.
  * @protected
  */
-GLDoubleBufferedRasterizer.prototype.setCircleUniformParameters = function(u, centerX, centerY, radius) {
+GLDoubleBufferedRasterizer.prototype.setCircleUniformParameters = function(u, centerX, centerY, radius, flowAlpha) {
     u[0] = centerX / this.width * 2.0 - 1.0;
     u[1] = centerY / this.height * (-2.0) + 1.0;
     u[2] = radius;
+    u[3] = flowAlpha;
 };
 
 /**
@@ -956,7 +958,6 @@ GLDoubleBufferedRasterizer.prototype.getDrawRect = function(invalRect) {
 GLDoubleBufferedRasterizer.prototype.preDraw = function(uniformParameters) {
     this.glManager.useFboTex(this.getTargetTex());
     if (uniformParameters !== null) {
-        uniformParameters['uFlowAlpha'] = this.flowAlpha;
         uniformParameters['uSrcTex'] = this.getTex();
         if (this.texturized) {
             uniformParameters['uBrushTex'] = this.brushTex;
@@ -989,14 +990,15 @@ GLDoubleBufferedRasterizer.prototype.postDraw = function(invalRect) {
  * @param {number} centerX The x coordinate of the center of the circle.
  * @param {number} centerY The y coordinate of the center of the circle.
  * @param {number} radius The radius of the circle.
+ * @param {number} flowAlpha The alpha value for rasterizing the circle.
  */
-GLDoubleBufferedRasterizer.prototype.fillCircle = function(centerX, centerY,
-                                                           radius) {
+GLDoubleBufferedRasterizer.prototype.fillCircle = function(centerX, centerY, radius, flowAlpha) {
     this.circleRect.unionCircle(centerX, centerY,
                                 this.drawBoundingRadius(radius));
     this.params[this.circleInd * this.paramsStride] = centerX;
     this.params[this.circleInd * this.paramsStride + 1] = centerY;
     this.params[this.circleInd * this.paramsStride + 2] = radius;
+    this.params[this.circleInd * this.paramsStride + 3] = flowAlpha;
     this.circleInd++;
     if (this.circleInd >= this.maxCircles) {
         // TODO: assert(this.circleInd === this.maxCircles);
@@ -1018,7 +1020,8 @@ GLDoubleBufferedRasterizer.prototype.flushCircles = function() {
     for (var i = 0; i < circleCount; ++i) {
         this.setCircleUniformParameters(
             uniformParameters[circleCount - 1]['uCircle' + i],
-            this.params[i * 3], this.params[i * 3 + 1], this.params[i * 3 + 2]);
+            this.params[i * this.paramsStride], this.params[i * this.paramsStride + 1],
+            this.params[i * this.paramsStride + 2], this.params[i * this.paramsStride + 3]);
     }
     glUtils.updateClip(this.gl, drawRect, this.height);
     if (this.texturized) {
@@ -1104,7 +1107,7 @@ var GLFloatRasterizer = function(gl, glManager, width, height, brushTextures) {
     var i;
     this.initBaseRasterizer(width, height, brushTextures);
     this.initGLRasterizer(gl, glManager, GLRasterizerFormat.alpha,
-                          GLFloatRasterizer.maxCircles, 3);
+                          GLFloatRasterizer.maxCircles, 4);
     this.tex = glUtils.createTexture(gl, width, height, this.gl.RGBA,
                                      this.gl.FLOAT);
 
@@ -1223,7 +1226,6 @@ GLFloatRasterizer.prototype.getDrawRect = function(invalRect) {
 GLFloatRasterizer.prototype.preDraw = function(uniformParameters) {
     this.glManager.useFboTex(this.tex);
     if (uniformParameters !== null) {
-        uniformParameters['uFlowAlpha'] = this.flowAlpha;
         if (this.texturized) {
             uniformParameters['uBrushTex'] = this.brushTex;
         }
@@ -1405,7 +1407,6 @@ GLFloatTexDataRasterizer.prototype.flushCircles = function() {
     this.glManager.useFboTex(this.tex);
     var uniformParameters = this.texturized ? this.texUniformParameters : this.fillUniformParameters;
     uniformParameters['uCircleCount'] = this.circleInd;
-    uniformParameters['uFlowAlpha'] = this.flowAlpha;
     if (this.texturized) {
         uniformParameters['uBrushTex'] = this.brushTex;
     }
