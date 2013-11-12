@@ -271,12 +271,9 @@ colorUtil.blendHardLight = function(a, b) {
 colorUtil.blendSoftLight = function(a, b) {
     a /= 255;
     b /= 255;
-    return 255 * (b <= .5 ?
-            2 * a * b + a * a * (1 - 2 * b) :
-            Math.sqrt(a) * (2 * b - 1) + (2 * a) * (1 - b));
-    // b < .5 ? (2 * a * b + a * a * (1 – 2 * b)) : (sqrt(a) * (2 * b – 1) + (2 * a) * (1 – b))
-    //(Blend > 0.5) * (1 - (1-Target) * (1-(Blend-0.5))) +
-    //(Blend <= 0.5) * (Target * (Blend+0.5))
+    return 255 * (b <= .5 ? a - (1 - 2 * b) * a * (1 - a) :
+            b > 0.5 && a <= 0.25 ? a + (2 * b - 1) * a * ((16 * a - 12) * a + 3) :
+            a + (2 * b - 1) * (Math.sqrt(a) - a));
 };
 
 /**
