@@ -110,9 +110,12 @@ compositingShader.getFragmentSource = function(layers) {
                     blendEqPerComponent('mix(dstColor, (srcColor <= 0.5 ? (2.0 / 1.0 * srcColor * dstColor) : ' +
                             '(1.0 - 2.0 * (1.0 - dstColor) * (1.0 - srcColor))),  srcAlpha)');
                 } else if (layers[i].mode === PictureEvent.Mode.softlight) {
-                    blendEqPerComponent('mix(dstColor, (srcColor <= 0.5 ?' +
-                            '2. * dstColor * srcColor + dstColor * dstColor * (1. - 2. * srcColor) : ' +
-                            '(sqrt(dstColor) * (2. * srcColor - 1.) + (2. * dstColor) * (1. - srcColor))), srcAlpha)');
+                    blendEqPerComponent('mix(dstColor, ' +
+                            '(srcColor <= .5 ? ' +
+                            'dstColor - (1. - 2. * srcColor) * dstColor * (1. - dstColor) :' +
+                            'srcColor > 0.5 && dstColor <= 0.25 ? ' +
+                            'dstColor + (2. * srcColor - 1.) * dstColor * ((16. * dstColor - 12.) * dstColor + 3.) :' +
+                            'dstColor + (2. * srcColor - 1.) * (sqrt(dstColor) - dstColor)), srcAlpha)');
                 } else if (layers[i].mode === PictureEvent.Mode.darken) {
                     blendEqPerComponent('mix(dstColor, dstColor < srcColor ? dstColor : srcColor, srcAlpha)');
                 } else if (layers[i].mode === PictureEvent.Mode.lighten) {
