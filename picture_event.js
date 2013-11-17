@@ -509,62 +509,46 @@ BrushEvent.prototype.drawTo = function(rasterizer, untilCoord) {
         var dy = y2 - y1;
         var d = Math.sqrt(dx * dx + dy * dy);
 
-        if (d < 1.0) {
-            if (d > 0.05) {
-                var drawFlowAlpha = colorUtil.alphaForNBlends(this.flow, Math.ceil(this.radius * 2 / d));
-                rasterizer.fillCircle((x1 + x2) * 0.5, (y1 + y2) * 0.5, (p1 + p2) * 0.5 * r, drawFlowAlpha);
-                x1 = x2;
-                y1 = y2;
-                p1 = p2;
-                drawState.coordsInd = i - BrushEvent.coordsStride;
-                drawState.usePrevDirection = false;
-            } else if (p2 > p1) {
-                // Avoid leaving high-pressure events undrawn
-                // even if the x/y points are very close to each other.
-                p1 = p2;
-            }
-            continue;
-        }
-
         // Brush smoothing. By default, make a straight line.
         var bezierX = x1 + dx * 0.5;
         var bezierY = y1 + dy * 0.5;
-        // There's not much sense to do smoothing if intervals are short
-        if (drawState.usePrevDirection && d > BrushEvent.lineSegmentLength) {
-            // dot product check to ensure that the direction is similar enough
-            if (dx * prevDirection.x + dy * prevDirection.y > d * 0.5) {
-                // ad-hoc weighing of points to get a visually pleasing result
-                bezierX = x1 + prevDirection.x * d * 0.25 + dx * 0.25;
-                bezierY = y1 + prevDirection.y * d * 0.25 + dy * 0.25;
-            }
+        if (dx * prevDirection.x + dy * prevDirection.y > d * 0.5) {
+            // ad-hoc weighing of points to get a visually pleasing result
+            bezierX = x1 + prevDirection.x * d * 0.25 + dx * 0.25;
+            bezierY = y1 + prevDirection.y * d * 0.25 + dy * 0.25;
         }
 
-        // we'll split the smoothed stroke segment to line segments with approx
-        // length of BrushEvent.lineSegmentLength, trying to fit them nicely
-        // between the two stroke segment endpoints
-        var t = 0;
-        var tSegment = 0.99999 / Math.ceil(d / BrushEvent.lineSegmentLength);
-        while (t < 1.0) {
-            xd = x1 * Math.pow(1.0 - t, 2) + bezierX * t * (1.0 - t) * 2 +
-                 x2 * Math.pow(t, 2);
-            yd = y1 * Math.pow(1.0 - t, 2) + bezierY * t * (1.0 - t) * 2 +
-                 y2 * Math.pow(t, 2);
-            pd = p1 + (p2 - p1) * t;
-            rd = r * pd;
-            rasterizer.circleLineTo(xd, yd, rd, this.drawFlowAlpha);
-            t += tSegment;
-        }
-        if (d < BrushEvent.lineSegmentLength) {
-            drawState.usePrevDirection = false;
+        if (d < 1.0) {
+            if (100000 * d > r * 2) {
+                var drawFlowAlpha = colorUtil.alphaForNBlends(this.flow, Math.ceil(r * 2 / d));
+                rasterizer.fillCircle(bezierX, bezierY, (p1 + p2) * 0.5 * r, drawFlowAlpha);
+            }
+            rasterizer.prevX = x2;
+            rasterizer.prevY = y2;
+            rasterizer.prevR = p2 * r;
         } else {
-            // The tangent of the bezier curve at the end of the curve
-            // intersects with the control point, we get the next iteration's
-            // direction from there.
-            prevDirection.x = x2 - bezierX;
-            prevDirection.y = y2 - bezierY;
-            prevDirection.normalize();
-            drawState.usePrevDirection = true;
+            // we'll split the smoothed stroke segment to line segments with approx
+            // length of BrushEvent.lineSegmentLength, trying to fit them nicely
+            // between the two stroke segment endpoints
+            var t = 0;
+            var tSegment = 0.99999 / Math.ceil(d / BrushEvent.lineSegmentLength);
+            while (t < 1.0) {
+                xd = x1 * Math.pow(1.0 - t, 2) + bezierX * t * (1.0 - t) * 2 +
+                     x2 * Math.pow(t, 2);
+                yd = y1 * Math.pow(1.0 - t, 2) + bezierY * t * (1.0 - t) * 2 +
+                     y2 * Math.pow(t, 2);
+                pd = p1 + (p2 - p1) * t;
+                rd = r * pd;
+                rasterizer.circleLineTo(xd, yd, rd, this.drawFlowAlpha);
+                t += tSegment;
+            }
         }
+        // The tangent of the bezier curve at the end of the curve
+        // intersects with the control point, we get the next iteration's
+        // direction from there.
+        prevDirection.x = x2 - bezierX;
+        prevDirection.y = y2 - bezierY;
+        prevDirection.normalize();
         x1 = x2;
         y1 = y2;
         p1 = p2;

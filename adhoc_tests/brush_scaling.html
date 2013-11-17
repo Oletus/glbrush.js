@@ -79,6 +79,21 @@ var runTest = function() {
     testPic.pushEvent(0, event);
     flow = 0.95;
     event = testPic.createBrushEvent(color, flow, opacity, radius, 0, softness, mode);
+    for (var j = 0; j < 25; ++j) {
+        var x = j * 0.9 + 0.45 * w;
+        var y = ySteps * w;
+        if (j === 0) {
+            x -= 10;
+            y -= 5;
+        }
+        if (j === 24) {
+            x -= 10;
+            y += 20;
+        }
+        event.pushCoordTriplet(x, y, 0.5 + j / 100);
+    }
+    testPic.pushEvent(0, event);
+    event = testPic.createBrushEvent(color, flow, opacity, radius, 0, softness, mode);
     for (var j = 0; j < 20; ++j) {
         var x = j % 2 + 0.7 * w;
         var y = ySteps * w;
@@ -128,6 +143,7 @@ var runTest = function() {
 <p id="description">Ideally the appearance should change as little as possible 
 as the brush strokes are re-rendered at different resolutions.</p>
 <p>The bottom strokes are/were problematic cases: in the one on the left, the radius changes faster than position.
+In the one in the center, coordinates are moved at large increments at each end and at small increments in the center.
 In the one on the right, the brush stroke wiggles back and forth at &lt; 1 pixel distance (on the lowest scaling).</p>
 </body>
 </html>
