@@ -1,7 +1,7 @@
 /*
  * Copyright Olli Etuaho 2013.
  */
- 
+
 var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
     var pic = null;
     beforeEach(function() {
@@ -689,7 +689,7 @@ var doPictureTest = function(mode) {
     var height = 234;
     var testPicture = function() {
         return new Picture(-1, 'testpicturename', new Rect(0, width, 0, height), 2.0, mode, 0);
-    }
+    };
 
     describe('tests with cleanup', function() {
         doPictureTestWithCleanup(mode, width, height, testPicture);
