@@ -91,6 +91,7 @@ Picture.prototype.initBrushTextures = function() {
  */
 Picture.prototype.setupGLState = function() {
     this.glManager = glStateManager(this.gl);
+    this.loseContext = this.gl.getExtension('WEBGL_lose_context');
 
     this.brushTextures = new GLBrushTextures(this.gl, this.glManager);
     this.initBrushTextures();
@@ -127,6 +128,19 @@ Picture.prototype.setupGLState = function() {
     this.compositor = new GLCompositor(this.glManager, this.gl,
                                        glUtils.maxTextureUnits);
     return true;
+};
+
+/**
+ * Kill WebGL context if one exists to free as many resources as possible.
+ * Meant mainly for testing.
+ */
+Picture.prototype.destroy = function() {
+    if (this.gl) {
+        this.gl.finish();
+        if (this.loseContext) {
+            this.loseContext.loseContext();
+        }
+    }
 };
 
 /**

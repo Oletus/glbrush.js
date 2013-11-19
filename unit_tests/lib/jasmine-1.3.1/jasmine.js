@@ -35,6 +35,11 @@ jasmine.VERBOSE = false;
 jasmine.DEFAULT_UPDATE_INTERVAL = 250;
 
 /**
+ * Default wait on each update. Can be increased to give more time for collecting WebGL garbage, for example.
+ */
+jasmine.DEFAULT_WAIT_ON_UPDATE = 0;
+
+/**
  * Maximum levels of nesting that will be included when an object is pretty-printed
  */
 jasmine.MAX_PRETTY_PRINT_DEPTH = 40;
@@ -723,6 +728,7 @@ jasmine.Env = function() {
   this.reporter = new jasmine.MultiReporter();
 
   this.updateInterval = jasmine.DEFAULT_UPDATE_INTERVAL;
+  this.waitOnUpdate = jasmine.DEFAULT_WAIT_ON_UPDATE;
   this.defaultTimeoutInterval = jasmine.DEFAULT_TIMEOUT_INTERVAL;
   this.lastUpdate = 0;
   this.specFilter = function() {
@@ -2084,7 +2090,7 @@ jasmine.Queue.prototype.next_ = function() {
           self.env.lastUpdate = now;
           self.env.setTimeout(function() {
             self.next_();
-          }, 0);
+          }, self.env.waitOnUpdate);
         } else {
           if (jasmine.Queue.LOOP_DONT_RECURSE && completedSynchronously) {
             goAgain = true;

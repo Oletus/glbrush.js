@@ -36,7 +36,8 @@
   <script type="text/javascript">
     (function() {
       var jasmineEnv = jasmine.getEnv();
-      jasmineEnv.updateInterval = 1000;
+      jasmineEnv.updateInterval = 100;
+      jasmineEnv.waitOnUpdate = 50;
 
       var htmlReporter = new jasmine.HtmlReporter();
 
