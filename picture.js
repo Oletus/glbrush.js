@@ -55,8 +55,7 @@ var Picture = function(id, name, boundsRect, bitmapScale, mode, brushTextureData
     this.canvas.height = this.bitmapHeight();
 
     if (this.usesWebGl()) {
-        this.gl = Picture.initWebGL(this.canvas);
-        if (this.gl === null || !this.setupGLState()) {
+        if (!this.setupGLState()) {
             this.mode = undefined;
             return;
         }
@@ -90,21 +89,26 @@ Picture.prototype.initBrushTextures = function() {
  * @return {boolean} Whether buffer initialization succeeded.
  */
 Picture.prototype.setupGLState = function() {
+    var useFloatRasterizer = (this.mode === 'webgl' || this.mode === 'no-texdata-webgl');
+    if (useFloatRasterizer && !glUtils.floatFboSupported) {
+        return false;
+    }
+
+    this.gl = Picture.initWebGL(this.canvas);
+    if (!this.gl) {
+        return false;
+    }
     this.glManager = glStateManager(this.gl);
     this.loseContext = this.gl.getExtension('WEBGL_lose_context');
 
     this.brushTextures = new GLBrushTextures(this.gl, this.glManager);
     this.initBrushTextures();
 
-    var useFloatRasterizer = (this.mode === 'webgl' ||
-                              this.mode === 'no-texdata-webgl');
     if (useFloatRasterizer) {
-        if (this.glManager.extensionTextureFloat === null) {
-            return false;
-        }
         if (this.mode === 'webgl') {
             this.glRasterizerConstructor = GLFloatTexDataRasterizer;
         } else {
+            // TODO: assert(this.mode === 'no-texdata-webgl');
             this.glRasterizerConstructor = GLFloatRasterizer;
         }
     } else {
@@ -641,6 +645,7 @@ Picture.initWebGL = function(canvas) {
     if (!gl) {
         return null;
     }
+    gl.getExtension('OES_texture_float');
 
     gl.clearColor(0.0, 0.0, 0.0, 0.0);
     gl.disable(gl.DEPTH_TEST);

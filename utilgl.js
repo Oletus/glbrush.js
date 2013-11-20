@@ -10,6 +10,7 @@ glUtils = {
     updateClip: null,
     glSupported: true, // these values will be updated later
     availableExtensions: [],
+    floatFboSupported: true,
     maxVaryingVectors: 8, // minimum mandated by the spec
     maxTextureUnits: 32,
     maxFramebufferSize: 2048,
@@ -345,14 +346,12 @@ var glStateManager = function(gl) {
     var useFboTexInternal = function(tex) {
         useFboInternal(sharedFbo);
         if (sharedFboTex !== tex) {
-            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0,
-                                    gl.TEXTURE_2D, tex, 0);
+            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
             sharedFboTex = tex;
         }
     };
 
     return {
-        extensionTextureFloat: gl.getExtension('OES_texture_float'),
         shaderProgram: shaderProgramCache(gl),
         drawFullscreenQuad: drawFullscreenQuadInternal,
         useFbo: useFboInternal,
@@ -370,6 +369,20 @@ var glStateManager = function(gl) {
     }
     glUtils.availableExtensions = gl.getSupportedExtensions();
     console.log(glUtils.availableExtensions);
+
+    var extensionTextureFloat = gl.getExtension('OES_texture_float');
+    if (!extensionTextureFloat) {
+        glUtils.floatFboSupported = false;
+    } else {
+        // It's possible that float textures are supported but float FBOs are not.
+        var testFbo = gl.createFramebuffer();
+        var testTex = glUtils.createTexture(gl, 128, 128, gl.RGBA, gl.FLOAT);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, testFbo);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, testTex, 0);
+        if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
+            glUtils.floatFboSupported = false;
+        }
+    }
 
     glUtils.maxTextureUnits = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS);
     // Do a best effort at determining framebuffer size limits:
