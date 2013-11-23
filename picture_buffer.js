@@ -18,11 +18,10 @@ var PictureBuffer = function() {};
  * @param {number} height Height of the buffer in pixels. Must be an integer.
  * @param {boolean} hasUndoStates Does this buffer store undo states? Defaults
  * to false.
+ * @param {boolean} freed Should this buffer be left without bitmaps?
  * @protected
  */
-PictureBuffer.prototype.initializePictureBuffer = function(createEvent,
-                                                           width, height,
-                                                           hasUndoStates) {
+PictureBuffer.prototype.initializePictureBuffer = function(createEvent, width, height, hasUndoStates, freed) {
     // TODO: assert(createEvent.hasAlpha || createEvent.clearColor[3] === 255);
     this.hasAlpha = createEvent.hasAlpha;
     this.id = createEvent.bufferId;
@@ -51,7 +50,10 @@ PictureBuffer.prototype.initializePictureBuffer = function(createEvent,
 
     this.visible = true;
     this.insertionPoint = 0;
-    this.freed = createEvent.undone;
+    if (freed === undefined) {
+        freed = false;
+    }
+    this.freed = createEvent.undone || freed;
 };
 
 /**
@@ -112,8 +114,8 @@ PictureBuffer.prototype.playbackStartingFrom = function(eventIndex,
 };
 
 /**
- * Apply an event to the picture buffer. Subject to the current clipping
- * rectangle.
+ * Apply an event to the picture buffer. Subject to the current clipping rectangle. Will recursively regenerate merged
+ * buffers if necessary in case of a merge event.
  * @param {PictureEvent} event The event to rasterize and apply.
  * @param {BaseRasterizer} rasterizer The rasterizer to use.
  * @protected
@@ -141,6 +143,10 @@ PictureBuffer.prototype.applyEvent = function(event, rasterizer) {
         event.mergedBuffer.mergedTo = this;
         if (!event.mergedBuffer.events[0].undone) {
             // TODO: assert(event.mergedBuffer.removeCount === 0)
+            if (event.mergedBuffer.freed) {
+                event.mergedBuffer.regenerate(true, rasterizer);
+            }
+            // TODO: assert(!event.mergedBuffer.freed);
             this.drawBuffer(event.mergedBuffer, event.opacity);
         }
     } else if (event.eventType === 'bufferAdd') {
@@ -494,7 +500,7 @@ PictureBuffer.prototype.lastEventChanged = function(rasterizer) {
             }
         }
     }
-    if (this.mergedTo !== null) {
+    if (this.isMerged()) {
         this.mergedTo.mergedBufferChanged(this, rasterizer);
     }
 };
@@ -675,7 +681,7 @@ PictureBuffer.prototype.playbackAfterChange = function(eventIndex, rasterizer,
         this.playbackStartingFrom(undoState.index, rasterizer);
         this.popClip();
     }
-    if (this.mergedTo !== null) {
+    if (this.isMerged()) {
         this.mergedTo.mergedBufferChanged(this, rasterizer);
     }
 };
@@ -755,12 +761,25 @@ PictureBuffer.prototype.isRemoved = function() {
 };
 
 /**
+ * @return {boolean} Whether this buffer is merged to another buffer.
+ */
+PictureBuffer.prototype.isMerged = function() {
+    return this.mergedTo !== null;
+};
+
+/**
  * @return {boolean} Whether this buffer should be composited.
  */
 PictureBuffer.prototype.isComposited = function() {
-    return this.visible && !this.isRemoved();
+    return this.visible && !this.isRemoved() && !this.isMerged();
 };
 
+/**
+ * @return {boolean} Whether this buffer should be listed in layer lists.
+ */
+PictureBuffer.prototype.isListed = function() {
+    return !this.isRemoved() && !this.isMerged();
+};
 
 /**
  * A PictureBuffer implementation with a canvas backing for the bitmap.
@@ -769,9 +788,10 @@ PictureBuffer.prototype.isComposited = function() {
  * @param {number} width Width of the buffer in pixels. Must be an integer.
  * @param {number} height Height of the buffer in pixels. Must be an integer.
  * @param {boolean} hasUndoStates Does this buffer store undo states?
+ * @param {boolean} freed Should this buffer be left without bitmaps?
  */
-var CanvasBuffer = function(createEvent, width, height, hasUndoStates) {
-    this.initializePictureBuffer(createEvent, width, height, hasUndoStates);
+var CanvasBuffer = function(createEvent, width, height, hasUndoStates, freed) {
+    this.initializePictureBuffer(createEvent, width, height, hasUndoStates, freed);
     this.canvas = null;
     this.ctx = null;
     if (!this.freed) {
@@ -1051,12 +1071,13 @@ CanvasBuffer.prototype.bytesPerPixel = function() {
  * @param {number} width Width of the buffer in pixels. Must be an integer.
  * @param {number} height Height of the buffer in pixels. Must be an integer.
  * @param {boolean} hasUndoStates Does this buffer store undo states?
+ * @param {boolean} freed Should this buffer be left without bitmaps?
  */
 var GLBuffer = function(gl, glManager, compositor, texBlitProgram, createEvent,
-                        width, height, hasUndoStates) {
+                        width, height, hasUndoStates, freed) {
     this.texBlitProgram = texBlitProgram;
     this.texBlitUniforms = texBlitProgram.uniformParameters();
-    this.initializePictureBuffer(createEvent, width, height, hasUndoStates);
+    this.initializePictureBuffer(createEvent, width, height, hasUndoStates, freed);
     // Add undo states less often than the default, since drawing is cheap.
     this.undoStateInterval = 32;
     this.gl = gl;

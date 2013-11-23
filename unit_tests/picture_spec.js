@@ -312,15 +312,12 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         pic.addBuffer(1338, clearColor2, false);
         var mergeEvent = pic.createMergeEvent(1, 0.7);
         pic.pushEvent(1337, mergeEvent);
-        expect(pic.buffers.length).toBe(1);
-        expect(pic.mergedBuffers.length).toBe(1);
-        expect(pic.mergedBuffers[0].mergedTo).toBe(pic.buffers[0]);
+        expect(pic.buffers[1].mergedTo).toBe(pic.buffers[0]);
 
-        pic = Picture.resize(pic, pic.bitmapScale);
+        var pic2 = Picture.resize(pic, pic.bitmapScale);
 
-        expect(pic.buffers.length).toBe(1);
-        expect(pic.mergedBuffers.length).toBe(1);
-        expect(pic.mergedBuffers[0].mergedTo).toBe(pic.buffers[0]);
+        expect(pic2.buffers[1].mergedTo).toBe(pic2.buffers[0]);
+        pic2.destroy();
     });
 
     it('can undo the latest event', function() {
@@ -396,16 +393,8 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         pic.addBuffer(9001, clearColor, false);
         var mergeEvent = pic.createMergeEvent(1, 0.7);
         pic.pushEvent(1337, mergeEvent);
-        expect(pic.buffers.length).toBe(1);
-        expect(pic.mergedBuffers.length).toBe(1);
-        expect(pic.buffers[0].id).toBe(1337);
-        expect(pic.mergedBuffers[0].id).toBe(9001);
-        expect(pic.mergedBuffers[0].mergedTo).toBe(pic.buffers[0]);
+        expect(pic.buffers[1].mergedTo).toBe(pic.buffers[0]);
         pic.undoLatest();
-        expect(pic.buffers.length).toBe(2);
-        expect(pic.mergedBuffers.length).toBe(0);
-        expect(pic.buffers[0].id).toBe(1337);
-        expect(pic.buffers[1].id).toBe(9001);
         expect(pic.buffers[1].mergedTo).toBe(null);
     });
 
@@ -437,16 +426,8 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         pic.addBuffer(9001, clearColor, false);
         var mergeEvent = pic.createMergeEvent(1, 0.7);
         pic.insertEvent(1337, mergeEvent);
-        expect(pic.buffers.length).toBe(1);
-        expect(pic.mergedBuffers.length).toBe(1);
-        expect(pic.buffers[0].id).toBe(1337);
-        expect(pic.mergedBuffers[0].id).toBe(9001);
-        expect(pic.mergedBuffers[0].mergedTo).toBe(pic.buffers[0]);
+        expect(pic.buffers[1].mergedTo).toBe(pic.buffers[0]);
         pic.undoLatest();
-        expect(pic.buffers.length).toBe(2);
-        expect(pic.mergedBuffers.length).toBe(0);
-        expect(pic.buffers[0].id).toBe(1337);
-        expect(pic.buffers[1].id).toBe(9001);
         expect(pic.buffers[1].mergedTo).toBe(null);
     });
 
@@ -598,8 +579,8 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         pic.pushEvent(1337, mergeEvent);
         var undone = pic.undoEventSessionId(pic.activeSid,
                                             pic.activeSessionEventId - 2);
-        expect(undone).toBe(pic.mergedBuffers[0].events[1]);
-        expect(pic.mergedBuffers[0].events[1].undone).toBe(true);
+        expect(undone).toBe(pic.buffers[1].events[1]);
+        expect(pic.buffers[1].events[1].undone).toBe(true);
     });
 
     it('undoes buffer moves', function() {

@@ -1165,8 +1165,7 @@ BufferMoveEvent.prototype.getBoundingBox = function(clipRect) {
  * the target buffer. Range 0 to 1.
  * @param {CanvasBuffer|GLBuffer} mergedBuffer The merged buffer.
  */
-var BufferMergeEvent = function(sid, sessionEventId, undone, opacity,
-                                mergedBuffer) {
+var BufferMergeEvent = function(sid, sessionEventId, undone, opacity, mergedBuffer) {
     this.undone = undone;
     this.sid = sid;
     this.sessionEventId = sessionEventId;
