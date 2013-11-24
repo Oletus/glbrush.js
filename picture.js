@@ -361,10 +361,11 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry, brushTextur
     var pic = Picture.create(id, name, width, height, bitmapScale, modesToTry, brushTextureData);
     pic.parsedVersion = version;
     pic.moveBufferInternal = function() {}; // Move events can be processed out
-    // First parse all buffers without rasterizing, then rasterize starting from merged buffers (regenerate).
-    pic.freed = true;
     // of order here, so we don't apply them. Instead rely on buffers being
     // already in the correct order.
+
+    // First parse all buffers without rasterizing, then rasterize starting from merged buffers (regenerate).
+    pic.freed = true;
     // TODO: Maybe serialization and parsing would be simpler and more reliable
     // if events were serialized and parsed in the order they were applied?
     var i = 1;
@@ -1129,28 +1130,15 @@ Picture.prototype.undoEventIndex = function(buffer, eventIndex) {
  * @return {PictureEvent} Undone event or null if couldn't undo.
  */
 Picture.prototype.undoEventSessionId = function(sid, sessionEventId) {
-    return this.undoEventFromBuffers(this.buffers, sid, sessionEventId);
-};
-
-/**
- * Undo the specified event from the given buffer collection.
- * @param {Array.<PictureBuffer>} buffers Buffers to search from.
- * @param {number} sid The session id of the event.
- * @param {number} sessionEventId The session-specific event id of the event.
- * @return {PictureEvent} Undone event or null if couldn't undo.
- * @protected
- */
-Picture.prototype.undoEventFromBuffers = function(buffers, sid,
-                                                  sessionEventId) {
-    var j = buffers.length;
+    var j = this.buffers.length;
     while (j >= 1) {
         --j;
-        var i = buffers[j].eventIndexBySessionId(sid, sessionEventId);
+        var i = this.buffers[j].eventIndexBySessionId(sid, sessionEventId);
         if (i >= 0) {
-            if (!buffers[j].events[i].undone) {
-                return this.undoEventIndex(buffers[j], i);
+            if (!this.buffers[j].events[i].undone) {
+                return this.undoEventIndex(this.buffers[j], i);
             }
-            return buffers[j].events[i];
+            return this.buffers[j].events[i];
         }
     }
     return null;
@@ -1163,25 +1151,12 @@ Picture.prototype.undoEventFromBuffers = function(buffers, sid,
  * @return {boolean} True if the event was found.
  */
 Picture.prototype.redoEventSessionId = function(sid, sessionEventId) {
-    return this.redoEventFromBuffers(this.buffers, sid, sessionEventId);
-};
-
-/**
- * Redo the specified event from the buffer collection by marking it not undone.
- * @param {Array.<PictureBuffer>} buffers Buffers to search from.
- * @param {number} sid The session id of the event.
- * @param {number} sessionEventId The session-specific event id of the event.
- * @return {boolean} True if the event was found from the given buffers.
- * @protected
- */
-Picture.prototype.redoEventFromBuffers = function(buffers, sid,
-                                                  sessionEventId) {
-    var j = buffers.length;
+    var j = this.buffers.length;
     while (j >= 1) {
        --j;
-        var i = buffers[j].eventIndexBySessionId(sid, sessionEventId);
+        var i = this.buffers[j].eventIndexBySessionId(sid, sessionEventId);
         if (i >= 0) {
-            var event = buffers[j].events[i];
+            var event = this.buffers[j].events[i];
             if (event.undone) {
                 // TODO: Maybe this logic should be refactored so that it can be
                 // shared with pushEvent
@@ -1191,16 +1166,16 @@ Picture.prototype.redoEventFromBuffers = function(buffers, sid,
                                              event.mergedBuffer.id);
                     // TODO: assert(mergedBufferIndex !== j);
                     // TODO: assert(!event.mergedBuffer.isDummy);
-                    buffers[j].redoEventIndex(i, this.genericRasterizer);
+                    this.buffers[j].redoEventIndex(i, this.genericRasterizer);
                 } else if (event.eventType === 'bufferRemove') {
-                    buffers[j].redoEventIndex(i, this.genericRasterizer);
-                    this.afterRemove(buffers[j]);
+                    this.buffers[j].redoEventIndex(i, this.genericRasterizer);
+                    this.afterRemove(this.buffers[j]);
                 } else {
                     if (i === 0) {
                         // TODO: assert(event.eventType === 'bufferAdd');
-                        this.regenerateBuffer(buffers[j]);
+                        this.regenerateBuffer(this.buffers[j]);
                     }
-                    buffers[j].redoEventIndex(i, this.genericRasterizer);
+                    this.buffers[j].redoEventIndex(i, this.genericRasterizer);
                 }
             }
             return true;
@@ -1216,30 +1191,17 @@ Picture.prototype.redoEventFromBuffers = function(buffers, sid,
  * @return {boolean} True on success.
  */
 Picture.prototype.removeEventSessionId = function(sid, sessionEventId) {
-    return this.removeEventFromBuffers(this.buffers, sid, sessionEventId);
-};
-
-/**
- * Remove the specified event from this picture entirely.
- * @param {Array.<PictureBuffer>} buffers Buffers to search from.
- * @param {number} sid The session id of the event.
- * @param {number} sessionEventId The session-specific event id of the event.
- * @return {boolean} True on success.
- * @protected
- */
-Picture.prototype.removeEventFromBuffers = function(buffers, sid,
-                                                    sessionEventId) {
-    var j = buffers.length;
+    var j = this.buffers.length;
     while (j >= 1) {
        --j;
-        var i = buffers[j].eventIndexBySessionId(sid, sessionEventId);
+        var i = this.buffers[j].eventIndexBySessionId(sid, sessionEventId);
         if (i >= 0) {
             var undone = true;
-            if (!buffers[j].events[i].undone) {
-                undone = this.undoEventIndex(buffers[j], i);
+            if (!this.buffers[j].events[i].undone) {
+                undone = this.undoEventIndex(this.buffers[j], i);
             }
             if (undone) {
-                buffers[j].removeEventIndex(i, this.genericRasterizer);
+                this.buffers[j].removeEventIndex(i, this.genericRasterizer);
                 return true;
             } else {
                 return false; // The event was not undoable
@@ -1266,7 +1228,9 @@ Picture.prototype.setCurrentEvent = function(cEvent) {
 
 /**
  * Search for event from sourceBuffer, remove it from there if it is found, and
- * push it to targetBuffer.
+ * push it to targetBuffer. The move should maintain the rule that events with
+ * higher sessionEventIds from the same session are closer to the top of the
+ * buffer than events with lower sessionEventIds.
  * @param {number} targetBufferId The id of the buffer to push the event to.
  * @param {number} sourceBufferId The id of the buffer to search the event
  * from.
