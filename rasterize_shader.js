@@ -145,7 +145,7 @@ var RasterizeShader = function(format, soft, texturized, circles, dynamicCircles
     if (unroll === undefined) {
         unroll = parameterMode !== RasterizeShader.ParameterMode.inTex;
     }
-    if (circles + 2 > glUtils.maxVaryingVectors &&
+    if (circles + 4 > glUtils.maxUniformVectors &&
         parameterMode !== RasterizeShader.ParameterMode.inTex) {
         console.log('Invalid RasterizeShader requested! Too many circles.');
         return;
@@ -240,17 +240,7 @@ RasterizeShader.prototype.varyingSource = function() {
     if (this.doubleBuffered) {
         src.push('varying vec2 vSrcTexCoord;');
     }
-    if (this.parameterMode === RasterizeShader.ParameterMode.inTex) {
-        src.push('varying vec2 vPixelCoords; // in pixels');
-    } else {
-        if (this.unroll) {
-            for (var i = 0; i < this.circles; ++i) {
-                src.push('varying vec4 vCircle' + i + ';');
-            }
-        } else {
-            src.push('varying vec4 vCircle[' + this.circles + '];');
-        }
-    }
+    src.push('varying vec2 vPixelCoords; // in pixels');
     return src;
 };
 
@@ -301,8 +291,8 @@ RasterizeShader.prototype.fragmentAlphaSource = function(assignTo, indent) {
  * Generates source for the inner loop of the fragment shader that blends a
  * circle with the "destAlpha" value from previous rounds.
  * @param {number} index Index of the circle.
- * @param {string=} arrayIndex Postfix for vCircle, so that it can be either an
- * array or just a bunch of separate varyings to work around bugs. Defaults to
+ * @param {string=} arrayIndex Postfix for uCircle, so that it can be either an
+ * array or just a bunch of separate uniforms to work around bugs. Defaults to
  * array. Does not matter if circle parameters are taken from a texture.
  * @return {Array<string>} Shader source code lines.
  */
@@ -327,22 +317,18 @@ RasterizeShader.prototype.fragmentInnerLoopSource = function(index,
         src.push('      vec2 center = parameterColor.xy;');
         src.push('      float circleRadius = parameterColor.z;');
         src.push('      float circleFlowAlpha = parameterColor.w;');
-        if (this.texturized) {
-            src.push('      vec2 centerDiff = vPixelCoords - center;');
-        } else {
-            src.push('      float centerDist = length(center - vPixelCoords);');
-        }
     } else {
         if (arrayIndex === undefined) {
             arrayIndex = '[' + index + ']';
         }
-        src.push('      float circleRadius = vCircle' + arrayIndex + '.z;');
-        src.push('      float circleFlowAlpha = vCircle' + arrayIndex + '.w;');
-        if (this.texturized) {
-            src.push('      vec2 centerDiff = vCircle' + arrayIndex + '.xy;');
-        } else {
-            src.push('      float centerDist = length(vCircle' + arrayIndex + '.xy);');
-        }
+        src.push('      vec2 center = uCircle' + arrayIndex + '.xy;');
+        src.push('      float circleRadius = uCircle' + arrayIndex + '.z;');
+        src.push('      float circleFlowAlpha = uCircle' + arrayIndex + '.w;');
+    }
+    if (this.texturized) {
+        src.push('      vec2 centerDiff = vPixelCoords - center;');
+    } else {
+        src.push('      float centerDist = length(center - vPixelCoords);');
     }
     src.push.apply(src, this.fragmentAlphaSource('float circleAlpha', '      '));
     if (this.texturized && this.dynamicCircles) {
@@ -397,34 +383,13 @@ RasterizeShader.prototype.fragmentSource = function() {
 
 /**
  * @param {number} index Index of the circle.
- * @param {string} arrayIndex Postfix for vCircle and uCircle, so that they can
- * be either arrays or just a bunch of separate varyings/uniforms to work around
- * bugs. Defaults to arrays. Does not matter if circle parameters are taken from
- * a texture.
+ * @param {string} arrayIndex Postfix for uCircle, so that it can be either an
+ * array or just a bunch of separate uniforms to work around bugs. Defaults to
+ * arrays. Does not matter if circle parameters are taken from a texture.
  * @return {Array<string>} Vertex shader inner loop lines.
  */
 RasterizeShader.prototype.vertexInnerLoopSource = function(index, arrayIndex) {
-    var src = [];
-    if (this.parameterMode === RasterizeShader.ParameterMode.inUniforms) {
-        if (arrayIndex === undefined) {
-            arrayIndex = '[' + index + ']';
-        }
-        if (this.dynamicCircles) {
-            src.push('  if (' + index + ' < uCircleCount) {');
-        } else {
-            src.push('  {');
-        }
-        src.push('    vec2 relPosition = vec2(aVertexPosition.x - uCircle' + arrayIndex + '.x, ' +
-                 'uCircle' + arrayIndex + '.y - aVertexPosition.y) / uPixelPitch;');
-        src.push('    vCircle' + arrayIndex + ' = vec4(relPosition, uCircle' +
-                 arrayIndex + '.z, uCircle' + arrayIndex + '.w);');
-        if (this.dynamicCircles) {
-            src.push('  } else {');
-            src.push('    vCircle' + arrayIndex + ' = vec3(0.0, 0.0, 0.0, 0.0);');
-        }
-        src.push('  }');
-    }
-    return src;
+    return [];
 };
 
 /**
@@ -442,10 +407,8 @@ RasterizeShader.prototype.vertexSource = function() {
         src.push('  vSrcTexCoord = vec2((aVertexPosition.x + 1.0) * 0.5, ' +
                  '(aVertexPosition.y + 1.0) * 0.5);');
     }
-    if (this.parameterMode === RasterizeShader.ParameterMode.inTex) {
-        src.push('  vPixelCoords = vec2(aVertexPosition.x + 1.0, ' +
-                 '1.0 - aVertexPosition.y) / uPixelPitch;');
-    }
+    src.push('  vPixelCoords = vec2(aVertexPosition.x + 1.0, ' +
+             '1.0 - aVertexPosition.y) / uPixelPitch;');
     if (this.vertexInnerLoopSource('').length > 0) {
         if (this.unroll) {
             for (var i = 0; i < this.circles; ++i) {

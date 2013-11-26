@@ -723,7 +723,7 @@ var GLDoubleBufferedRasterizer = function(gl, glManager, width, height, brushTex
 };
 
 /** @const */
-GLDoubleBufferedRasterizer.maxCircles = 6;
+GLDoubleBufferedRasterizer.maxCircles = 7;
 
 /**
  * RasterizeShaders for drawing filled circles. Amount of circles is determined
@@ -916,25 +916,6 @@ GLDoubleBufferedRasterizer.prototype.clear = function() {
 };
 
 /**
- * Set circle parameters to a vec uniform.
- * @param {Float32Array} u Array to store the parameters in. First two items are
- * set to the circle center x and y in clip coordinates (range -1 to 1, though
- * values are not clamped to this range) The third item is set to the circle
- * radius in pixels.
- * @param {number} centerX The x coordinate of the circle center in pixels.
- * @param {number} centerY The y coordinate of the circle center in pixels.
- * @param {number} radius The radius of the circle in pixels.
- * @param {number} flowAlpha Flow alpha value of the circle, in range 0 to 1.
- * @protected
- */
-GLDoubleBufferedRasterizer.prototype.setCircleUniformParameters = function(u, centerX, centerY, radius, flowAlpha) {
-    u[0] = centerX / this.width * 2.0 - 1.0;
-    u[1] = centerY / this.height * (-2.0) + 1.0;
-    u[2] = radius;
-    u[3] = flowAlpha;
-};
-
-/**
  * Get rectangular bounds for a draw pass.
  * @param {Rect} invalRect Rectangle containing the things to draw. This is
  * combined with the target texture's invalidated area and clipped by the
@@ -1018,10 +999,9 @@ GLDoubleBufferedRasterizer.prototype.flushCircles = function() {
     var uniformParameters = this.texturized ? this.texUniformParameters : this.fillUniformParameters;
     this.preDraw(uniformParameters[circleCount - 1]);
     for (var i = 0; i < circleCount; ++i) {
-        this.setCircleUniformParameters(
-            uniformParameters[circleCount - 1]['uCircle' + i],
-            this.params[i * this.paramsStride], this.params[i * this.paramsStride + 1],
-            this.params[i * this.paramsStride + 2], this.params[i * this.paramsStride + 3]);
+        for (var j = 0; j < 4; ++j) {
+            uniformParameters[circleCount - 1]['uCircle' + i][j] = this.params[i * this.paramsStride + j];
+        }
     }
     glUtils.updateClip(this.gl, drawRect, this.height);
     if (this.texturized) {
@@ -1149,7 +1129,7 @@ var GLFloatRasterizer = function(gl, glManager, width, height, brushTextures) {
 };
 
 /** @const */
-GLFloatRasterizer.maxCircles = 6;
+GLFloatRasterizer.maxCircles = 7;
 
 /**
  * RasterizeShaders for drawing filled circles. Amount of circles is determined
@@ -1254,10 +1234,6 @@ GLFloatRasterizer.prototype.clear = function() {
     this.glManager.useFboTex(this.tex);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 };
-
-/** @inheritDoc */
-GLFloatRasterizer.prototype.setCircleUniformParameters =
-    GLDoubleBufferedRasterizer.prototype.setCircleUniformParameters;
 
 /** @inheritDoc */
 GLFloatRasterizer.prototype.fillCircle =
