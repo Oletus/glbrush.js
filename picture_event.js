@@ -426,9 +426,9 @@ BrushEvent.BBRasterizer.prototype.beginCircleLines = function() {};
  * end of the line.
  * @param {number} radius The radius at the end of the line.
  * @param {number} flowAlpha The flow alpha. Unused.
+ * @param {number} rotation Rotation at the end of the line in radians. Unused.
  */
-BrushEvent.BBRasterizer.prototype.circleLineTo = function(centerX, centerY,
-                                                          radius, flowAlpha) {
+BrushEvent.BBRasterizer.prototype.circleLineTo = function(centerX, centerY, radius, flowAlpha, rotation) {
     this.boundingBox.unionCircle(centerX, centerY, Math.max(radius, 1.0) + 1.0);
 };
 
@@ -438,9 +438,9 @@ BrushEvent.BBRasterizer.prototype.circleLineTo = function(centerX, centerY,
  * @param {number} centerY The y coordinate of the center of the circle.
  * @param {number} radius The radius of the circle.
  * @param {number} flowAlpha The flow alpha. Unused.
+ * @param {number} rotation Rotation of the circle texture in radians. Unused.
  */
-BrushEvent.BBRasterizer.prototype.fillCircle = function(centerX, centerY,
-                                                        radius, flowAlpha) {
+BrushEvent.BBRasterizer.prototype.fillCircle = function(centerX, centerY, radius, flowAlpha, rotation) {
     this.boundingBox.unionCircle(centerX, centerY, Math.max(radius, 1.0) + 1.0);
 };
 
@@ -521,7 +521,7 @@ BrushEvent.prototype.drawTo = function(rasterizer, untilCoord) {
         if (d < 1.0) {
             if (100000 * d > r * 2) {
                 var drawFlowAlpha = colorUtil.alphaForNBlends(this.flow, Math.ceil(r * 2 / d));
-                rasterizer.fillCircle(bezierX, bezierY, (p1 + p2) * 0.5 * r, drawFlowAlpha);
+                rasterizer.fillCircle(bezierX, bezierY, (p1 + p2) * 0.5 * r, drawFlowAlpha, 0);
             }
             rasterizer.prevX = x2;
             rasterizer.prevY = y2;
@@ -539,7 +539,7 @@ BrushEvent.prototype.drawTo = function(rasterizer, untilCoord) {
                      y2 * Math.pow(t, 2);
                 pd = p1 + (p2 - p1) * t;
                 rd = r * pd;
-                rasterizer.circleLineTo(xd, yd, rd, this.drawFlowAlpha);
+                rasterizer.circleLineTo(xd, yd, rd, this.drawFlowAlpha, 0);
                 t += tSegment;
             }
         }
@@ -660,7 +660,7 @@ ScatterEvent.prototype.drawTo = function(rasterizer, untilCoord) {
         var x = this.coords[i++];
         var y = this.coords[i++];
         var p = this.coords[i++];
-        rasterizer.fillCircle(x, y, p * this.radius, this.flow);
+        rasterizer.fillCircle(x, y, p * this.radius, this.flow, 0);
     }
     drawState.coordsInd = i;
     rasterizer.flushCircles();

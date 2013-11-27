@@ -205,9 +205,15 @@ RasterizeShader.prototype.uniforms = function(width, height) {
         if (this.unroll) {
             for (i = 0; i < this.circles; ++i) {
                 us.push({name: 'uCircle' + i, type: 'vec4', shortType: '4fv',
-                         inFragment: true, inVertex: true,
+                         inFragment: true, inVertex: false,
                          defaultValue: [0.0, 0.0, 1.0, 1.0],
-                         comment: 'in gl viewport space, radius in pixels'});
+                         comment: 'x, y coords in pixel space, radius in pixels, flowAlpha from 0 to 1'});
+                if (this.texturized) {
+                    us.push({name: 'uCircleB' + i, type: 'vec4', shortType: '4fv',
+                             inFragment: true, inVertex: false,
+                             defaultValue: [0.0, 0.0, 0.0, 0.0],
+                             comment: 'rotation in radians'});
+                }
             }
         } else {
             var def = [];
@@ -215,9 +221,15 @@ RasterizeShader.prototype.uniforms = function(width, height) {
                 def.push(0.0, 0.0, 1.0, 1.0);
             }
             us.push({name: 'uCircle', type: 'vec4', arraySize: this.circles,
-                     shortType: '4fv', inFragment: true, inVertex: true,
+                     shortType: '4fv', inFragment: true, inVertex: false,
                      defaultValue: def,
-                     comment: 'in gl viewport space, radius in pixels'});
+                     comment: 'x, y coords in pixel space, radius in pixels, flowAlpha from 0 to 1'});
+            if (this.texturized) {
+                us.push({name: 'uCircleB', type: 'vec4', arraySize: this.circles,
+                         shortType: '4fv', inFragment: true, inVertex: false,
+                         defaultValue: def,
+                         comment: 'rotation in radians'});
+            }
         }
     }
     us.push({name: 'uPixelPitch', type: 'vec2', shortType: '2fv',
@@ -272,7 +284,9 @@ RasterizeShader.prototype.fragmentAlphaSource = function(assignTo, indent) {
         // Usage of antialiasMult increases accuracy at small brush sizes and ensures that the brush stays inside the
         // bounding box even when rotated (rotation support is TODO)
         src.push(indent + 'float antialiasMult = ' + 'clamp((radius + 1.0 - length(centerDiff)) * 0.5, 0.0, 1.0);');
-        src.push(indent + 'vec2 texCoords = centerDiff / radius * 0.5 + 0.5;');
+        src.push(indent + 'mat2 texRotation = mat2(cos(circleRotation), -sin(circleRotation), ' +
+                                                  'sin(circleRotation), cos(circleRotation));');
+        src.push(indent + 'vec2 texCoords = texRotation * centerDiff / radius * 0.5 + 0.5;');
         // Note: remember to keep the texture2D call outside non-uniform flow control.
         src.push(indent + 'float texValue = texture2D(uBrushTex, texCoords).r;');
         src.push(indent + assignTo + ' = flowAlpha * antialiasMult * texValue;');
@@ -312,11 +326,15 @@ RasterizeShader.prototype.fragmentInnerLoopSource = function(index,
     }
     if (this.parameterMode === RasterizeShader.ParameterMode.inTex) {
         src.push('      vec4 parameterColor = texture2D(uCircleParameters,' +
-                 'vec2((float(' + index + ') + 0.5) / ' + this.circles +
-                 '.0, 0.5));');
+                 'vec2(0.25, (float(' + index + ') + 0.5) / ' + this.circles + '.0));');
         src.push('      vec2 center = parameterColor.xy;');
         src.push('      float circleRadius = parameterColor.z;');
         src.push('      float circleFlowAlpha = parameterColor.w;');
+        if (this.texturized) {
+            src.push('      vec4 parameterColor2 = texture2D(uCircleParameters,' +
+                     'vec2(0.75, (float(' + index + ') + 0.5) / ' + this.circles + '.0));');
+            src.push('      float circleRotation = parameterColor2.x;');
+        }
     } else {
         if (arrayIndex === undefined) {
             arrayIndex = '[' + index + ']';
@@ -324,6 +342,9 @@ RasterizeShader.prototype.fragmentInnerLoopSource = function(index,
         src.push('      vec2 center = uCircle' + arrayIndex + '.xy;');
         src.push('      float circleRadius = uCircle' + arrayIndex + '.z;');
         src.push('      float circleFlowAlpha = uCircle' + arrayIndex + '.w;');
+        if (this.texturized) {
+            src.push('      float circleRotation = uCircleB' + arrayIndex + '.x;');
+        }
     }
     if (this.texturized) {
         src.push('      vec2 centerDiff = vPixelCoords - center;');

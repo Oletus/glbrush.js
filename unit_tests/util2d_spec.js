@@ -18,6 +18,18 @@ describe('util2d', function() {
             expect(mathUtil.mix(1, 4, 1.0)).toBeNear(4, 0.0001);
         });
 
+        it('calculates fmod', function() {
+            expect(mathUtil.fmod(4.2, 1.3)).toBeNear(0.3, 0.0001);
+        });
+
+        it('interpolates angles in radians', function() {
+            expect(mathUtil.mixAngles(0, Math.PI * 0.5, 0.0)).toBeNear(0, 0.0001);
+            expect(mathUtil.mixAngles(0, Math.PI * 0.5, 0.5)).toBeNear(Math.PI * 0.25, 0.0001);
+            expect(mathUtil.mixAngles(0, Math.PI * 0.5, 1.0)).toBeNear(Math.PI * 0.5, 0.0001);
+            expect(mathUtil.mixAngles(Math.PI * 2, 0.5, 0.5)).toBeNear(0.25, 0.0001);
+            expect(mathUtil.mixAngles(Math.PI * 2 - 0.5, 0, 0.5)).toBeNear(Math.PI * 2 - 0.25, 0.0001);
+        });
+
         it('interpolates smoothly', function() {
             expect(mathUtil.ease(1, 4, 0.0)).toBeNear(1, 0.0001);
             expect(mathUtil.ease(1, 4, 0.25)).toBeGreaterThan(2);

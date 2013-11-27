@@ -414,6 +414,8 @@ colorUtil.blendLinearDodge = function(a, b) {
 
 mathUtil = {
     mix: null,
+    fmod: null,
+    mixAngles: null,
     ease: null,
     clamp: null
 };
@@ -427,6 +429,36 @@ mathUtil = {
  */
 mathUtil.mix = function(a, b, f) {
     return a + f * (b - a);
+};
+
+/**
+ * Modulus for floating point numbers.
+ * @param {number} a Dividend
+ * @param {number} b Divisor
+ * @return {number} Float remainder of a / b
+ */
+mathUtil.fmod = function(a, b) {
+    return Number((a - (Math.floor(a / b) * b)).toPrecision(8));
+};
+
+/**
+ * Linear interpolation of angles a and b in radians by weight f
+ * @param {number} a Value a, if f == 0.0, a + n * PI * 2 is returned
+ * @param {number} b Value b, if f == 1.0, b + n * PI * 2 is returned
+ * @param {number} f Interpolation weight
+ * @return {number} Interpolated value between a and b
+ */
+mathUtil.mixAngles = function(a, b, f) {
+    a = mathUtil.fmod(a, Math.PI * 2);
+    b = mathUtil.fmod(b, Math.PI * 2);
+    if (Math.abs(a - b) > Math.PI) {
+        if (a > b) {
+            b += Math.PI * 2;
+        } else {
+            a += Math.PI * 2;
+        }
+    }
+    return mathUtil.mix(a, b, f);
 };
 
 /**

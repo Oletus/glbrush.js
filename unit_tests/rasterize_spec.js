@@ -117,7 +117,7 @@ describe('Rasterizing system', function() {
         testRasterizer.beginCircleLines(true, 0);
         expect(testRasterizer.soft).toBe(true);
         expect(testRasterizer.t).toBe(0);
-        testRasterizer.circleLineTo(0, 0, 1, 0.1);
+        testRasterizer.circleLineTo(0, 0, 1, 0.1, 3.141);
         expect(testRasterizer.prevX).toBe(0);
         expect(testRasterizer.prevY).toBe(0);
         expect(testRasterizer.prevR).toBe(1);
@@ -126,7 +126,7 @@ describe('Rasterizing system', function() {
             expect(testRasterizer.fillCircleCalls.length).toBe(0);
         }
 
-        testRasterizer.circleLineTo(0, 0.5, 4, 0.1);
+        testRasterizer.circleLineTo(0, 0.5, 4, 0.1, 0);
         expect(testRasterizer.prevX).toBe(0);
         expect(testRasterizer.prevY).toBe(0.5);
         expect(testRasterizer.prevR).toBe(4);
@@ -139,7 +139,7 @@ describe('Rasterizing system', function() {
             expect(testRasterizer.fillCircleCalls[0].flowAlpha).toBe(0.1);
         }
 
-        testRasterizer.circleLineTo(2, 0.5, 5, 0.2);
+        testRasterizer.circleLineTo(2, 0.5, 5, 0.2, 0);
         expect(testRasterizer.prevX).toBe(2);
         expect(testRasterizer.prevY).toBe(0.5);
         expect(testRasterizer.prevR).toBe(5);
@@ -270,7 +270,7 @@ describe('Rasterizing system', function() {
             rasterizer.free();
         });
 
-        it('draws a texturized circle', function() {
+        var testTexturizedCircle = function(angle) {
             var brushTextureData = [];
             var canvas = testTextureCanvas();
             brushTextureData.push(canvas);
@@ -289,7 +289,7 @@ describe('Rasterizing system', function() {
             var center = new Vec2(w * 0.5, w * 0.5);
 
             rasterizer.beginCircleLines(false, 1);
-            rasterizer.fillCircle(center.x, center.y, radius, 1.0);
+            rasterizer.fillCircle(center.x, center.y, radius, 1.0, angle);
             rasterizer.flushCircles();
 
             var wrongPixelsOutsideCircle = 0;
@@ -309,6 +309,13 @@ describe('Rasterizing system', function() {
                         }
                     } else if (centerDist < radius - 2) {
                         var canvasPixel = canvasData.data[(x + y * canvas.width) * 4] / 255;
+                        if (angle !== 0) {
+                            var rotX = Math.cos(angle) * (x / (w - 1) - 0.5) + Math.sin(angle) * (y / (w - 1) - 0.5);
+                            var rotY = -Math.sin(angle) * (x / (w - 1) - 0.5) + Math.cos(angle) * (y / (w - 1) - 0.5);
+                            rotX = Math.round((rotX + 0.5) * (w - 1));
+                            rotY = Math.round((rotY + 0.5) * (w - 1));
+                            canvasPixel = canvasData.data[(rotX + rotY * canvas.width) * 4] / 255;
+                        }
                         if (Math.abs(pixel - canvasPixel) > 0.01) {
                             ++wrongPixels;
                             wrong = 1;
@@ -342,6 +349,14 @@ describe('Rasterizing system', function() {
             }
 
             rasterizer.free();
+        };
+
+        it('draws a texturized circle', function() {
+            testTexturizedCircle(0);
+        });
+
+        it('draws a rotated texturized circle', function() {
+            testTexturizedCircle(Math.PI * 0.5);
         });
     };
 
@@ -383,8 +398,8 @@ describe('Rasterizing system', function() {
             var clipRect = new Rect(-100, 223, -100, 556);
             rasterizer.setClip(clipRect);
             rasterizer.beginCircleLines(true, 0);
-            rasterizer.circleLineTo(123, 0, 1, 0.1);
-            rasterizer.circleLineTo(123, 100, 1, 0.1);
+            rasterizer.circleLineTo(123, 0, 1, 0.1, 0);
+            rasterizer.circleLineTo(123, 100, 1, 0.1, 0);
             var coords = new Vec2(0, 1);
             expect(rasterizer.getPixel(coords)).toBe(0);
             coords.x = 122;
