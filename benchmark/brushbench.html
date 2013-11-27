@@ -17,11 +17,27 @@
 <script type="text/javascript" src="../picture.js"></script>
 <script type="text/javascript">
 
+var testTextureCanvas = function() {
+    var image = document.createElement('canvas');
+    image.width = 128;
+    image.height = 128;
+    var ctx = image.getContext('2d');
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, 128, 128);
+    ctx.fillStyle = '#fff';
+    ctx.shadowColor = '#fff';
+    ctx.shadowBlur = 3; // Slight blurriness is required for an antialiased look
+    ctx.fillRect(5, 5, 40, 40);
+    ctx.fillRect(59, 59, 64, 64);
+    ctx.fillRect(20, 84, 20, 20);
+    ctx.fillRect(84, 20, 30, 30);
+    return image;
+};
+
 /**
  * @return {number} time spent in milliseconds.
  */
-measureBrushStrokeTime = function(testPic, eventCount, radius, softness, mode,
-                                  report) {
+var measureBrushStrokeTime = function(testPic, eventCount, radius, textureId, softness, mode, report) {
     var w = testPic.bitmapWidth();
     var color = [39, 95, 188];
     var flow = 0.5;
@@ -29,8 +45,7 @@ measureBrushStrokeTime = function(testPic, eventCount, radius, softness, mode,
     var angle = 0;
     var startTime = new Date().getTime();
     for (var i = 0; i < eventCount; ++i) {
-        var event = testPic.createBrushEvent(color, flow, opacity, radius,
-                                             0, softness, mode);
+        var event = testPic.createBrushEvent(color, flow, opacity, radius, textureId, softness, mode);
         angle += 0.2;
         var xa = Math.cos(angle) / 100;
         var ya = Math.sin(angle) / 100;
@@ -44,8 +59,11 @@ measureBrushStrokeTime = function(testPic, eventCount, radius, softness, mode,
     testPic.display();
     var totalTime = new Date().getTime() - startTime;
     if (report) {
-        document.body.appendChild(testPic.pictureElement());
-        timeMessage = 'Mode: ' + testPic.mode + ', brush events per second: ' +
+        var picElement = testPic.pictureElement();
+        picElement.style.width = '500px';
+        picElement.style.height = '500px';
+        picContainer.appendChild(picElement);
+        timeMessage = 'Mode: ' + testPic.mode + ', texture id: ' + testTextureId + ', brush events per second: ' +
                       (eventCount / totalTime * 1000).toFixed(2);
         console.log(timeMessage);
         timeDisplay = document.createElement('div');
@@ -55,29 +73,98 @@ measureBrushStrokeTime = function(testPic, eventCount, radius, softness, mode,
     return totalTime;
 }
 
-runTest = function() {
-    var eventCount = 1000;
+var picContainer;
+var pictureMode = 'webgl';
+var testTextureId = 0;
+
+var runTest = function() {
+    var eventCount = pictureMode === 'canvas' ? 200 : pictureMode === 'webgl' ? 1000 : 500;
     var mode = PictureEvent.Mode.normal;
     var bufferHasAlpha = true;
     var radius = 20;
     var softness = 1.0;
 
     var w = 1024;
-    var pictureMode = 'webgl';
-    var testPic = Picture.create(0, null, w, w, 1.0, [pictureMode]);
+    var brushTextureData = [testTextureCanvas()];
+    var testPic = Picture.create(0, null, w, w, 1.0, [pictureMode], brushTextureData);
     if (testPic === null) {
         console.log('Could not test mode ' + pictureMode);
         return undefined;
     }
     testPic.addBuffer(0, [255, 255, 255, 128], bufferHasAlpha);
     for (var report = 0; report <= 1; ++report) {
-        var totalTime = measureBrushStrokeTime(testPic, 1000, radius, softness,
-                                               mode, report === 1);
+        var doReport = report === 1;
+        var totalTime = measureBrushStrokeTime(testPic, doReport ? eventCount : 200,
+                                               radius, testTextureId, softness, mode, doReport);
     }
     return totalTime;
 }
+
+var init = function() {
+    picContainer = document.createElement('div');
+    picContainer.style.width = '500px';
+    picContainer.style.height = '500px';
+    document.body.appendChild(picContainer);
+
+    var selection = function(id, options) {
+        var select = document.createElement('select');
+        select.id = id;
+        for (var i = 0; i < options.length; ++i) {
+            var opt = document.createElement('option');
+            opt.value = options[i];
+            opt.textContent = options[i];
+            opt.id = id + i;
+            select.appendChild(opt);
+        }
+        document.body.appendChild(select);
+    }
+    var getSelection = function(id) {
+        var select = document.getElementById(id);
+        var option = select.options[select.selectedIndex];
+        return option.value;
+    }
+    var allModes = ['webgl', 'no-texdata-webgl', 'no-float-webgl', 'canvas'];
+    selection('mode', allModes);
+    var textureIds = ['0', '1'];
+    var p = document.createElement('span');
+    p.textContent = ' texId ';
+    document.body.appendChild(p);
+    selection('texId', textureIds);
+
+    var run = document.createElement('input');
+    run.type = 'button';
+    run.value = 'Run test';
+    run.onclick = function() {
+        pictureMode = getSelection('mode');
+        picContainer.innerHTML = '';
+        testTextureId = parseInt(getSelection('texId'));
+        setTimeout(runTest, 100);
+    }
+    document.body.appendChild(run);
+
+    var runAll = document.createElement('input');
+    runAll.type = 'button';
+    runAll.value = 'Run tests with all modes';
+    runAll.onclick = function() {
+        var j = 0;
+        var runOne = function() {
+            pictureMode = allModes[j];
+            runTest();
+            ++j;
+            if (j < allModes.length) {
+                setTimeout(preRun, 100);
+            }
+        }
+        var preRun = function() {
+            picContainer.innerHTML = '';
+            setTimeout(runOne, 100);
+        }
+        preRun();
+    }
+    document.body.appendChild(runAll);
+}
 </script>
 </head>
-<body onload="runTest()" style="background:#888;">
+<body onload="init()" style="background:#888;">
 </body>
 </html>
