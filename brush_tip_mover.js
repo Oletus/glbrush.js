@@ -68,16 +68,21 @@ BrushTipMover.prototype.move = function(x, y, pressure) {
         bezierY = this.y + this.direction.y * d * 0.25 + dy * 0.25;
     }
 
-    if (d < 1.0) {
+    if (d < this.t) {
         if (this.fillShortSegments) {
-            if (100000 * d > this.radius * 2) {
-                var drawFlowAlpha = colorUtil.alphaForNBlends(this.flow, Math.ceil(this.radius * 2 / d));
+            // this.t - 1.0 is basically how far this.t was from the end of the previous segment when the previous
+            // circle was drawn.
+            // TODO: assert(this.t - 1.0 <= 0);
+            var step = d * 0.5 - (this.t - 1.0);
+            if (100000 * step > this.radius * 2) {
+                var drawFlowAlpha = colorUtil.alphaForNBlends(this.flow, Math.ceil(this.radius * 2 / step));
                 this.target.fillCircle(bezierX, bezierY, (pressure + this.pressure) * 0.5 * this.radius,
                                        drawFlowAlpha, 0);
             }
             this.targetX = x;
             this.targetY = y;
             this.targetR = pressure * this.radius;
+            this.t = 1.0 - d * 0.5;
         }
     } else {
         // we'll split the smoothed stroke segment to line segments with approx
