@@ -1,6 +1,7 @@
 lib/hsl.js
 util2d.js
 utilgl.js
+brush_tip_mover.js
 brush_textures.js
 rasterize_shader.js
 gradient_shader.js

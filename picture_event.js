@@ -7,19 +7,12 @@
  * the brush stroke.
  * @constructor
  * @param {number} coordsInd Index in the coords array. Must be an integer.
- * @param {Vec2} direction Tangent of the brush stroke at the beginning of the
- * current segment.
  */
-var BrushEventState = function(coordsInd, direction) {
+var BrushEventState = function(coordsInd) {
     if (coordsInd === undefined) {
         coordsInd = 0;
     }
-    if (direction === undefined) {
-        direction = new Vec2(0, 0);
-    }
     this.coordsInd = coordsInd;
-    this.direction = direction;
-    this.useDirection = false;
 };
 
 /**
@@ -151,10 +144,11 @@ PictureEvent.Mode = {
 
 /**
  * Generate a constructor for an event conforming to the brush event format.
+ * @param {boolean} needsTipMovers True if needs brush tip movement interpolation.
  * @return {function(number, number, boolean, Uint8Array|Array.<number>, number,
  * number, number, number, number, PictureEvent.Mode)} Constructor for the event.
  */
-var brushEventConstructor = function() {
+var brushEventConstructor = function(needsTipMovers) {
     return function(sid, sessionEventId, undone, color, flow, opacity, radius, textureId,
                     softness, mode) {
         // TODO: assert(color.length == 3);
@@ -172,6 +166,10 @@ var brushEventConstructor = function() {
         this.mode = mode;
         this.hideCount = 0;
         this.generation = 0;
+        if (needsTipMovers) {
+            this.bbTip = new BrushTipMover(true);
+            this.brushTip = new BrushTipMover(true);
+        }
     };
 };
 
@@ -196,7 +194,7 @@ var brushEventConstructor = function() {
  * @param {number} softness Value controlling the softness. Range 0 to 1.
  * @param {PictureEvent.Mode} mode Blending mode to use.
  */
-var BrushEvent = brushEventConstructor();
+var BrushEvent = brushEventConstructor(true);
 
 BrushEvent.prototype = new PictureEvent('brush');
 
@@ -373,11 +371,6 @@ BrushEvent.prototype.scaleRadiusPreservingFlow = function(radiusScale) {
 };
 
 /**
- * @const
- */
-BrushEvent.lineSegmentLength = 5.0;
-
-/**
  * A rasterizer that does not rasterize, but computes bounding boxes for a brush
  * event. Only implements functions necessary for drawing a brush event.
  * @constructor
@@ -416,21 +409,7 @@ BrushEvent.BBRasterizer.prototype.getDrawEventState = function(event, stateConst
 /**
  * Do nothing.
  */
-BrushEvent.BBRasterizer.prototype.beginCircleLines = function() {};
-
-/**
- * Add a circle line to the bounding box.
- * @param {number} centerX The x coordinate of the center of the circle at the
- * end of the line.
- * @param {number} centerY The y coordinate of the center of the circle at the
- * end of the line.
- * @param {number} radius The radius at the end of the line.
- * @param {number} flowAlpha The flow alpha. Unused.
- * @param {number} rotation Rotation at the end of the line in radians. Unused.
- */
-BrushEvent.BBRasterizer.prototype.circleLineTo = function(centerX, centerY, radius, flowAlpha, rotation) {
-    this.boundingBox.unionCircle(centerX, centerY, Math.max(radius, 1.0) + 1.0);
-};
+BrushEvent.BBRasterizer.prototype.beginCircles = function() {};
 
 /**
  * Add a circle to the bounding box.
@@ -471,89 +450,35 @@ BrushEvent.BBRasterizer.prototype.flushCircles = function() {};
  */
 BrushEvent.prototype.drawTo = function(rasterizer, untilCoord) {
     var drawState = rasterizer.getDrawEventState(this, BrushEventState);
+    // Use different tips for BB and normal drawing to avoid clearing the rasterizer all the time while drawing
+    var brushTip = rasterizer === this.boundingBoxRasterizer ? this.bbTip : this.brushTip;
     if (untilCoord === undefined) {
         untilCoord = this.coords.length;
-    } else {
-        if (drawState.coordsInd + BrushEvent.coordsStride > untilCoord) {
-            rasterizer.clearDirty();
-            drawState = rasterizer.getDrawEventState(this, BrushEventState);
-        }
     }
+    if (drawState.coordsInd > untilCoord || brushTip.target !== rasterizer) {
+        rasterizer.clearDirty();
+        drawState = rasterizer.getDrawEventState(this, BrushEventState);
+    }
+    // TODO: assert(this.coords.length % BrushEvent.coordsStride === 0);
     // TODO: assert(untilCoord % BrushEvent.coordsStride === 0);
-    if (this.coords.length % BrushEvent.coordsStride !== 0) {
-        // TODO: turn this into an assert.
-        console.log('Tried to apply event with odd number of coordinates');
-        return;
-    }
 
     var i = drawState.coordsInd;
-    var prevDirection = drawState.direction;
 
     if (i === 0) {
-        var nBlends = Math.ceil(this.radius * 2);
-        this.drawFlowAlpha = colorUtil.alphaForNBlends(this.flow, nBlends);
-        rasterizer.beginCircleLines(this.soft, this.textureId);
+        rasterizer.beginCircles(this.soft, this.textureId);
+        var x = this.coords[i++];
+        var y = this.coords[i++];
+        var pressure = this.coords[i++];
+        brushTip.reset(rasterizer, x, y, pressure, this.radius, this.flow);
     }
-
-    var r = this.radius;
-    var x1 = this.coords[i++];
-    var y1 = this.coords[i++];
-    var p1 = this.coords[i++]; // pressure
-    var xd, yd, pd, rd;
 
     while (i + BrushEvent.coordsStride <= untilCoord) {
-        var x2 = this.coords[i++];
-        var y2 = this.coords[i++];
-        var p2 = this.coords[i++];
-        var dx = x2 - x1;
-        var dy = y2 - y1;
-        var d = Math.sqrt(dx * dx + dy * dy);
-
-        // Brush smoothing. By default, make a straight line.
-        var bezierX = x1 + dx * 0.5;
-        var bezierY = y1 + dy * 0.5;
-        if (dx * prevDirection.x + dy * prevDirection.y > d * 0.5) {
-            // ad-hoc weighing of points to get a visually pleasing result
-            bezierX = x1 + prevDirection.x * d * 0.25 + dx * 0.25;
-            bezierY = y1 + prevDirection.y * d * 0.25 + dy * 0.25;
-        }
-
-        if (d < 1.0) {
-            if (100000 * d > r * 2) {
-                var drawFlowAlpha = colorUtil.alphaForNBlends(this.flow, Math.ceil(r * 2 / d));
-                rasterizer.fillCircle(bezierX, bezierY, (p1 + p2) * 0.5 * r, drawFlowAlpha, 0);
-            }
-            rasterizer.prevX = x2;
-            rasterizer.prevY = y2;
-            rasterizer.prevR = p2 * r;
-        } else {
-            // we'll split the smoothed stroke segment to line segments with approx
-            // length of BrushEvent.lineSegmentLength, trying to fit them nicely
-            // between the two stroke segment endpoints
-            var t = 0;
-            var tSegment = 0.99999 / Math.ceil(d / BrushEvent.lineSegmentLength);
-            while (t < 1.0) {
-                xd = x1 * Math.pow(1.0 - t, 2) + bezierX * t * (1.0 - t) * 2 +
-                     x2 * Math.pow(t, 2);
-                yd = y1 * Math.pow(1.0 - t, 2) + bezierY * t * (1.0 - t) * 2 +
-                     y2 * Math.pow(t, 2);
-                pd = p1 + (p2 - p1) * t;
-                rd = r * pd;
-                rasterizer.circleLineTo(xd, yd, rd, this.drawFlowAlpha, 0);
-                t += tSegment;
-            }
-        }
-        // The tangent of the bezier curve at the end of the curve
-        // intersects with the control point, we get the next iteration's
-        // direction from there.
-        prevDirection.x = x2 - bezierX;
-        prevDirection.y = y2 - bezierY;
-        prevDirection.normalize();
-        x1 = x2;
-        y1 = y2;
-        p1 = p2;
-        drawState.coordsInd = i - BrushEvent.coordsStride;
+        var x = this.coords[i++];
+        var y = this.coords[i++];
+        var pressure = this.coords[i++];
+        brushTip.move(x, y, pressure);
     }
+    drawState.coordsInd = i;
     rasterizer.flushCircles();
 };
 
@@ -595,7 +520,7 @@ BrushEvent.prototype.isRasterized = function() {
  * @param {number} softness Value controlling the softness. Range 0 to 1.
  * @param {PictureEvent.Mode} mode Blending mode to use.
  */
-var ScatterEvent = brushEventConstructor();
+var ScatterEvent = brushEventConstructor(false);
 
 ScatterEvent.prototype = new PictureEvent('scatter');
 
@@ -654,7 +579,7 @@ ScatterEvent.prototype.drawTo = function(rasterizer, untilCoord) {
     }
     var i = drawState.coordsInd;
     if (i === 0) {
-        rasterizer.beginCircleLines(this.soft, this.textureId);
+        rasterizer.beginCircles(this.soft, this.textureId);
     }
     while (i + BrushEvent.coordsStride <= untilCoord) {
         var x = this.coords[i++];
