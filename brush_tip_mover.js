@@ -87,6 +87,8 @@ BrushTipMover.prototype.move = function(x, y, pressure) {
             this.targetY = y;
             this.targetR = pressure * this.radius;
             this.t = 1.0 - d * 0.5;
+        } else {
+            this.t -= d;
         }
     } else {
         // we'll split the smoothed stroke segment to line segments with approx
