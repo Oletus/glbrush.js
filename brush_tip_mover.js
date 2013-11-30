@@ -31,8 +31,9 @@ BrushTipMover.lineSegmentLength = 5.0;
  * @param {number} pressure Pressure at the start of the stroke.
  * @param {number} radius Radius of the stroke.
  * @param {number} flow Alpha value affecting the alpha of individual fillCircle calls.
+ * @param {number} scatterOffset Relative amount of random offset for each fillCircle call.
  */
-BrushTipMover.prototype.reset = function(target, x, y, pressure, radius, flow) {
+BrushTipMover.prototype.reset = function(target, x, y, pressure, radius, flow, scatterOffset) {
     this.target = target;
 
     this.targetX = null;
@@ -45,6 +46,7 @@ BrushTipMover.prototype.reset = function(target, x, y, pressure, radius, flow) {
     this.pressure = pressure;
     this.radius = radius;
     this.flow = flow;
+    this.scatterOffset = scatterOffset;
     var nBlends = Math.ceil(this.radius * 2);
     this.drawFlowAlpha = colorUtil.alphaForNBlends(this.flow, nBlends);
 
@@ -73,7 +75,7 @@ BrushTipMover.prototype.move = function(x, y, pressure) {
     }
 
     if (d < this.t) {
-        if (this.fillShortSegments) {
+        if (this.fillShortSegments && this.scatterOffset === 0) {
             // this.t - 1.0 is basically how far this.t was from the end of the previous segment when the previous
             // circle was drawn.
             // TODO: assert(this.t - 1.0 <= 0);
@@ -137,9 +139,11 @@ BrushTipMover.prototype.circleLineTo = function(centerX, centerY, radius, rotati
         var d = diff.length();
         while (this.t < d) {
             var t = this.t / d;
+            var offset = Math.random() * this.scatterOffset * radius;
+            var offsetAngle = Math.random() * 2 * Math.PI;
             var rot = this.randomRotation ? Math.random() * 2 * Math.PI : 0;
-            this.target.fillCircle(this.targetX + diff.x * t,
-                                   this.targetY + diff.y * t,
+            this.target.fillCircle(this.targetX + diff.x * t + offset * Math.sin(offsetAngle),
+                                   this.targetY + diff.y * t + offset * Math.cos(offsetAngle),
                                    this.targetR + (radius - this.targetR) * t,
                                    this.drawFlowAlpha,
                                    rot);

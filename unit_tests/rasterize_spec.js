@@ -117,7 +117,7 @@ describe('Rasterizing system', function() {
         }
         testRasterizer.beginCircles(true, 0);
 
-        brushTip.reset(testRasterizer, 0, 0, 1, 0.5, 0.1);
+        brushTip.reset(testRasterizer, 0, 0, 1, 0.5, 0.1, 0);
         expect(testRasterizer.soft).toBe(true);
         expect(testRasterizer.t).toBe(0);
         brushTip.circleLineTo(0, 0, 1, 3.141);
