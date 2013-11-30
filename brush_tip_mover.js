@@ -32,8 +32,11 @@ BrushTipMover.lineSegmentLength = 5.0;
  * @param {number} radius Radius of the stroke.
  * @param {number} flow Alpha value affecting the alpha of individual fillCircle calls.
  * @param {number} scatterOffset Relative amount of random offset for each fillCircle call.
+ * @param {number} spacing Amount of spacing between fillCircle calls.
+ * @param {boolean} relativeSpacing If true, spacing is interpreted as relative to the current radius.
  */
-BrushTipMover.prototype.reset = function(target, x, y, pressure, radius, flow, scatterOffset) {
+BrushTipMover.prototype.reset = function(target, x, y, pressure, radius, flow, scatterOffset,
+                                         spacing, relativeSpacing) {
     this.target = target;
 
     this.targetX = null;
@@ -47,8 +50,15 @@ BrushTipMover.prototype.reset = function(target, x, y, pressure, radius, flow, s
     this.radius = radius;
     this.flow = flow;
     this.scatterOffset = scatterOffset;
+    this.spacing = spacing;
+    this.relativeSpacing = relativeSpacing;
     var nBlends = Math.ceil(this.radius * 2);
-    this.drawFlowAlpha = colorUtil.alphaForNBlends(this.flow, nBlends);
+    this.continuous = !this.relativeSpacing && this.spacing === 1 && this.scatterOffset === 0;
+    if (this.continuous) {
+        this.drawFlowAlpha = colorUtil.alphaForNBlends(this.flow, nBlends);
+    } else {
+        this.drawFlowAlpha = this.flow;
+    }
 
     this.direction = new Vec2(0, 0);
 };
@@ -75,7 +85,7 @@ BrushTipMover.prototype.move = function(x, y, pressure) {
     }
 
     if (d < this.t) {
-        if (this.fillShortSegments && this.scatterOffset === 0) {
+        if (this.continuous && this.fillShortSegments) {
             // this.t - 1.0 is basically how far this.t was from the end of the previous segment when the previous
             // circle was drawn.
             // TODO: assert(this.t - 1.0 <= 0);
@@ -85,13 +95,13 @@ BrushTipMover.prototype.move = function(x, y, pressure) {
                 this.target.fillCircle(bezierX, bezierY, (pressure + this.pressure) * 0.5 * this.radius,
                                        drawFlowAlpha, 0);
             }
-            this.targetX = x;
-            this.targetY = y;
-            this.targetR = pressure * this.radius;
             this.t = 1.0 - d * 0.5;
         } else {
             this.t -= d;
         }
+        this.targetX = x;
+        this.targetY = y;
+        this.targetR = pressure * this.radius;
     } else {
         // we'll split the smoothed stroke segment to line segments with approx
         // length of BrushTipMover.lineSegmentLength, trying to fit them nicely
@@ -147,7 +157,7 @@ BrushTipMover.prototype.circleLineTo = function(centerX, centerY, radius, rotati
                                    this.targetR + (radius - this.targetR) * t,
                                    this.drawFlowAlpha,
                                    rot);
-            this.t++;
+            this.t += Math.max(this.spacing * (this.relativeSpacing ? radius : 1.0), 1.0);
         }
         this.t -= d;
     }

@@ -490,7 +490,7 @@ BrushEvent.prototype.drawTo = function(rasterizer, untilCoord) {
         var x = this.coords[i++];
         var y = this.coords[i++];
         var pressure = this.coords[i++];
-        brushTip.reset(rasterizer, x, y, pressure, this.radius, this.flow, 0);
+        brushTip.reset(rasterizer, x, y, pressure, this.radius, this.flow, 0, 1, false);
     }
 
     while (i + BrushEvent.coordsStride <= untilCoord) {

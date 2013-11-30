@@ -256,7 +256,7 @@ describe('PictureEvent', function() {
         it('receives stroke data from BrushTipMover', function() {
             var testEvent = testScatterEvent();
             var tipMover = new BrushTipMover(false, false);
-            tipMover.reset(testEvent, 1, 2, 0.3, testEvent.radius, testEvent.flow, 0);
+            tipMover.reset(testEvent, 1, 2, 0.3, testEvent.radius, testEvent.flow, 0, 1, false);
             tipMover.move(2.5, 2, 0.3);
             var drawFlowAlpha = colorUtil.alphaForNBlends(testEvent.flow, testEvent.radius * 2);
             expect(testEvent.coords.length).toBe(2 * ScatterEvent.coordsStride);
@@ -275,7 +275,7 @@ describe('PictureEvent', function() {
         it('receives stroke data with random rotations from BrushTipMover', function() {
             var testEvent = testScatterEvent();
             var tipMover = new BrushTipMover(false, true);
-            tipMover.reset(testEvent, 1, 2, 0.3, testEvent.radius, testEvent.flow, 0);
+            tipMover.reset(testEvent, 1, 2, 0.3, testEvent.radius, testEvent.flow, 0, 1, false);
             tipMover.move(100, 2, 0.3);
             var count = 0;
             var sum = 0;
