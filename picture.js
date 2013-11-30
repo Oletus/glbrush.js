@@ -516,7 +516,7 @@ Picture.prototype.createBrushEvent = function(color, flow, opacity, radius,
  * @param {number} textureId Id of the brush tip shape texture. 0 is a circle, others are bitmap textures.
  * @param {number} softness Value controlling the softness. Range 0 to 1. Only applies to circles.
  * @param {PictureEvent.Mode} mode Blending mode to use.
- * @return {BrushEvent} The created brush event.
+ * @return {ScatterEvent} The created scatter event.
  */
 Picture.prototype.createScatterEvent = function(color, flow, opacity, radius,
                                                 textureId, softness, mode) {
