@@ -255,7 +255,7 @@ describe('PictureEvent', function() {
 
         it('receives stroke data from BrushTipMover', function() {
             var testEvent = testScatterEvent();
-            var tipMover = new BrushTipMover(false);
+            var tipMover = new BrushTipMover(false, false);
             tipMover.reset(testEvent, 1, 2, 0.3, testEvent.radius, testEvent.flow);
             tipMover.move(2.5, 2, 0.3);
             var drawFlowAlpha = colorUtil.alphaForNBlends(testEvent.flow, testEvent.radius * 2);
@@ -270,6 +270,26 @@ describe('PictureEvent', function() {
             expect(testEvent.coords[ScatterEvent.coordsStride + 2]).toBeNear(testEvent.radius * 0.3, 0.001);
             expect(testEvent.coords[ScatterEvent.coordsStride + 3]).toBeNear(drawFlowAlpha, 0.001);
             expect(testEvent.coords[ScatterEvent.coordsStride + 4]).toBe(0);
+        });
+
+        it('receives stroke data with random rotations from BrushTipMover', function() {
+            var testEvent = testScatterEvent();
+            var tipMover = new BrushTipMover(false, true);
+            tipMover.reset(testEvent, 1, 2, 0.3, testEvent.radius, testEvent.flow);
+            tipMover.move(100, 2, 0.3);
+            var count = 0;
+            var sum = 0;
+            var deviation = 0;
+            for (var i = 4; i < testEvent.coords.length; i += ScatterEvent.coordsStride) {
+                expect(testEvent.coords[i]).toBeLessThan(Math.PI * 2);
+                expect(testEvent.coords[i]).not.toBeLessThan(0);
+                sum += testEvent.coords[i];
+                deviation += Math.abs(testEvent.coords[i] - Math.PI);
+                ++count;
+            }
+            // If this doesn't pass, congratulations, you've been very lucky.
+            expect(sum / count).toBeNear(Math.PI, 0.5);
+            expect(deviation / count).toBeNear(Math.PI * 0.5, 0.5);
         });
     });
 

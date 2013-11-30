@@ -7,10 +7,14 @@
  * control points.
  * @param {boolean} fillShortSegments If true, segments smaller than one pixel
  * are filled with a circle with reduced flow.
+ * @param {boolean} randomRotation If true, tip samples are going to be randomly
+ * rotated. If true, there's no guarantee that two identical inputs will
+ * generate the same rotation output values.
  * @constructor
  */
-var BrushTipMover = function(fillShortSegments) {
+var BrushTipMover = function(fillShortSegments, randomRotation) {
     this.fillShortSegments = fillShortSegments;
+    this.randomRotation = randomRotation;
     this.target = null;
 };
 
@@ -131,11 +135,12 @@ BrushTipMover.prototype.circleLineTo = function(centerX, centerY, radius, rotati
         var d = diff.length();
         while (this.t < d) {
             var t = this.t / d;
+            var rot = this.randomRotation ? Math.random() * 2 * Math.PI : 0;
             this.target.fillCircle(this.targetX + diff.x * t,
                                    this.targetY + diff.y * t,
                                    this.targetR + (radius - this.targetR) * t,
                                    this.drawFlowAlpha,
-                                   0);
+                                   rot);
             this.t++;
         }
         this.t -= d;

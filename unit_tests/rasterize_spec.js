@@ -111,7 +111,7 @@ describe('Rasterizing system', function() {
     }
 
     function testLineDrawingBasics(testRasterizer, testFillCircleCalls) {
-        var brushTip = new BrushTipMover(true);
+        var brushTip = new BrushTipMover(true, false);
         if (testFillCircleCalls === undefined) {
             testFillCircleCalls = false;
         }

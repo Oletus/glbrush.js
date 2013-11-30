@@ -167,8 +167,8 @@ var brushEventConstructor = function(needsTipMovers) {
         this.hideCount = 0;
         this.generation = 0;
         if (needsTipMovers) {
-            this.bbTip = new BrushTipMover(true);
-            this.brushTip = new BrushTipMover(true);
+            this.bbTip = new BrushTipMover(true, false);
+            this.brushTip = new BrushTipMover(true, false);
         }
     };
 };
