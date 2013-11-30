@@ -156,14 +156,14 @@ BaseRasterizer.prototype.free = function() {
  * @return {boolean} The test showed expected results.
  */
 BaseRasterizer.prototype.checkSanity = function() {
-    return true; // TODO
     var i, pix;
     this.drawEvent = null;
     this.resetClip();
     this.clear();
     this.beginCircles(false, 0);
-    this.circleLineTo(1.5, 1.5, 2.0, 1.0, 0);
-    this.circleLineTo(4.5, 4.5, 2.0, 1.0, 0);
+    for (var i = 0; i < 4; ++i) {
+        this.fillCircle(1.5 + i, 1.5 + i, 2.0, 1.0, 0);
+    }
     this.flushCircles();
     for (i = 1; i <= 4; ++i) {
         pix = this.getPixel(new Vec2(i, i));
@@ -174,8 +174,9 @@ BaseRasterizer.prototype.checkSanity = function() {
     }
     this.clear();
     this.beginCircles(false, 0);
-    this.circleLineTo(3.5, 3.5, 2.0, 0.5, 0);
-    this.circleLineTo(13.5, 13.5, 2.0, 0.5, 0);
+    for (var i = 0; i < 11; ++i) {
+        this.fillCircle(i + 3.5, i + 3.5, 2.0, 0.5, 0);
+    }
     this.flushCircles();
     var lastPix = -1.0;
     for (i = 3; i <= 9; ++i) {
