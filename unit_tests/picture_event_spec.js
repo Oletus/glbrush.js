@@ -252,6 +252,25 @@ describe('PictureEvent', function() {
                 expect(parsedEvent.coords[4]).toBeNear(0, 0.001);
             }
         });
+
+        it('receives stroke data from BrushTipMover', function() {
+            var testEvent = testScatterEvent();
+            var tipMover = new BrushTipMover(false);
+            tipMover.reset(testEvent, 1, 2, 0.3, testEvent.radius, testEvent.flow);
+            tipMover.move(2.5, 2, 0.3);
+            var drawFlowAlpha = colorUtil.alphaForNBlends(testEvent.flow, testEvent.radius * 2);
+            expect(testEvent.coords.length).toBe(2 * ScatterEvent.coordsStride);
+            expect(testEvent.coords[0]).toBeNear(1, 0.001);
+            expect(testEvent.coords[1]).toBeNear(2, 0.001);
+            expect(testEvent.coords[2]).toBeNear(testEvent.radius * 0.3, 0.001);
+            expect(testEvent.coords[3]).toBeNear(drawFlowAlpha, 0.001);
+            expect(testEvent.coords[4]).toBe(0);
+            expect(testEvent.coords[ScatterEvent.coordsStride]).toBeNear(2, 0.001);
+            expect(testEvent.coords[ScatterEvent.coordsStride + 1]).toBeNear(2, 0.001);
+            expect(testEvent.coords[ScatterEvent.coordsStride + 2]).toBeNear(testEvent.radius * 0.3, 0.001);
+            expect(testEvent.coords[ScatterEvent.coordsStride + 3]).toBeNear(drawFlowAlpha, 0.001);
+            expect(testEvent.coords[ScatterEvent.coordsStride + 4]).toBe(0);
+        });
     });
 
     describe('GradientEvent', function() {
