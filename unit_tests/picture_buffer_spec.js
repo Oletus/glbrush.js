@@ -11,8 +11,14 @@ var testBufferParams = {
     hasAlpha: true
 };
 
-var testBuffer = function(createBuffer, createRasterizer, params) {
+var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params) {
     it('initializes', function() {
+        // This is a hacky way of doing global setup for this group of tests.
+        // But just running global setup before any tests are run doesn't work
+        // here, since the context created beforehand might be lost when other
+        // tests are running.
+        initTestCanvas();
+
         var buffer = createBuffer(params);
         expect(buffer.id).toBe(params.id);
         expect(buffer.width()).toBe(params.width);
@@ -795,22 +801,34 @@ describe('CanvasBuffer', function() {
     var createRasterizer = function(params) {
         return new Rasterizer(params.width, params.height, null);
     };
-    testBuffer(createBuffer, createRasterizer, testBufferParams);
+    testBuffer(function() {}, createBuffer, createRasterizer, testBufferParams);
 });
 
 describe('GLBuffer', function() {
-    var canvas = document.createElement('canvas');
+    var testsInitialized = false;
     var params = testBufferParams;
-    canvas.width = params.width;
-    canvas.height = params.height;
-    var gl = Picture.initWebGL(canvas);
-    var glManager = glStateManager(gl);
-    var compositor = new GLCompositor(glManager, gl, 8);
-    var texBlitProgram = glManager.shaderProgram(blitShader.blitSrc,
-                                                 blitShader.blitVertSrc,
-                                                 {'uSrcTex': 'tex2d'});
-    var texBlitUniforms = {
-        'uSrcTex': null
+
+    var canvas;
+    var gl;
+    var glManager;
+    var compositor;
+    var texBlitProgram;
+    var texBlitUniforms;
+    var initTestCanvas = function() {
+        if (testsInitialized) {
+            return;
+        }
+        testsInitialized = true;
+        canvas = document.createElement('canvas');
+        canvas.width = params.width;
+        canvas.height = params.height;
+        gl = Picture.initWebGL(canvas);
+        glManager = glStateManager(gl);
+        compositor = new GLCompositor(glManager, gl, 8);
+        texBlitProgram = glManager.shaderProgram(blitShader.blitSrc, blitShader.blitVertSrc, {'uSrcTex': 'tex2d'});
+        texBlitUniforms = {
+            'uSrcTex': null
+        };
     };
 
     var createBuffer = function(params) {
@@ -826,5 +844,5 @@ describe('GLBuffer', function() {
                                               params.height, null);
     };
 
-    testBuffer(createBuffer, createRasterizer, params);
+    testBuffer(initTestCanvas, createBuffer, createRasterizer, params);
 });

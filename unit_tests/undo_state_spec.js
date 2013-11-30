@@ -86,17 +86,30 @@ describe('CanvasUndoState', function() {
 });
 
 describe('GLUndoState', function() {
-    var canvas = document.createElement('canvas');
-    canvas.width = 100;
-    canvas.height = 128;
-    var gl = Picture.initWebGL(canvas);
-    var glManager = glStateManager(gl);
-    var compositor = new GLCompositor(glManager, gl, 8);
-    var texBlitProgram = glManager.shaderProgram(blitShader.blitSrc,
-                                                 blitShader.blitVertSrc,
-                                                 {'uSrcTex': 'tex2d'});
-    var texBlitUniforms = {
-        'uSrcTex': null
+    var testsInitialized = false;
+
+    var canvas;
+    var gl;
+    var glManager;
+    var compositor;
+    var texBlitProgram;
+    var texBlitUniforms;
+    var initTestCanvas = function() {
+        // Hack: share a canvas among tests as an optimization
+        if (testsInitialized) {
+            return;
+        }
+        testsInitialized = true;
+        canvas = document.createElement('canvas');
+        canvas.width = 100;
+        canvas.height = 128;
+        gl = Picture.initWebGL(canvas);
+        glManager = glStateManager(gl);
+        compositor = new GLCompositor(glManager, gl, 8);
+        texBlitProgram = glManager.shaderProgram(blitShader.blitSrc, blitShader.blitVertSrc, {'uSrcTex': 'tex2d'});
+        texBlitUniforms = {
+            'uSrcTex': null
+        };
     };
 
     var createTestTexture = function() {
@@ -123,6 +136,8 @@ describe('GLUndoState', function() {
     };
 
     it('initializes', function() {
+        initTestCanvas();
+
         var tex = createTestTexture();
         var state = new GLUndoState(3, 2, tex, gl, glManager, texBlitProgram,
                                     canvas.width, canvas.height, true);
@@ -138,6 +153,8 @@ describe('GLUndoState', function() {
     });
 
     it('initializes as invalid', function() {
+        initTestCanvas();
+
         var state = new GLUndoState(3, 2, null, gl, glManager, texBlitProgram,
                                     123, 345, true);
         expect(state.index).toBe(3);
@@ -149,6 +166,8 @@ describe('GLUndoState', function() {
     });
 
     it('stores a state', function() {
+        initTestCanvas();
+
         var tex = createTestTexture();
         fillTestTexture(tex);
         var state = new GLUndoState(3, 2, tex, gl, glManager, texBlitProgram,
@@ -165,6 +184,8 @@ describe('GLUndoState', function() {
     });
 
     it('can be freed and regenerated', function() {
+        initTestCanvas();
+
         var tex = createTestTexture();
         fillTestTexture(tex);
         var state = new GLUndoState(3, 2, tex, gl, glManager, texBlitProgram,
