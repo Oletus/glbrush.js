@@ -220,13 +220,23 @@ BrushEvent.prototype.serialize = function(scale) {
         eventMessage += ' 0.0';
     }
     eventMessage += ' ' + this.mode;
+    eventMessage += this.serializeCoords(scale);
+    return eventMessage;
+};
+
+/**
+ * @param {number} scale Scale to multiply serialized coordinates with.
+ * @return {string} A serialization of the coordinates.
+ */
+BrushEvent.prototype.serializeCoords = function(scale) {
+    var eventCoordsMessage = '';
     var i = 0;
     while (i < this.coords.length) {
-        eventMessage += ' ' + this.coords[i++] * scale;
-        eventMessage += ' ' + this.coords[i++] * scale;
-        eventMessage += ' ' + this.coords[i++];
+        eventCoordsMessage += ' ' + this.coords[i++] * scale;
+        eventCoordsMessage += ' ' + this.coords[i++] * scale;
+        eventCoordsMessage += ' ' + this.coords[i++];
     }
-    return eventMessage;
+    return eventCoordsMessage;
 };
 
 /**
@@ -255,12 +265,7 @@ var brushEventParser = function(constructor) {
         var pictureEvent = new constructor(sid, sessionEventId, undone, color,
                                            flow, opacity, radius, textureId, softness,
                                            mode);
-        while (i <= arr.length - BrushEvent.coordsStride) {
-            var x = parseFloat(arr[i++]);
-            var y = parseFloat(arr[i++]);
-            var pressure = parseFloat(arr[i++]);
-            pictureEvent.pushCoordTriplet(x, y, pressure);
-        }
+        pictureEvent.parseCoords(arr, i, version);
         return pictureEvent;
     };
 };
@@ -279,6 +284,22 @@ var brushEventParser = function(constructor) {
  * @return {BrushEvent} The parsed event or null.
  */
 BrushEvent.parse = brushEventParser(BrushEvent);
+
+/**
+ * Parse BrushEvent coordinates from a tokenized serialization.
+ * @param {Array.<string>} arr Array containing the tokens, split at spaces from
+ * the original serialization.
+ * @param {number} i Index of the first token to deserialize.
+ * @param {number} version Version number of the serialization format.
+ */
+BrushEvent.prototype.parseCoords = function(arr, i, version) {
+    while (i <= arr.length - BrushEvent.coordsStride) {
+        var x = parseFloat(arr[i++]);
+        var y = parseFloat(arr[i++]);
+        var pressure = parseFloat(arr[i++]);
+        this.pushCoordTriplet(x, y, pressure);
+    }
+};
 
 /**
  * Add a triplet of coordinates to the brush stroke. The stroke will travel
@@ -522,10 +543,33 @@ BrushEvent.prototype.isRasterized = function() {
  */
 var ScatterEvent = brushEventConstructor(false);
 
+/**
+ * @const
+ * @protected
+ */
+ScatterEvent.coordsStride = 5; // x, y, radius, flow and rotation coordinates belong together
+
 ScatterEvent.prototype = new PictureEvent('scatter');
 
 /** @inheritDoc */
 ScatterEvent.prototype.serialize = BrushEvent.prototype.serialize;
+
+/**
+ * @param {number} scale Scale to multiply serialized coordinates with.
+ * @return {string} A serialization of the coordinates.
+ */
+ScatterEvent.prototype.serializeCoords = function(scale) {
+    var eventCoordsMessage = '';
+    var i = 0;
+    while (i < this.coords.length) {
+        eventCoordsMessage += ' ' + this.coords[i++] * scale;
+        eventCoordsMessage += ' ' + this.coords[i++] * scale;
+        eventCoordsMessage += ' ' + this.coords[i++] * scale; // radius
+        eventCoordsMessage += ' ' + this.coords[i++]; // flow
+        eventCoordsMessage += ' ' + this.coords[i++]; // rotation
+    }
+    return eventCoordsMessage;
+};
 
 /**
  * Parse a ScatterEvent from a tokenized serialization.
@@ -542,21 +586,59 @@ ScatterEvent.prototype.serialize = BrushEvent.prototype.serialize;
  */
 ScatterEvent.parse = brushEventParser(ScatterEvent);
 
-/** @inheritDoc */
-ScatterEvent.prototype.scale = BrushEvent.prototype.scale;
+/**
+ * Parse ScatterEvent coordinates from a tokenized serialization.
+ * @param {Array.<string>} arr Array containing the tokens, split at spaces from
+ * the original serialization.
+ * @param {number} i Index of the first token to deserialize.
+ * @param {number} version Version number of the serialization format.
+ */
+ScatterEvent.prototype.parseCoords = function(arr, i, version) {
+    while (i <= arr.length - ScatterEvent.coordsStride) {
+        var x = parseFloat(arr[i++]);
+        var y = parseFloat(arr[i++]);
+        var pressure = parseFloat(arr[i++]);
+        if (version >= 4) {
+            var flow = parseFloat(arr[i++]);
+            var rotation = parseFloat(arr[i++]);
+            // pressure interpreted as radius
+            this.fillCircle(x, y, pressure, flow, rotation);
+        } else {
+            this.fillCircle(x, y, pressure * this.radius, this.flow, 0);
+        }
+    }
+};
 
-/** @inheritDoc */
-ScatterEvent.prototype.translate = BrushEvent.prototype.translate;
-
-/** @inheritDoc */
-ScatterEvent.prototype.normalizePressure = BrushEvent.prototype.normalizePressure;
 
 /**
- * Scale radius while preserving the event's appearance.
- * @param {number} radiusScale Multiplier for radius.
+ * Scale this event. This will change the coordinates of the stroke.
+ * @param {number} scale Scaling factor. Must be larger than 0.
  */
-ScatterEvent.prototype.scaleRadiusPreservingFlow = function(radiusScale) {
-    this.radius *= radiusScale;
+ScatterEvent.prototype.scale = function(scale) {
+    //TODO: assert(scale > 0)
+    this.radius *= scale;
+    for (var i = 0; i < this.coords.length; ++i) {
+        if (i % ScatterEvent.coordsStride < 3) {
+            this.coords[i] *= scale;
+        }
+    }
+    ++this.generation; // This invalidates any rasterizers (including BBRasterizer) which have this event cached.
+};
+
+/**
+ * Translate this event. This will change the coordinates of the stroke.
+ * @param {Vec2} offset The vector to translate with.
+ */
+ScatterEvent.prototype.translate = function(offset) {
+    for (var i = 0; i < this.coords.length; ++i) {
+        if (i % ScatterEvent.coordsStride === 0) {
+            this.coords[i] += offset.x;
+        } else if (i % ScatterEvent.coordsStride === 1) {
+            this.coords[i] += offset.y;
+        }
+    }
+    ++this.generation; // This invalidates any real rasterizers which have this event cached.
+    this.boundingBoxRasterizer.translate(offset, this.generation);
 };
 
 /** @inheritDoc */
@@ -581,11 +663,13 @@ ScatterEvent.prototype.drawTo = function(rasterizer, untilCoord) {
     if (i === 0) {
         rasterizer.beginCircles(this.soft, this.textureId);
     }
-    while (i + BrushEvent.coordsStride <= untilCoord) {
+    while (i + ScatterEvent.coordsStride <= untilCoord) {
         var x = this.coords[i++];
         var y = this.coords[i++];
-        var p = this.coords[i++];
-        rasterizer.fillCircle(x, y, p * this.radius, this.flow, 0);
+        var radius = this.coords[i++];
+        var flow = this.coords[i++];
+        var rotation = this.coords[i++];
+        rasterizer.fillCircle(x, y, radius, flow, rotation);
     }
     drawState.coordsInd = i;
     rasterizer.flushCircles();
@@ -609,9 +693,23 @@ ScatterEvent.prototype.pushCoordTriplet = function(x, y, pressure) {
     // Limit pressure to 5 decimals to cut on file size a bit. This rounding
     // method should be okay as long as pressure stays within reasonable bounds.
     pressure = Math.round(pressure * 100000) / 100000;
+    this.fillCircle(x, y, pressure * this.radius, this.flow, 0);
+};
+
+/**
+ * Add coordinates for a circle.
+ * @param {number} x The x center of the circle.
+ * @param {number} y The y center of the circle.
+ * @param {number} radius Radius of the circle.
+ * @param {number} flow Alpha value for the circle.
+ * @param {number} rotation Rotation of the circle texture in radians.
+ */
+ScatterEvent.prototype.fillCircle = function(x, y, radius, flow, rotation) {
     this.coords.push(x);
     this.coords.push(y);
-    this.coords.push(pressure);
+    this.coords.push(radius);
+    this.coords.push(flow);
+    this.coords.push(rotation);
 };
 
 

@@ -119,27 +119,14 @@ describe('PictureEvent', function() {
             expect(box.top).toBeLessThan(oldTop - radius + 0.1);
             expect(box.bottom).toBeGreaterThan(oldBottom + radius - 0.1);
         });
-
-        it('normalizes its pressure', function() {
-            var testEvent = creator();
-            var radius = 3;
-            var nBlends = Math.ceil(testEvent.radius * 2);
-            var brushFlowAlpha = colorUtil.alphaForNBlends(testEvent.flow, nBlends);
-            testEvent.radius = radius;
-            testEvent.pushCoordTriplet(0, 0, 10);
-            testEvent.pushCoordTriplet(1, 1, 1);
-            testEvent.normalizePressure();
-            expect(testEvent.radius).toBeNear(30, 0.0001);
-            expect(testEvent.coords[2]).toBeNear(1.0, 0.0001);
-            expect(testEvent.coords[BrushEvent.coordsStride + 2]).toBeNear(0.1, 0.0001);
-            if (testEvent instanceof BrushEvent) {
-                nBlends = Math.ceil(testEvent.radius * 2);
-                var newFlowAlpha = colorUtil.alphaForNBlends(testEvent.flow, nBlends);
-                expect(newFlowAlpha).toBeCloseTo(brushFlowAlpha, 0.02);
-            }
-        });
     };
 
+    /**
+     * Serialize an event with data of the current version mimicking an earlier version's format.
+     * @param {number} scale Scale to multiply coordinates with.
+     * @param {number} version Version of the resulting serialization.
+     * @return {string} The serialization.
+     */
     var serializeLegacyBrushEvent = function(scale, version) {
         var eventMessage = this.serializePictureEvent();
         eventMessage += ' ' + colorUtil.serializeRGB(this.color);
@@ -158,7 +145,17 @@ describe('PictureEvent', function() {
         while (i < this.coords.length) {
             eventMessage += ' ' + this.coords[i++] * scale;
             eventMessage += ' ' + this.coords[i++] * scale;
-            eventMessage += ' ' + this.coords[i++];
+            if (this.eventType === 'scatter') {
+                if (version >= 4) {
+                    eventMessage += ' ' + this.coords[i++] * scale; // radius
+                    eventMessage += ' ' + this.coords[i++]; // flow
+                    eventMessage += ' ' + this.coords[i++]; // rotation
+                } else {
+                    eventMessage += ' ' + this.coords[i++] / this.radius; // pressure
+                }
+            } else {
+                eventMessage += ' ' + this.coords[i++]; // pressure
+            }
         }
         return eventMessage;
     };
@@ -167,6 +164,23 @@ describe('PictureEvent', function() {
         commonEventTests(testBrushEvent, expectTestBrushEvent);
 
         commonBrushEventTests(testBrushEvent);
+
+        it('normalizes its pressure', function() {
+            var testEvent = testBrushEvent();
+            var radius = 3;
+            var nBlends = Math.ceil(testEvent.radius * 2);
+            var brushFlowAlpha = colorUtil.alphaForNBlends(testEvent.flow, nBlends);
+            testEvent.radius = radius;
+            testEvent.pushCoordTriplet(0, 0, 10);
+            testEvent.pushCoordTriplet(1, 1, 1);
+            testEvent.normalizePressure();
+            expect(testEvent.radius).toBeNear(30, 0.0001);
+            expect(testEvent.coords[2]).toBeNear(1.0, 0.0001);
+            expect(testEvent.coords[BrushEvent.coordsStride + 2]).toBeNear(0.1, 0.0001);
+            nBlends = Math.ceil(testEvent.radius * 2);
+            var newFlowAlpha = colorUtil.alphaForNBlends(testEvent.flow, nBlends);
+            expect(newFlowAlpha).toBeCloseTo(brushFlowAlpha, 0.02);
+        });
 
         it('parses a version 1 event', function() {
             var version = 1;
@@ -182,14 +196,36 @@ describe('PictureEvent', function() {
     describe('ScatterEvent', function() {
         commonEventTests(testScatterEvent, expectTestScatterEvent);
 
+        it('handles pushCoordTriplet calls', function() {
+            var testEvent = testScatterEvent();
+            testEvent.pushCoordTriplet(1, 2, 0.77);
+            expect(testEvent.coords.length).toBe(ScatterEvent.coordsStride);
+            expect(testEvent.coords[0]).toBe(1);
+            expect(testEvent.coords[1]).toBe(2);
+            expect(testEvent.coords[2]).toBeNear(testEvent.radius * 0.77, 0.001);
+            // Default flow and rotation
+            expect(testEvent.coords[3]).toBe(testEvent.flow);
+            expect(testEvent.coords[4]).toBe(0);
+        });
+
+        it('handles fillCircle calls', function() {
+            var testEvent = testScatterEvent();
+            testEvent.fillCircle(1, 2, 3, 0.45, 3.141);
+            expect(testEvent.coords.length).toBe(ScatterEvent.coordsStride);
+            expect(testEvent.coords[0]).toBe(1);
+            expect(testEvent.coords[1]).toBe(2);
+            expect(testEvent.coords[2]).toBe(3);
+            expect(testEvent.coords[3]).toBe(0.45);
+            expect(testEvent.coords[4]).toBe(3.141);
+        });
+
         commonBrushEventTests(testScatterEvent);
 
         it('updates its bounding box if its generation is changed', function() {
             var testEvent = testScatterEvent();
-            testEvent.radius = 3;
-            testEvent.pushCoordTriplet(0, 0, 1);
+            testEvent.fillCircle(0, 0, 3, 1.0, 0);
             var oldBox = testEvent.getBoundingBox(new Rect(-10, 10, -10, -10));
-            testEvent.radius = 5;
+            testEvent.coords[2] = 5; // Increase radius manually
             ++testEvent.generation;
             var box = testEvent.getBoundingBox(new Rect(-10, 10, -10, -10));
             expect(box).not.toBe(oldBox);
@@ -199,14 +235,22 @@ describe('PictureEvent', function() {
             expect(box.bottom).toBeNear(oldBox.bottom + 2, 0.01);
         });
 
-        it('parses a version 1 event', function() {
-            var version = 1;
-            var testEvent = testScatterEvent();
-            testEvent.serializeLegacy = serializeLegacyBrushEvent;
-            var serialization = testEvent.serializeLegacy(1.0, version);
-            var splitSerialization = serialization.split(' ');
-            var parsedEvent = PictureEvent.parse(splitSerialization, 0, version);
-            expectTestScatterEvent(parsedEvent);
+        it('parses version 1, 2, and 3 events', function() {
+            for (var version = 1; version <= 3; ++version) {
+                var testEvent = testScatterEvent();
+                testEvent.fillCircle(0.5, 1.6, 4.5, 0.411, 3.141);
+                testEvent.serializeLegacy = serializeLegacyBrushEvent;
+                var serialization = testEvent.serializeLegacy(1.0, version);
+                var splitSerialization = serialization.split(' ');
+                var parsedEvent = PictureEvent.parse(splitSerialization, 0, version);
+                expectTestScatterEvent(parsedEvent, 5);
+                expect(parsedEvent.coords[0]).toBeNear(0.5, 0.001);
+                expect(parsedEvent.coords[1]).toBeNear(1.6, 0.001);
+                expect(parsedEvent.coords[2]).toBeNear(4.5, 0.001);
+                // Flow and rotation should be set to their defaults in parsed legacy events:
+                expect(parsedEvent.coords[3]).toBeNear(parsedEvent.flow, 0.001);
+                expect(parsedEvent.coords[4]).toBeNear(0, 0.001);
+            }
         });
     });
 

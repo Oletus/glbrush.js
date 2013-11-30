@@ -34,7 +34,10 @@ function fillingBrushEvent(widthToFill, heightToFill, color, opacity, mode,
     return event;
 }
 
-function expectTestBrushEvent(brushEvent) {
+function expectTestBrushEvent(brushEvent, coordsLength) {
+    if (coordsLength === undefined) {
+        coordsLength = 0;
+    }
     expect(brushEvent.sid).toBe(0);
     expect(brushEvent.sessionEventId).toBe(1);
     expect(brushEvent.undone).toBe(false);
@@ -44,7 +47,7 @@ function expectTestBrushEvent(brushEvent) {
     expect(brushEvent.radius).toBe(25);
     expect(brushEvent.textureId).toBe(0);
     expect(brushEvent.soft).toBe(true);
-    expect(brushEvent.coords.length).toBe(0);
+    expect(brushEvent.coords.length).toBe(coordsLength);
     expect(brushEvent.mode).toBe(PictureEvent.Mode.normal);
 }
 

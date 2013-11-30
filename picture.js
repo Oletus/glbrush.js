@@ -429,7 +429,7 @@ Picture.prototype.maxBitmapScale = function() {
 };
 
 /** @const */
-Picture.formatVersion = 3;
+Picture.formatVersion = 4;
 
 /**
  * @return {string} A serialization of this Picture. Can be parsed into a new
