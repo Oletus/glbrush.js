@@ -39,9 +39,9 @@ BrushTipMover.prototype.reset = function(target, x, y, pressure, radius, flow, s
                                          spacing, relativeSpacing) {
     this.target = target;
 
-    this.targetX = null;
-    this.targetY = null;
-    this.targetR = null;
+    this.targetX = x;
+    this.targetY = y;
+    this.targetR = pressure * radius;
     this.t = 0;
 
     this.x = x;
