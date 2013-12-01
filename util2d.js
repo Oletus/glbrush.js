@@ -416,6 +416,8 @@ mathUtil = {
     mix: null,
     fmod: null,
     mixAngles: null,
+    angleDifference: null,
+    angleGreater: null,
     ease: null,
     clamp: null
 };
@@ -443,8 +445,8 @@ mathUtil.fmod = function(a, b) {
 
 /**
  * Linear interpolation of angles a and b in radians by weight f
- * @param {number} a Value a, if f == 0.0, a + n * PI * 2 is returned
- * @param {number} b Value b, if f == 1.0, b + n * PI * 2 is returned
+ * @param {number} a Angle a, if f == 0.0, a + n * PI * 2 is returned
+ * @param {number} b Angle b, if f == 1.0, b + n * PI * 2 is returned
  * @param {number} f Interpolation weight
  * @return {number} Interpolated value between a and b
  */
@@ -459,6 +461,42 @@ mathUtil.mixAngles = function(a, b, f) {
         }
     }
     return mathUtil.mix(a, b, f);
+};
+
+/**
+ * @param {number} a Angle a.
+ * @param {number} b Angle b.
+ * @return {number} Smallest difference of the angles a + n * PI * 2 and b in radians.
+ */
+mathUtil.angleDifference = function(a, b) {
+    a = mathUtil.fmod(a, Math.PI * 2);
+    b = mathUtil.fmod(b, Math.PI * 2);
+    if (Math.abs(a - b) > Math.PI) {
+        if (a > b) {
+            b += Math.PI * 2;
+        } else {
+            a += Math.PI * 2;
+        }
+    }
+    return Math.abs(a - b);
+};
+
+/**
+ * @param {number} a Angle a.
+ * @param {number} b Angle b.
+ * @return {boolean} True if the angle a + n * PI * 2 that is closest to b is greater than b.
+ */
+mathUtil.angleGreater = function(a, b) {
+    a = mathUtil.fmod(a, Math.PI * 2);
+    b = mathUtil.fmod(b, Math.PI * 2);
+    if (Math.abs(a - b) > Math.PI) {
+        if (a > b) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+    return (a > b);
 };
 
 /**
