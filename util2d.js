@@ -151,7 +151,7 @@ colorUtil.serializeRGBA = function(RGBA) {
  * Calculate the resulting alpha value from blending a given alpha value with
  * itself n times.
  * @param {number} alpha The alpha value to blend with itself, between 0 and 1.
- * @param {number} n Amount of times to blend. Must be an integer.
+ * @param {number} n Amount of times to blend.
  * @return {number} The resulting alpha value.
  */
 colorUtil.nBlends = function(alpha, n) {
@@ -159,8 +159,12 @@ colorUtil.nBlends = function(alpha, n) {
         return 1.0;
     }
     var result = 0;
-    for (var i = 0; i < n; ++i) {
+    for (var i = 0; i < Math.floor(n); ++i) {
         result = result + alpha * (1.0 - result);
+    }
+    if (n > i) {
+        var remainder = n - i;
+        result = result + alpha * (1.0 - result) * remainder; // Rough linear approximation
     }
     return result;
 };

@@ -52,12 +52,15 @@ BrushTipMover.prototype.reset = function(target, x, y, pressure, radius, flow, s
     this.scatterOffset = scatterOffset;
     this.spacing = spacing;
     this.relativeSpacing = relativeSpacing;
-    var nBlends = Math.ceil(this.radius * 2);
+    var nBlends = this.radius * 2;
     this.continuous = !this.relativeSpacing && this.spacing === 1 && this.scatterOffset === 0;
     if (this.continuous) {
         this.drawFlowAlpha = colorUtil.alphaForNBlends(this.flow, nBlends);
     } else {
-        this.drawFlowAlpha = this.flow;
+        var realSpacing = this.spacing * (this.relativeSpacing ? this.radius : 1.0);
+        var blendSpacing = Math.min(realSpacing, this.radius * 2);
+        nBlends = this.radius * 2 / blendSpacing;
+        this.drawFlowAlpha = colorUtil.alphaForNBlends(this.flow, nBlends);
     }
 
     this.direction = new Vec2(0, 0);
