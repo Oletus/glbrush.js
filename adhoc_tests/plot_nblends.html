@@ -1,0 +1,151 @@
+<html>
+<head>
+<script type="text/javascript" src="../util2d.js"></script>
+<script type="text/javascript">
+
+colorUtil.alphaForNBlendsBisect = function(flow, n) {
+    if (flow < 1.0) {
+        var guess = colorUtil.approximateAlphaForNBlends(flow, n);
+        var low = 0;
+        var high = flow;
+        // Bisect until result is close enough
+        while (true) {
+            var blended = colorUtil.nBlends(guess, n);
+            if (Math.abs(blended - flow) < 0.0005) {
+                return guess;
+            }
+            if (blended < flow) {
+                low = guess;
+            } else {
+                high = guess;
+            }
+            guess = (low + high) * 0.5;
+        }
+    } else {
+        return 1.0;
+    }
+};
+
+colorUtil.alphaForNBlendsSecant = function(flow, n) {
+    if (flow < 1.0) {
+        var guess0 = colorUtil.approximateAlphaForNBlends(flow * 0.995, n);
+        var blended0 = colorUtil.nBlends(guess0, n);
+        var guess1 = colorUtil.approximateAlphaForNBlends(flow, n);
+        var iterations = 0;
+        // Secant method might not converge, so fall back to bisect if necessary
+        while (iterations < 3) {
+            ++iterations;
+            var blended1 = colorUtil.nBlends(guess1, n);
+            if (Math.abs(blended1 - flow) < 0.0005) {
+                return guess1;
+            }
+            // Secant method
+            var newGuess = guess1 - (blended1 - flow) * (guess1 - guess0) / ((blended1 - flow) - (blended0 - flow));
+            guess0 = guess1;
+            guess1 = newGuess;
+        }
+        return colorUtil.alphaForNBlendsBisect(flow, n, true);
+    } else {
+        return 1.0;
+    }
+};
+
+var plotNBlends = function() {
+    var c = document.createElement('canvas');
+    c.width = 800;
+    c.height = 800;
+    var ctx = c.getContext('2d');
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, c.width, c.height);
+    for (var alpha = 0.05; alpha <= 1.0; alpha *= 2) {
+        ctx.beginPath();
+        var nMax = 40;
+        for (var n = 1; n < nMax; n += 0.25) {
+            ctx.lineTo(n * c.width / nMax, (1.0 - colorUtil.nBlends(alpha, n)) * c.height);
+        }
+        ctx.stroke();
+    }
+    document.body.appendChild(c);
+    ctx.fillStyle = '#000';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText("y axis resulting alpha, x axis amount of blends with itself", 2, c.height - 2);
+    document.body.appendChild(document.createElement('br'));
+    document.body.appendChild(document.createElement('br'));
+};
+
+var plotAlphaForNBlends = function() {
+    var evaluations = 0;
+    var c = document.createElement('canvas');
+    c.width = 800;
+    c.height = 800;
+    var ctx = c.getContext('2d');
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, c.width, c.height);
+    var nMax = 40;
+    for (var alpha = 0.05; alpha <= 1.0; alpha += 0.1) {
+        ctx.beginPath();
+        for (var n = 1; n < nMax; n += 0.25) {
+            ctx.lineTo(n * c.width / nMax, (1.0 - colorUtil.approximateAlphaForNBlends(alpha, n)) * c.height);
+        }
+        ctx.strokeStyle = '#f00';
+        ctx.stroke();
+        ctx.beginPath();
+        for (var n = 1; n < nMax; n += 0.25) {
+            ctx.lineTo(n * c.width / nMax, (1.0 - colorUtil.alphaForNBlends(alpha, n)) * c.height);
+            var alphaDefault = colorUtil.alphaForNBlends(alpha, n);
+            var alphaB = colorUtil.alphaForNBlendsBisect(alpha, n);
+            var alphaS = colorUtil.alphaForNBlendsSecant(alpha, n);
+            if (Math.abs(colorUtil.nBlends(alphaDefault, n) - colorUtil.nBlends(alphaB, n)) > 0.001) {
+                throw "Mismatching results from alphaForNBlendsBisect!";
+            }
+            if (Math.abs(colorUtil.nBlends(alphaDefault, n) - colorUtil.nBlends(alphaS, n)) > 0.001) {
+                throw "Mismatching results from alphaForNBlendsSecant!";
+            }
+        }
+        ctx.strokeStyle = '#000';
+        ctx.stroke();
+    }
+    document.body.appendChild(c);
+    ctx.fillStyle = '#000';
+    ctx.textBaseline = 'top';
+    ctx.fillText("x axis is the amount of blends done, y axis is the starting alpha value needed to reach", 2, 2);
+    ctx.fillText("a given alpha with that amount of blends, red line is the approximation", 2, 16);
+};
+
+var logText = function(text) {
+    var p = document.createElement('p');
+    p.textContent = text;
+    document.body.appendChild(p);
+};
+
+var measureSecantTime = function() {
+    var startTime = new Date().getTime();
+    for (var alpha = 0.01; alpha <= 1.0; alpha += 0.002) {
+        for (var n = 1; n < 200; n += 0.1) {
+            colorUtil.alphaForNBlendsSecant(alpha, n);
+        }
+    }
+    logText('Time spent calculating alpha values with secant method: ' + (new Date().getTime() - startTime));
+};
+
+var measureBisectTime = function() {
+    var startTime = new Date().getTime();
+    for (var alpha = 0.01; alpha <= 1.0; alpha += 0.002) {
+        for (var n = 1; n < 200; n += 0.1) {
+            colorUtil.alphaForNBlendsBisect(alpha, n);
+        }
+    }
+    logText('Time spent calculating alpha values with bisection method: ' + (new Date().getTime() - startTime));
+};
+
+var plot = function() {
+    plotNBlends();
+    plotAlphaForNBlends();
+    measureSecantTime();
+    measureBisectTime();
+};
+</script>
+</head>
+<body onload="plot()" style="background-color: #888">
+</body>
+</html>

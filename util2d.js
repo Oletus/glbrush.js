@@ -35,6 +35,7 @@ colorUtil = {
     blend: null,
     serializeRGB: null,
     nBlends: null,
+    approximateAlphaForNBlends: null,
     alphaForNBlends: null,
     differentColor: null,
     blendMultiply: null,
@@ -158,15 +159,38 @@ colorUtil.nBlends = function(alpha, n) {
     if (alpha === 1.0) {
         return 1.0;
     }
-    var result = 0;
-    for (var i = 0; i < Math.floor(n); ++i) {
+    var i = 1;
+    var result = alpha;
+    while (i * 2 <= Math.floor(n)) {
+        result = result + result * (1.0 - result);
+        i *= 2;
+    }
+    while (i < Math.floor(n)) {
         result = result + alpha * (1.0 - result);
+        ++i;
     }
     if (n > i) {
         var remainder = n - i;
         result = result + alpha * (1.0 - result) * remainder; // Rough linear approximation
     }
     return result;
+};
+
+/**
+ * Calculate an alpha value so that blending a sample with that alpha n times
+ * results approximately in the given flow value.
+ * @param {number} flow The flow value, between 0 and 1.
+ * @param {number} n The number of times to blend.
+ * @return {number} Such alpha value that blending it with itself n times
+ * results in the given flow value.
+ */
+colorUtil.approximateAlphaForNBlends = function(flow, n) {
+    // Solved from alpha blending differential equation:
+    // flow'(n) = (1.0 - flow(n)) * singleBlendAlpha
+    //return Math.min(-Math.log(1.0 - flow) / n, 1.0);
+
+    // Above solution with an ad-hoc tweak:
+    return Math.min(-Math.log(1.0 - flow) / (n + Math.pow(flow, 2) * 1.5), 1.0);
 };
 
 /**
@@ -179,23 +203,19 @@ colorUtil.nBlends = function(alpha, n) {
  */
 colorUtil.alphaForNBlends = function(flow, n) {
     if (flow < 1.0) {
-        // Solved from alpha blending differential equation:
-        // flow'(n) = (1.0 - flow(n)) * adjustedFlow
-        var guess = Math.min(-Math.log(1.0 - flow) / n, 1.0);
-        var resultDiff = 1.0;
+        var guess = colorUtil.approximateAlphaForNBlends(flow, n);
         var low = 0;
         var high = flow;
         // Bisect until result is close enough
         while (true) {
             var blended = colorUtil.nBlends(guess, n);
+            if (Math.abs(blended - flow) < 0.0005) {
+                return guess;
+            }
             if (blended < flow) {
                 low = guess;
             } else {
                 high = guess;
-            }
-            resultDiff = Math.abs(blended - flow);
-            if (resultDiff < 0.0005) {
-                return guess;
             }
             guess = (low + high) * 0.5;
         }
