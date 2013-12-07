@@ -29,7 +29,7 @@ BrushTipMover.lineSegmentLength = 5.0;
  * @param {number} x Horizontal position to place the tip to.
  * @param {number} y Vertical position to place the tip to.
  * @param {number} pressure Pressure at the start of the stroke.
- * @param {number} radius Radius of the stroke.
+ * @param {number} radius Maximum radius of the stroke.
  * @param {number} flow Alpha value affecting the alpha of individual fillCircle calls.
  * @param {number} scatterOffset Relative amount of random offset for each fillCircle call.
  * @param {number} spacing Amount of spacing between fillCircle calls.
@@ -52,16 +52,11 @@ BrushTipMover.prototype.reset = function(target, x, y, pressure, radius, flow, s
     this.scatterOffset = scatterOffset;
     this.spacing = spacing;
     this.relativeSpacing = relativeSpacing;
-    var nBlends = this.radius * 2;
     this.continuous = !this.relativeSpacing && this.spacing === 1 && this.scatterOffset === 0;
-    if (this.continuous) {
-        this.drawFlowAlpha = colorUtil.alphaForNBlends(this.flow, nBlends);
-    } else {
-        var realSpacing = this.spacing * (this.relativeSpacing ? this.radius : 1.0);
-        var blendSpacing = Math.min(realSpacing, this.radius * 2);
-        nBlends = this.radius * 2 / blendSpacing;
-        this.drawFlowAlpha = colorUtil.alphaForNBlends(this.flow, nBlends);
-    }
+    // Calculate drawFlowAlpha to achieve the intended flow in case of maximum pressure and solid, continuous brush.
+    // For non-continuous brush, the alpha gets adjusted while drawing to match the flow of the continuous brush.
+    var nBlends = this.radius * 2;
+    this.drawFlowAlpha = colorUtil.alphaForNBlends(this.flow, nBlends);
 
     this.direction = new Vec2(0, 0);
 };
@@ -150,17 +145,30 @@ BrushTipMover.prototype.circleLineTo = function(centerX, centerY, radius, rotati
     if (this.targetX !== null) {
         var diff = new Vec2(centerX - this.targetX, centerY - this.targetY);
         var d = diff.length();
+        var drawSpacing = Math.max(this.spacing, 1.0);
+        var drawFlowAlpha = this.drawFlowAlpha;
         while (this.t < d) {
             var t = this.t / d;
             var offset = Math.random() * this.scatterOffset * radius;
             var offsetAngle = Math.random() * 2 * Math.PI;
             var rot = this.randomRotation ? Math.random() * 2 * Math.PI : 0;
+            var drawRadius = this.targetR + (radius - this.targetR) * t;
+            if (this.relativeSpacing) {
+                drawSpacing = Math.max(this.spacing * drawRadius, 1.0);
+            }
+            if (!this.continuous) {
+                // Calculate how many blends would happen with an evenly spaced brush,
+                // or if the circles don't touch each other, how many blends would happen
+                // in one circle's diameter.
+                var nBlends = Math.min(drawSpacing, drawRadius * 2);
+                drawFlowAlpha = colorUtil.nBlends(this.drawFlowAlpha, nBlends);
+            }
             this.target.fillCircle(this.targetX + diff.x * t + offset * Math.sin(offsetAngle),
                                    this.targetY + diff.y * t + offset * Math.cos(offsetAngle),
-                                   this.targetR + (radius - this.targetR) * t,
-                                   this.drawFlowAlpha,
+                                   drawRadius,
+                                   drawFlowAlpha,
                                    rot);
-            this.t += Math.max(this.spacing * (this.relativeSpacing ? radius : 1.0), 1.0);
+            this.t += drawSpacing;
         }
         this.t -= d;
     }
