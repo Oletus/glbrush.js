@@ -1334,13 +1334,13 @@ Picture.prototype.animate = function(simultaneousStrokes, speed,
     // TODO: Currently playback is from bottom to top and doesn't support merge
     // events. Switch to a timestamp-based approach.
     for (var i = 0; i < this.buffers.length; ++i) {
-        if (!this.buffers[i].isRemoved()) {
+        if (this.buffers[i].isListed()) {
             // Create event doesn't count
             this.totalEvents += this.buffers[i].events.length - 1;
             var createEvent = new BufferAddEvent(-1, -1, false, -1,
                                                  this.buffers[i].hasAlpha,
-                                           this.buffers[i].events[0].clearColor,
-                                             this.buffers[i].events[0].opacity);
+                                                 this.buffers[i].events[0].clearColor,
+                                                 this.buffers[i].events[0].opacity);
             var buffer = this.createBuffer(createEvent, false);
             this.animationBuffers.push(buffer);
         }
@@ -1350,7 +1350,7 @@ Picture.prototype.animate = function(simultaneousStrokes, speed,
     var j = -1;
     this.eventToAnimate = function(index) {
         for (var i = 0; i < that.buffers.length; ++i) {
-            if (!this.buffers[i].isRemoved()) {
+            if (this.buffers[i].isListed()) {
                 if (index < that.buffers[i].events.length - 1) {
                     return {event: that.buffers[i].events[index + 1],
                             bufferIndex: i};
