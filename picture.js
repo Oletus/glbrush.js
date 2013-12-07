@@ -71,6 +71,8 @@ var Picture = function(id, name, boundsRect, bitmapScale, mode, brushTextureData
     }
 };
 
+Picture.hasFailedWebGLSanity = false;
+
 /**
  * Initialize brush textures to use in rasterizers from the given brush texture data.
  * @protected
@@ -123,6 +125,7 @@ Picture.prototype.setupGLState = function() {
     };
 
     if (!this.initRasterizers()) {
+        Picture.hasFailedWebGLSanity = true;
         console.log('WebGL accelerated rasterizer did not pass sanity test ' +
                     '(mode ' + this.mode + '). Update your graphics drivers ' +
                     'or try switching browsers if possible.');
