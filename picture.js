@@ -71,6 +71,9 @@ var Picture = function(id, name, boundsRect, bitmapScale, mode, brushTextureData
     }
 };
 
+/**
+ * True if WebGL context was initialized but a rendering test produced wrong results.
+ */
 Picture.hasFailedWebGLSanity = false;
 
 /**
