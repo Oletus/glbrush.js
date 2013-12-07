@@ -1352,14 +1352,16 @@ Picture.prototype.animate = function(simultaneousStrokes, speed,
     simultaneousStrokes = Math.min(simultaneousStrokes, this.totalEvents);
     var j = -1;
     this.eventToAnimate = function(index) {
+        var listedIndex = 0;
         for (var i = 0; i < that.buffers.length; ++i) {
             if (this.buffers[i].isListed()) {
                 if (index < that.buffers[i].events.length - 1) {
                     return {event: that.buffers[i].events[index + 1],
-                            bufferIndex: i};
+                            bufferIndex: listedIndex}; // index in this.animationBuffers
                 } else {
                     index -= that.buffers[i].events.length - 1;
                 }
+                ++listedIndex;
             }
         }
         return null; // should not be reached
@@ -1493,12 +1495,11 @@ Picture.prototype.displayAnimation = function() {
             var ri = (j + rasterizerIndexOffset) % this.animators.length;
             if (this.animators[ri].eventIndex < this.totalEvents &&
                 this.animators[ri].bufferIndex === i) {
-                var event = this.eventToAnimate(
-                                 this.animators[ri].eventIndex).event;
+                var event = this.eventToAnimate(this.animators[ri].eventIndex).event;
                 this.compositor.pushRasterizer(this.animators[ri].rasterizer,
                                                event.color, event.opacity,
                                                event.mode,
-                                         event.getBoundingBox(this.bitmapRect));
+                                               event.getBoundingBox(this.bitmapRect));
             }
         }
     }
