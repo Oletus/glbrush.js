@@ -676,6 +676,30 @@ var doPictureTest = function(mode) {
         doPictureTestWithCleanup(mode, width, height, testPicture);
     });
 
+    if (mode.indexOf('webgl') !== -1) {
+        it('has a global flag for failing webgl initialization', function() {
+            expect(Picture.hasFailedWebGLSanity).toBe(false);
+
+            // Break the rasterizers
+            var oldDoubleBufferedFillCircle = GLDoubleBufferedRasterizer.prototype.fillCircle;
+            var oldFloatFillCircle = GLFloatRasterizer.prototype.fillCircle;
+            var oldFloatTexDataFillCircle = GLFloatTexDataRasterizer.prototype.fillCircle;
+            GLDoubleBufferedRasterizer.prototype.fillCircle = function() {};
+            GLFloatRasterizer.prototype.fillCircle = function() {};
+            GLFloatTexDataRasterizer.prototype.fillCircle = function() {};
+
+            var pic = testPicture();
+            expect(Picture.hasFailedWebGLSanity).toBe(true);
+            pic.destroy();
+
+            // Restore the rasterizers
+            GLDoubleBufferedRasterizer.prototype.fillCircle = oldDoubleBufferedFillCircle;
+            GLFloatRasterizer.prototype.fillCircle = oldFloatFillCircle;
+            GLFloatTexDataRasterizer.prototype.fillCircle = oldFloatTexDataFillCircle;
+            Picture.hasFailedWebGLSanity = false;
+        });
+    }
+
     it('parses a picture without a version number', function() {
         var parsed = Picture.parse(-1, 'picture 122 234', 2.0, [mode]);
         var pic = parsed.picture;
