@@ -31,6 +31,8 @@ var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params
     });
 
     it('is cleared during initialization and playback', function() {
+        initTestCanvas();
+
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
         expectBufferCorrect(buffer, rasterizer, 0);
@@ -42,6 +44,8 @@ var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params
     });
 
     it('clamps a pushed clip rect', function() {
+        initTestCanvas();
+
         var buffer = createBuffer(params);
         buffer.pushClipRect(new Rect(-100, buffer.width() + 100,
                                      -100, buffer.height() + 100));
@@ -55,6 +59,8 @@ var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params
     });
 
     it('clamps the clip rect after popping', function() {
+        initTestCanvas();
+
         var buffer = createBuffer(params);
         buffer.pushClipRect(new Rect(-100, 45, -100, 56));
         buffer.pushClipRect(new Rect(0, 20, 0, 20));
@@ -69,6 +75,8 @@ var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params
     });
 
     it('gives the color of one pixel', function() {
+        initTestCanvas();
+
         var buffer = createBuffer(params);
         var samplePixel = buffer.getPixelRGBA(new Vec2(0, 0));
         expect(samplePixel[0]).toBeNear(params.clearColor[0], 8);
@@ -80,6 +88,8 @@ var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params
     });
 
     it('plays back one event', function() {
+        initTestCanvas();
+
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
         var brushEvent = testBrushEvent();
@@ -93,6 +103,8 @@ var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params
     });
 
     it('erases from the bitmap', function() {
+        initTestCanvas();
+
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
         var brushEvent = fillingBrushEvent(params.width, params.height,
@@ -109,8 +121,9 @@ var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params
         buffer.free();
     });
 
-    it('blends an event to the bitmap with the normal mode, opacity and flow',
-       function() {
+    it('blends an event to the bitmap with the normal mode, opacity and flow', function() {
+        initTestCanvas();
+
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
         var opacity = 0.5;
@@ -138,6 +151,8 @@ var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params
     });
 
     it('blends an event to the bitmap with the multiply mode', function() {
+        initTestCanvas();
+
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
         var opacity = 0.5;
@@ -161,6 +176,8 @@ var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params
     });
 
     it('blends an event to the bitmap with the screen mode', function() {
+        initTestCanvas();
+
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
         var opacity = 0.5;
@@ -186,6 +203,8 @@ var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params
 
     var generalizedBlendModeTest = function(testName, blendMode, testAgainst) {
         it('blends an event to the bitmap with the ' + testName, function() {
+            initTestCanvas();
+
             var buffer = createBuffer(params);
             var rasterizer = createRasterizer(params);
             var opacity = 0.5;
@@ -223,6 +242,8 @@ var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params
     generalizedBlendModeTest('lineardodge', PictureEvent.Mode.lineardodge, colorUtil.blendLinearDodge);
 
     it('erases from an opaque buffer', function() {
+        initTestCanvas();
+
         var hadAlpha = params.hasAlpha;
         var oldClearAlpha = params.clearColor[3];
         params.hasAlpha = false;
@@ -254,6 +275,8 @@ var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params
     });
 
     it('blends a scatter event', function() {
+        initTestCanvas();
+
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
         var scatterEvent = testScatterEvent();
@@ -316,6 +339,8 @@ var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params
     };
 
     it('plays back several events', function() {
+        initTestCanvas();
+
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
         fillBuffer(buffer, rasterizer, 10);
@@ -327,6 +352,8 @@ var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params
 
     var singleEventTests = function(createSpecialEvent, specialEventName) {
         it('undoes ' + specialEventName, function() {
+            initTestCanvas();
+
             var undoIndex = 5;
             var buffer = createBuffer(params);
             var rasterizer = createRasterizer(params);
@@ -350,6 +377,8 @@ var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params
         });
 
         it('undoes ' + specialEventName + ' using an undo state', function() {
+            initTestCanvas();
+
             var buffer = createBuffer(params);
             var rasterizer = createRasterizer(params);
             var undoIndex = buffer.undoStateInterval + 1;
@@ -369,6 +398,8 @@ var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params
         });
 
         it('removes ' + specialEventName, function() {
+            initTestCanvas();
+
             var buffer = createBuffer(params);
             var rasterizer = createRasterizer(params);
             var removeIndex = 5;
@@ -389,6 +420,8 @@ var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params
         });
 
         it('inserts ' + specialEventName, function() {
+            initTestCanvas();
+
             var buffer = createBuffer(params);
             var rasterizer = createRasterizer(params);
             fillBuffer(buffer, rasterizer, buffer.undoStateInterval - 2);
@@ -437,6 +470,8 @@ var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params
     singleEventTests(createTestHideEvent, 'an event hiding event');
 
     it('does not use an invalid undo state', function() {
+        initTestCanvas();
+
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
         fillBuffer(buffer, rasterizer, buffer.undoStateInterval + 3);
@@ -453,6 +488,8 @@ var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params
     });
 
     it('removes an event using an undo state', function() {
+        initTestCanvas();
+
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
         fillBuffer(buffer, rasterizer, buffer.undoStateInterval + 3);
@@ -465,6 +502,8 @@ var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params
     });
 
     it('updates undo state index when removing events', function() {
+        initTestCanvas();
+
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
         fillBuffer(buffer, rasterizer, buffer.undoStateInterval + 3);
@@ -486,6 +525,8 @@ var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params
     });
 
     it('updates undo state index when inserting events', function() {
+        initTestCanvas();
+
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
         fillBuffer(buffer, rasterizer, buffer.undoStateInterval + 3);
@@ -521,6 +562,8 @@ var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params
     });
 
     it('updates undo state cost when doing operations', function() {
+        initTestCanvas();
+
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
         buffer.undoStateInterval = 8; // Reduce interval to make test faster
@@ -558,6 +601,8 @@ var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params
     });
 
     it('maintains undo state cost when redoing the last event', function() {
+        initTestCanvas();
+
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
         var events = 1;
@@ -577,6 +622,8 @@ var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params
     });
 
     it('maintains undo state data when inserting an undone event', function() {
+        initTestCanvas();
+
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
         fillBuffer(buffer, rasterizer, buffer.undoStateInterval + 3);
@@ -598,6 +645,8 @@ var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params
     });
 
     it('removes redundant undo states', function() {
+        initTestCanvas();
+
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
         fillBuffer(buffer, rasterizer, buffer.undoStateInterval * 2);
@@ -616,6 +665,8 @@ var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params
     });
 
     it('has its contents replaced by an event', function() {
+        initTestCanvas();
+
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
         fillBuffer(buffer, rasterizer, buffer.undoStateInterval + 1);
@@ -632,6 +683,8 @@ var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params
     });
 
     it('updates if an event is pushed to a merged buffer', function() {
+        initTestCanvas();
+
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
         var mergeEvent = createTestMergeEvent(buffer);
@@ -645,6 +698,8 @@ var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params
     });
 
     it('updates if an event is inserted into a merged buffer', function() {
+        initTestCanvas();
+
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
         var mergeEvent = createTestMergeEvent(buffer);
@@ -659,6 +714,8 @@ var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params
     });
 
     it('updates if an event is undone in a merged buffer', function() {
+        initTestCanvas();
+
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
         var mergeEvent = createTestMergeEvent(buffer);
@@ -671,6 +728,8 @@ var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params
     });
 
     it('does not draw an undone merged buffer', function() {
+        initTestCanvas();
+
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
         var mergeEvent = createTestMergeEvent(buffer);
@@ -693,6 +752,8 @@ var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params
     });
 
     it('does not blame its creator', function() {
+        initTestCanvas();
+
         var buffer = createBuffer(params);
         expect(buffer.blamePixel(new Vec2(1, 1)).length).toBe(0);
 
@@ -700,6 +761,8 @@ var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params
     });
 
     it('does not blame its removal', function() {
+        initTestCanvas();
+
         var buffer = createBuffer(params);
         var removal = new BufferRemoveEvent(0, 2, false, buffer.id);
         buffer.pushEvent(removal);
@@ -709,6 +772,8 @@ var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params
     });
 
     it('can be removed multiple times through redo', function() {
+        initTestCanvas();
+
         var buffer = createBuffer(params);
         var removal = new BufferRemoveEvent(0, 2, false, buffer.id);
         buffer.pushEvent(removal);
@@ -731,6 +796,8 @@ var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params
     });
 
     it('blames a brush event', function() {
+        initTestCanvas();
+
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
         var brushEvent = fillingBrushEvent(params.width, params.height,
@@ -753,6 +820,8 @@ var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params
     });
 
     it('blames multiple brush events', function() {
+        initTestCanvas();
+
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
         fillBuffer(buffer, rasterizer, 10);
@@ -776,6 +845,8 @@ var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params
     });
 
     it('regenerates after freeing', function() {
+        initTestCanvas();
+
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
         fillBuffer(buffer, rasterizer, buffer.undoStateInterval + 1);
