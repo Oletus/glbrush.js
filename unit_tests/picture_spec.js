@@ -713,6 +713,8 @@ var doPictureTest = function(mode) {
         expect(pic.bitmapWidth()).toBe(width * 2.0);
         expect(pic.bitmapHeight()).toBe(height * 2.0);
         expect(pic.buffers.length).toBe(0);
+
+        pic.destroy();
     });
 
     it('converts to a dataURL', function() {
@@ -727,6 +729,8 @@ var doPictureTest = function(mode) {
                 img = i;
             };
             i.src = dataURL;
+
+            pic.destroy();
         });
         waitsFor(function() {
             return img !== null;
@@ -739,6 +743,7 @@ var doPictureTest = function(mode) {
     });
 
     it('converts to a Blob', function() {
+        var pic = null;
         var blob = null;
         var clearColor = [12, 23, 34];
         var img = null;
@@ -746,7 +751,7 @@ var doPictureTest = function(mode) {
             blob = b;
         };
         runs(function() {
-            var pic = testPicture();
+            pic = testPicture();
             pic.addBuffer(1337, clearColor, false);
             // Make this test always asynchronous since toBlob is allowed to be asynchronous.
             setTimeout(function() {
@@ -791,6 +796,8 @@ var doPictureTest = function(mode) {
                 revokeObjectURL = webkitURL.revokeObjectURL;
             }
             revokeObjectURL(objURL);
+
+            pic.destroy();
         });
     });
 };
