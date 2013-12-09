@@ -167,8 +167,8 @@ var brushEventConstructor = function(needsTipMovers) {
         this.hideCount = 0;
         this.generation = 0;
         if (needsTipMovers) {
-            this.bbTip = new BrushTipMover(true, BrushTipMover.Rotation.off);
-            this.brushTip = new BrushTipMover(true, BrushTipMover.Rotation.off);
+            this.bbTip = new BrushTipMover(true);
+            this.brushTip = new BrushTipMover(true);
         }
     };
 };
@@ -490,7 +490,7 @@ BrushEvent.prototype.drawTo = function(rasterizer, untilCoord) {
         var x = this.coords[i++];
         var y = this.coords[i++];
         var pressure = this.coords[i++];
-        brushTip.reset(rasterizer, x, y, pressure, this.radius, this.flow, 0, 1, false);
+        brushTip.reset(rasterizer, x, y, pressure, this.radius, this.flow, 0, 1, false, BrushTipMover.Rotation.off);
     }
 
     while (i + BrushEvent.coordsStride <= untilCoord) {

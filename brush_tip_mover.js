@@ -7,14 +7,10 @@
  * control points.
  * @param {boolean} fillShortSegments If true, segments smaller than one pixel
  * are filled with a circle with reduced flow.
- * @param {BrushTipMover.Rotation} rotationMode How to rotate the tip samples
- * along the stroke. If something else than off, there's no guarantee that two
- * identical inputs will generate the same rotation output values.
  * @constructor
  */
-var BrushTipMover = function(fillShortSegments, rotationMode) {
+var BrushTipMover = function(fillShortSegments) {
     this.fillShortSegments = fillShortSegments;
-    this.rotationMode = rotationMode;
     this.target = null;
 };
 
@@ -42,9 +38,12 @@ BrushTipMover.lineSegmentLength = 5.0;
  * @param {number} scatterOffset Relative amount of random offset for each fillCircle call.
  * @param {number} spacing Amount of spacing between fillCircle calls.
  * @param {boolean} relativeSpacing If true, spacing is interpreted as relative to the current radius.
+ * @param {BrushTipMover.Rotation} rotationMode How to rotate the tip samples
+ * along the stroke. If something else than off, there's no guarantee that two
+ * identical inputs will generate the same rotation output values.
  */
 BrushTipMover.prototype.reset = function(target, x, y, pressure, radius, flow, scatterOffset,
-                                         spacing, relativeSpacing) {
+                                         spacing, relativeSpacing, rotationMode) {
     this.target = target;
 
     this.targetX = x;
@@ -60,7 +59,9 @@ BrushTipMover.prototype.reset = function(target, x, y, pressure, radius, flow, s
     this.scatterOffset = scatterOffset;
     this.spacing = spacing;
     this.relativeSpacing = relativeSpacing;
-    this.continuous = !this.relativeSpacing && this.spacing === 1 && this.scatterOffset === 0;
+    this.rotationMode = rotationMode;
+    this.continuous = !this.relativeSpacing && this.spacing === 1 &&
+                      this.scatterOffset === 0 && this.rotationMode !== BrushTipMover.Rotation.random;
     // Calculate drawFlowAlpha to achieve the intended flow in case of maximum pressure and solid, continuous brush.
     // For non-continuous brush, the alpha gets adjusted while drawing to match the flow of the continuous brush.
     var nBlends = this.radius * 2;

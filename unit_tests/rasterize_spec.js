@@ -111,13 +111,13 @@ describe('Rasterizing system', function() {
     }
 
     function testLineDrawingBasics(testRasterizer, testFillCircleCalls) {
-        var brushTip = new BrushTipMover(true, BrushTipMover.Rotation.off);
+        var brushTip = new BrushTipMover(true);
         if (testFillCircleCalls === undefined) {
             testFillCircleCalls = false;
         }
         testRasterizer.beginCircles(true, 0);
 
-        brushTip.reset(testRasterizer, 0, 0, 1, 0.5, 0.1, 0, 1, false);
+        brushTip.reset(testRasterizer, 0, 0, 1, 0.5, 0.1, 0, 1, false, BrushTipMover.Rotation.off);
         expect(testRasterizer.soft).toBe(true);
         expect(testRasterizer.t).toBe(0);
         brushTip.circleLineTo(0, 0, 1, 3.141);
