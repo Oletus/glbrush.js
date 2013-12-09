@@ -35,8 +35,8 @@ BrushTipMover.lineSegmentLength = 5.0;
  * @param {number} pressure Pressure at the start of the stroke.
  * @param {number} radius Maximum radius of the stroke.
  * @param {number} flow Alpha value affecting the alpha of individual fillCircle calls.
- * @param {number} scatterOffset Relative amount of random offset for each fillCircle call.
- * @param {number} spacing Amount of spacing between fillCircle calls.
+ * @param {number} scatterOffset Relative amount of random offset for each fillCircle call. Must be >= 0.
+ * @param {number} spacing Amount of spacing between fillCircle calls. Must be > 0.
  * @param {boolean} relativeSpacing If true, spacing is interpreted as relative to the current radius.
  * @param {BrushTipMover.Rotation} rotationMode How to rotate the tip samples
  * along the stroke. If something else than off, there's no guarantee that two
@@ -56,7 +56,9 @@ BrushTipMover.prototype.reset = function(target, x, y, pressure, radius, flow, s
     this.pressure = pressure;
     this.radius = radius;
     this.flow = flow;
+    // TODO: assert(scatterOffset >= 0);
     this.scatterOffset = scatterOffset;
+    // TODO: assert(spacing > 0);
     this.spacing = spacing;
     this.relativeSpacing = relativeSpacing;
     this.rotationMode = rotationMode;
@@ -110,9 +112,11 @@ BrushTipMover.prototype.move = function(x, y, pressure) {
         this.targetY = y;
         this.targetR = pressure * this.radius;
     } else {
-        // we'll split the smoothed stroke segment to line segments with approx
+        // We'll split the smoothed stroke segment to line segments with approx
         // length of BrushTipMover.lineSegmentLength, trying to fit them nicely
-        // between the two stroke segment endpoints
+        // between the two stroke segment endpoints.
+        // TODO: The curve's length varies slightly with this approach, which
+        // can cause issues when scaling strokes with spacing. Fix this somehow.
         var t = 0;
         var tSegment = 0.99999 / Math.ceil(d / BrushTipMover.lineSegmentLength);
         while (t < 1.0) {
@@ -154,26 +158,42 @@ BrushTipMover.prototype.circleLineTo = function(centerX, centerY, radius, rotati
     if (this.targetX !== null) {
         var diff = new Vec2(centerX - this.targetX, centerY - this.targetY);
         var d = diff.length();
+        // Combine very nearly spaced tip samples together by adjusting the alpha (for absolute spacing).
+        // This shouldn't cause problems for scaling, since the spacing is imperceptible if it is < 1 pixel.
         var drawSpacing = Math.max(this.spacing, 1.0);
+        var drawFlowAlpha = 1.0;
+        if (this.spacing > 0) {
+            var nBlends = drawSpacing / this.spacing;
+            drawFlowAlpha = colorUtil.nBlends(this.drawFlowAlpha, nBlends);
+        }
         while (this.t < d) {
             var t = this.t / d;
             var drawRadius = this.targetR + (radius - this.targetR) * t;
-            if (this.continuous) {
+            if (this.continuous) { // No offset, absolute spacing of 1, constant alpha and no rotation.
                 this.target.fillCircle(this.targetX + diff.x * t,
                                        this.targetY + diff.y * t,
-                                       drawRadius, this.drawFlowAlpha, 0);
+                                       drawRadius, drawFlowAlpha, 0);
             } else {
                 var rot = (this.rotationMode === BrushTipMover.Rotation.random) ? Math.random() * 2 * Math.PI : 0;
                 var offset = Math.random() * this.scatterOffset * radius;
                 var offsetAngle = Math.random() * 2 * Math.PI;
                 if (this.relativeSpacing) {
-                    drawSpacing = Math.max(this.spacing * drawRadius, 1.0);
+                    // TODO: Consider accumulating relatively spaced tip samples if they're very close to each other
+                    var desiredSpacing = this.spacing * drawRadius;
+                    if (desiredSpacing > 0) {
+                        // Calculate how many blends would happen with a brush of absolute spacing
+                        // of 1, or if the circles don't touch each other, how many blends would
+                        // happen in one circle's diameter.
+                        var nBlends = Math.min(desiredSpacing, drawRadius * 2);
+                        drawFlowAlpha = colorUtil.nBlends(this.drawFlowAlpha, nBlends);
+                        drawSpacing = desiredSpacing;
+                    } else {
+                        // Just do an arbitrary, smallish resolution-independent step.
+                        drawFlowAlpha = 0.0;
+                        var smallPressure = 0.01;
+                        drawSpacing = this.spacing * this.radius * smallPressure;
+                    }
                 }
-                // Calculate how many blends would happen with an evenly spaced brush,
-                // or if the circles don't touch each other, how many blends would happen
-                // in one circle's diameter.
-                var nBlends = Math.min(drawSpacing, drawRadius * 2);
-                var drawFlowAlpha = colorUtil.nBlends(this.drawFlowAlpha, nBlends);
                 this.target.fillCircle(this.targetX + diff.x * t + offset * Math.sin(offsetAngle),
                                        this.targetY + diff.y * t + offset * Math.cos(offsetAngle),
                                        drawRadius, drawFlowAlpha, rot);
