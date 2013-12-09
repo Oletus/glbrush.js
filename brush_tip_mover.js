@@ -155,28 +155,29 @@ BrushTipMover.prototype.circleLineTo = function(centerX, centerY, radius, rotati
         var diff = new Vec2(centerX - this.targetX, centerY - this.targetY);
         var d = diff.length();
         var drawSpacing = Math.max(this.spacing, 1.0);
-        var drawFlowAlpha = this.drawFlowAlpha;
         while (this.t < d) {
             var t = this.t / d;
-            var offset = Math.random() * this.scatterOffset * radius;
-            var offsetAngle = Math.random() * 2 * Math.PI;
-            var rot = (this.rotationMode === BrushTipMover.Rotation.random) ? Math.random() * 2 * Math.PI : 0;
             var drawRadius = this.targetR + (radius - this.targetR) * t;
-            if (this.relativeSpacing) {
-                drawSpacing = Math.max(this.spacing * drawRadius, 1.0);
-            }
-            if (!this.continuous) {
+            if (this.continuous) {
+                this.target.fillCircle(this.targetX + diff.x * t,
+                                       this.targetY + diff.y * t,
+                                       drawRadius, this.drawFlowAlpha, 0);
+            } else {
+                var rot = (this.rotationMode === BrushTipMover.Rotation.random) ? Math.random() * 2 * Math.PI : 0;
+                var offset = Math.random() * this.scatterOffset * radius;
+                var offsetAngle = Math.random() * 2 * Math.PI;
+                if (this.relativeSpacing) {
+                    drawSpacing = Math.max(this.spacing * drawRadius, 1.0);
+                }
                 // Calculate how many blends would happen with an evenly spaced brush,
                 // or if the circles don't touch each other, how many blends would happen
                 // in one circle's diameter.
                 var nBlends = Math.min(drawSpacing, drawRadius * 2);
-                drawFlowAlpha = colorUtil.nBlends(this.drawFlowAlpha, nBlends);
+                var drawFlowAlpha = colorUtil.nBlends(this.drawFlowAlpha, nBlends);
+                this.target.fillCircle(this.targetX + diff.x * t + offset * Math.sin(offsetAngle),
+                                       this.targetY + diff.y * t + offset * Math.cos(offsetAngle),
+                                       drawRadius, drawFlowAlpha, rot);
             }
-            this.target.fillCircle(this.targetX + diff.x * t + offset * Math.sin(offsetAngle),
-                                   this.targetY + diff.y * t + offset * Math.cos(offsetAngle),
-                                   drawRadius,
-                                   drawFlowAlpha,
-                                   rot);
             this.t += drawSpacing;
         }
         this.t -= d;
