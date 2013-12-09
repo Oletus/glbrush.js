@@ -131,8 +131,7 @@ describe('util2d', function() {
                 expect(resultA[i]).toBeNear(resultB[i], 5);
             }
         });
-        it('computes the alpha value that results to given alpha with n blends',
-           function() {
+        it('computes the alpha value that results to given alpha with n blends', function() {
             for (var flow = 0.01; flow < 0.99; flow += 0.01) {
                 for (var n = 2; n < 10; ++n) {
                     var alpha = colorUtil.alphaForNBlends(flow, n);
@@ -140,6 +139,10 @@ describe('util2d', function() {
                     expect(colorUtil.nBlends(alpha, n)).toBeNear(flow, 0.01);
                 }
             }
+        });
+        it('approximates what would happen with less than 1 blends', function() {
+            expect(colorUtil.nBlends(1.0, 0.5)).toBeNear(0.5, 0.001);
+            expect(colorUtil.nBlends(0.5, 0.5)).toBeNear(0.25, 0.001);
         });
         it('generates a visually distinct color for a given color', function() {
             var RGB = [255, 127, 255];

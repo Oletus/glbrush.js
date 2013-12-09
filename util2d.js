@@ -156,6 +156,9 @@ colorUtil.serializeRGBA = function(RGBA) {
  * @return {number} The resulting alpha value.
  */
 colorUtil.nBlends = function(alpha, n) {
+    if (n < 1) {
+        return alpha * n;
+    }
     if (alpha === 1.0) {
         return 1.0;
     }
