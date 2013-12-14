@@ -48,9 +48,9 @@ var measureBrushStrokeTime = function(testPic, eventCount, radius, textureId, so
     for (var i = 0; i < eventCount; ++i) {
         var event = testPic.createBrushEvent(color, flow, opacity, radius, textureId, softness, mode);
         angle += 0.2;
-        var xa = Math.cos(angle) / 100;
-        var ya = Math.sin(angle) / 100;
-        for (var j = 0; j < 100; ++j) {
+        for (var j = 0; j < 20; ++j) {
+            var xa = Math.cos(angle + j * 0.02) / 20;
+            var ya = Math.sin(angle + j * 0.02) / 20;
             var x = (xa * j + 1) * w * 0.5;
             var y = (ya * j + 1) * w * 0.5;
             event.pushCoordTriplet(x, y, 1.0);
