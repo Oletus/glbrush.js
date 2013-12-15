@@ -209,6 +209,48 @@ describe('Rasterizing system', function() {
             var testRasterizer = new TestRasterizer(123, 456);
             testLineDrawingBasics(testRasterizer, true);
         });
+
+        /**
+         * Draw a brush stroke with a relatively sharp corner but which still will be bezier-smoothed.
+         * @param {number} scale Scale for spacing and draw coordinates.
+         * @param {boolean} scatter True if scatter > 0 is desired.
+         * @param {boolean} randomRotation True if random rotation is desired.
+         */
+        var countCalls = function(scale, scatter, randomRotation) {
+            var testRasterizer = new TestRasterizer(123, 456);
+            var brushTip = new BrushTipMover(false);
+            brushTip.reset(testRasterizer, 0, 0, 1, 2, 0.1, (scatter ? 1 : 0), /* spacing */ 0.001 * scale,
+                           /* relativeSpacing */ scatter,
+                           randomRotation ? BrushTipMover.Rotation.random : BrushTipMover.Rotation.off);
+            brushTip.move(1 * scale, 0, 1);
+            brushTip.move(4 * scale, 1 * scale, 1);
+            brushTip.move(4.1 * scale, 1.1 * scale, 1);
+            brushTip.move(10 * scale, 4 * scale, 1);
+            return testRasterizer.fillCircleCalls.length;
+        };
+
+        describe('calls fillCircle the same number of times regardless of scale', function() {
+            it('in case there is scatter', function() {
+                var calls1 = countCalls(1.0, true, false);
+                var calls01 = countCalls(0.000001, true, false);
+                expect(calls1).toBeGreaterThan(0);
+                expect(calls1).toBe(calls01);
+            });
+
+            it('in case the brush is randomly rotated', function() {
+                var calls1 = countCalls(1.0, false, true);
+                var calls01 = countCalls(0.000001, false, true);
+                expect(calls1).toBeGreaterThan(0);
+                expect(calls1).toBe(calls01);
+            });
+
+            it('but not in case the brush is continuous', function() {
+                var calls1 = countCalls(10.0, false, false);
+                var calls01 = countCalls(1, false, false);
+                expect(calls1).toBeGreaterThan(0);
+                expect(calls01).toBeNear(calls1 * 0.1, 1);
+            });
+        });
     });
 
     var commonRasterizerTests = function(createRasterizer) {
