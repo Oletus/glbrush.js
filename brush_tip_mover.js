@@ -130,7 +130,7 @@ BrushTipMover.prototype.move = function(x, y, pressure) {
             yd = this.y * Math.pow(1.0 - t, 2) + bezierY * t * (1.0 - t) * 2 + y * Math.pow(t, 2);
             pd = this.pressure + (pressure - this.pressure) * t;
             rd = pd * this.radius;
-            this.circleLineTo(xd, yd, rd, bezierLength / drawLength);
+            this.circleLineTo(xd, yd, rd, drawLength / bezierLength);
             t += tSegment;
         }
     }
