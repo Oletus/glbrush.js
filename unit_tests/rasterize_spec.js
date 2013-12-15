@@ -175,30 +175,25 @@ describe('Rasterizing system', function() {
         return image;
     }
 
+    var TestRasterizer = function(width, height) {
+        this.initBaseRasterizer(width, height, null);
+        this.fillCircleCalls = [];
+    };
+
+    TestRasterizer.prototype = new BaseRasterizer();
+
+    TestRasterizer.prototype.fillCircle = function(centerX, centerY,
+                                                   radius, flowAlpha) {
+        this.fillCircleCalls.push({centerX: centerX,
+                                   centerY: centerY,
+                                   radius: radius,
+                                   flowAlpha: flowAlpha});
+    };
+
     describe('BaseRasterizer', function() {
-        var TestRasterizer = function(width, height) {
-            this.initBaseRasterizer(width, height, null);
-            this.fillCircleCalls = [];
-        };
-
-        TestRasterizer.prototype = new BaseRasterizer();
-
-        TestRasterizer.prototype.fillCircle = function(centerX, centerY,
-                                                       radius, flowAlpha) {
-            this.fillCircleCalls.push({centerX: centerX,
-                                       centerY: centerY,
-                                       radius: radius,
-                                       flowAlpha: flowAlpha});
-        };
-
         it('initializes', function() {
             var testRasterizer = new TestRasterizer(123, 456);
             testBaseRasterizerProperties(testRasterizer, 123, 456);
-        });
-
-        it('can draw a line with the cooperation of BrushTipMover by calling fillCircle', function() {
-            var testRasterizer = new TestRasterizer(123, 456);
-            testLineDrawingBasics(testRasterizer, true);
         });
 
         it('has a clip rectangle', function() {
@@ -206,6 +201,13 @@ describe('Rasterizing system', function() {
             var clipRect = new Rect(10, 20, 30, 40);
             testRasterizer.setClip(clipRect);
             expect(testRasterizer.clipRect).toEqual(clipRect);
+        });
+    });
+
+    describe('BrushTipMover', function() {
+        it('can draw a line by calling fillCircle', function() {
+            var testRasterizer = new TestRasterizer(123, 456);
+            testLineDrawingBasics(testRasterizer, true);
         });
     });
 
