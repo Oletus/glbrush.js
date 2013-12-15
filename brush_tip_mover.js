@@ -49,7 +49,7 @@ BrushTipMover.prototype.reset = function(target, x, y, pressure, radius, flow, s
     this.targetX = x;
     this.targetY = y;
     this.targetR = pressure * radius;
-    this.t = 0;
+    this.t = 0; // position along last drawn curve segment, relative to the segment's end, in pixels
 
     this.x = x;
     this.y = y;
@@ -87,7 +87,8 @@ BrushTipMover.prototype.move = function(x, y, pressure) {
     // Brush smoothing. By default, make a straight line.
     var bezierX = this.x + dx * 0.5;
     var bezierY = this.y + dy * 0.5;
-    if (dx * this.direction.x + dy * this.direction.y > d * 0.5) {
+    var useBezier = dx * this.direction.x + dy * this.direction.y > d * 0.5;
+    if (useBezier) {
         // ad-hoc weighing of points to get a visually pleasing result
         bezierX = this.x + this.direction.x * d * 0.25 + dx * 0.25;
         bezierY = this.y + this.direction.y * d * 0.25 + dy * 0.25;
@@ -115,18 +116,21 @@ BrushTipMover.prototype.move = function(x, y, pressure) {
         // We'll split the smoothed stroke segment to line segments with approx
         // length of BrushTipMover.lineSegmentLength, trying to fit them nicely
         // between the two stroke segment endpoints.
-        // TODO: The curve's length varies slightly with this approach, which
-        // can cause issues when scaling strokes with spacing. Fix this somehow.
         var t = 0;
-        var tSegment = 0.99999 / Math.ceil(d / BrushTipMover.lineSegmentLength);
+        var drawSteps = Math.ceil(d / BrushTipMover.lineSegmentLength);
+        var tSegment = 0.99999 / drawSteps;
+        var drawLength = d;
+        var bezierLength = d;
+        if (useBezier) {
+            drawLength = mathUtil.bezierLength(this.x, this.y, bezierX, bezierY, x, y, drawSteps);
+            bezierLength = mathUtil.bezierLength(this.x, this.y, bezierX, bezierY, x, y, 16);
+        }
         while (t < 1.0) {
-            xd = this.x * Math.pow(1.0 - t, 2) + bezierX * t * (1.0 - t) * 2 +
-                 x * Math.pow(t, 2);
-            yd = this.y * Math.pow(1.0 - t, 2) + bezierY * t * (1.0 - t) * 2 +
-                 y * Math.pow(t, 2);
+            xd = this.x * Math.pow(1.0 - t, 2) + bezierX * t * (1.0 - t) * 2 + x * Math.pow(t, 2);
+            yd = this.y * Math.pow(1.0 - t, 2) + bezierY * t * (1.0 - t) * 2 + y * Math.pow(t, 2);
             pd = this.pressure + (pressure - this.pressure) * t;
             rd = pd * this.radius;
-            this.circleLineTo(xd, yd, rd, 0);
+            this.circleLineTo(xd, yd, rd, bezierLength / drawLength);
             t += tSegment;
         }
     }
@@ -145,31 +149,35 @@ BrushTipMover.prototype.move = function(x, y, pressure) {
  * Draw a series of circles from the current target point and radius to the given
  * point and radius. Radius, x, and y values for circles along the line are
  * interpolated linearly from the previous parameters to this function. Circles
- * are placed at 1 pixel intervals along the path, a circle doesn't necessarily
- * end up exactly at the end point. On the first call, doesn't draw anything.
+ * are placed at intervals determined by spacing along the path, a circle
+ * doesn't necessarily end up exactly at the end point. On the first call,
+ * doesn't draw anything.
  * @param {number} centerX The x coordinate of the center of the circle at the
  * end of the line.
  * @param {number} centerY The y coordinate of the center of the circle at the
  * end of the line.
  * @param {number} radius The radius at the end of the line.
- * @param {number} rotation Rotation at the end of the line in radians. TODO: Take this into account.
+ * @param {number} spacingMultiplier Multiplier to adjust spacing by so that the
+ * amount of tip samples drawn does not vary by the accuracy of the curve
+ * approximation.
  */
-BrushTipMover.prototype.circleLineTo = function(centerX, centerY, radius, rotation) {
+BrushTipMover.prototype.circleLineTo = function(centerX, centerY, radius, spacingMultiplier) {
     if (this.targetX !== null) {
         var diff = new Vec2(centerX - this.targetX, centerY - this.targetY);
         var d = diff.length();
-        // Combine very nearly spaced tip samples together by adjusting the alpha (for absolute spacing).
-        // This shouldn't cause problems for scaling, since the spacing is imperceptible if it is < 1 pixel.
-        var drawSpacing = Math.max(this.spacing, 1.0);
-        var drawFlowAlpha = 1.0;
-        if (this.spacing > 0) {
-            var nBlends = drawSpacing / this.spacing;
+        var drawSpacing = this.spacing * spacingMultiplier;
+        var drawFlowAlpha = this.drawFlowAlpha;
+        if (this.rotationMode !== BrushTipMover.Rotation.random && this.scatterOffset === 0) {
+            // Combine very nearly spaced tip samples together by adjusting the alpha (for absolute spacing).
+            // This shouldn't cause problems for scaling, since the spacing is imperceptible if it is < 1 pixel.
+            drawSpacing = Math.max(this.spacing * spacingMultiplier, 1.0);
+            var nBlends = drawSpacing / (this.spacing * spacingMultiplier);
             drawFlowAlpha = colorUtil.nBlends(this.drawFlowAlpha, nBlends);
         }
         while (this.t < d) {
             var t = this.t / d;
             var drawRadius = this.targetR + (radius - this.targetR) * t;
-            if (this.continuous) { // No offset, absolute spacing of 1, constant alpha and no rotation.
+            if (this.continuous) { // No scatter, absolute spacing of 1, constant alpha and non-random rotation.
                 this.target.fillCircle(this.targetX + diff.x * t,
                                        this.targetY + diff.y * t,
                                        drawRadius, drawFlowAlpha, 0);
@@ -179,7 +187,7 @@ BrushTipMover.prototype.circleLineTo = function(centerX, centerY, radius, rotati
                 var offsetAngle = Math.random() * 2 * Math.PI;
                 if (this.relativeSpacing) {
                     // TODO: Consider accumulating relatively spaced tip samples if they're very close to each other
-                    var desiredSpacing = this.spacing * drawRadius;
+                    var desiredSpacing = (this.spacing * spacingMultiplier) * drawRadius;
                     if (desiredSpacing > 0) {
                         // Calculate how many blends would happen with a brush of absolute spacing
                         // of 1, or if the circles don't touch each other, how many blends would
@@ -191,7 +199,7 @@ BrushTipMover.prototype.circleLineTo = function(centerX, centerY, radius, rotati
                         // Just do an arbitrary, smallish resolution-independent step.
                         drawFlowAlpha = 0.0;
                         var smallPressure = 0.01;
-                        drawSpacing = this.spacing * this.radius * smallPressure;
+                        drawSpacing = (this.spacing * spacingMultiplier) * this.radius * smallPressure;
                     }
                 }
                 this.target.fillCircle(this.targetX + diff.x * t + offset * Math.sin(offsetAngle),

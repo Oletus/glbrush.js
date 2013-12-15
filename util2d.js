@@ -446,7 +446,8 @@ mathUtil = {
     angleDifference: null,
     angleGreater: null,
     ease: null,
-    clamp: null
+    clamp: null,
+    bezierLength: null
 };
 
 /**
@@ -546,6 +547,33 @@ mathUtil.ease = function(a, b, f) {
  */
 mathUtil.clamp = function(min, max, value) {
     return value < min ? min : (value > max ? max : value);
+};
+
+/**
+ * @param {number} x0 Start point x.
+ * @param {number} y0 Start point y.
+ * @param {number} x1 Control point x.
+ * @param {number} y1 Control point y.
+ * @param {number} x2 End point x.
+ * @param {number} y2 End point y.
+ * @param {number} steps How many segments to split the bezier curve to.
+ * @return {number} Approximate length of the quadratic bezier curve.
+ */
+mathUtil.bezierLength = function(x0, y0, x1, y1, x2, y2, steps) {
+    var len = 0;
+    var prevX = x0;
+    var prevY = y0;
+    var t = 0;
+    var xd, yd;
+    for (var i = 0; i < steps; ++i) {
+        t += 1.0 / steps;
+        xd = x0 * Math.pow(1.0 - t, 2) + x1 * t * (1.0 - t) * 2 + x2 * Math.pow(t, 2);
+        yd = y0 * Math.pow(1.0 - t, 2) + y1 * t * (1.0 - t) * 2 + y2 * Math.pow(t, 2);
+        len += Math.sqrt(Math.pow(xd - prevX, 2) + Math.pow(yd - prevY, 2));
+        prevX = xd;
+        prevY = yd;
+    }
+    return len;
 };
 
 /**

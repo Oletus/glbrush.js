@@ -57,6 +57,15 @@ describe('util2d', function() {
             expect(mathUtil.ease(1, 4, 0.75)).toBeGreaterThan(3.5);
             expect(mathUtil.ease(1, 4, 1.0)).toBeNear(4, 0.0001);
         });
+
+        it('approximates the length of a bezier curve', function() {
+            expect(mathUtil.bezierLength(0, 0, 0.5, 0.5, 1, 1, 16)).toBeNear(Math.sqrt(2), 0.001);
+            expect(mathUtil.bezierLength(0, 0, 0.1, 0.1, 1, 1, 16)).toBeNear(Math.sqrt(2), 0.001);
+            expect(mathUtil.bezierLength(0, 0, 0.9, 0.9, 1, 1, 16)).toBeNear(Math.sqrt(2), 0.001);
+            expect(mathUtil.bezierLength(0, 0, 0, 3, 0, 0, 16)).toBeNear(2 * 2 * 3 * Math.pow(0.5, 2), 0.001);
+            expect(mathUtil.bezierLength(0, 0, 0, 1, 1, 1, 16)).toBeNear(1.62, 0.01);
+            expect(mathUtil.bezierLength(0, 0, 1, 0, 1, 1, 16)).toBeNear(1.62, 0.01);
+        });
     });
 
     describe('cssUtil', function() {

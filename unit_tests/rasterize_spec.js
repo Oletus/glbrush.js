@@ -120,7 +120,7 @@ describe('Rasterizing system', function() {
         brushTip.reset(testRasterizer, 0, 0, 1, 0.5, 0.1, 0, 1, false, BrushTipMover.Rotation.off);
         expect(testRasterizer.soft).toBe(true);
         expect(testRasterizer.t).toBe(0);
-        brushTip.circleLineTo(0, 0, 1, 3.141);
+        brushTip.circleLineTo(0, 0, 1, 1.0);
         expect(brushTip.targetX).toBe(0);
         expect(brushTip.targetY).toBe(0);
         expect(brushTip.targetR).toBe(1);
@@ -129,7 +129,7 @@ describe('Rasterizing system', function() {
             expect(testRasterizer.fillCircleCalls.length).toBe(0);
         }
 
-        brushTip.circleLineTo(0, 0.5, 4, 0);
+        brushTip.circleLineTo(0, 0.5, 4, 1.0);
         expect(brushTip.targetX).toBe(0);
         expect(brushTip.targetY).toBe(0.5);
         expect(brushTip.targetR).toBe(4);
@@ -142,7 +142,7 @@ describe('Rasterizing system', function() {
             expect(testRasterizer.fillCircleCalls[0].flowAlpha).toBeNear(0.1, 0.01);
         }
 
-        brushTip.circleLineTo(2, 0.5, 5, 0);
+        brushTip.circleLineTo(2, 0.5, 5, 1.0);
         expect(brushTip.targetX).toBe(2);
         expect(brushTip.targetY).toBe(0.5);
         expect(brushTip.targetR).toBe(5);
