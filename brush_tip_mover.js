@@ -19,7 +19,9 @@ var BrushTipMover = function(fillShortSegments) {
  */
 BrushTipMover.Rotation = {
     off: 0,
-    random: 1
+    random: 1,
+    clockwise: 2,
+    counterclockwise: 3
 };
 
 /**
@@ -33,7 +35,7 @@ BrushTipMover.lineSegmentLength = 5.0;
  * @param {number} x Horizontal position to place the tip to.
  * @param {number} y Vertical position to place the tip to.
  * @param {number} pressure Pressure at the start of the stroke.
- * @param {number} radius Maximum radius of the stroke.
+ * @param {number} radius Maximum radius of the stroke. Must be > 0.
  * @param {number} flow Alpha value affecting the alpha of individual fillCircle calls.
  * @param {number} scatterOffset Relative amount of random offset for each fillCircle call. Must be >= 0.
  * @param {number} spacing Amount of spacing between fillCircle calls. Must be > 0.
@@ -62,8 +64,21 @@ BrushTipMover.prototype.reset = function(target, x, y, pressure, radius, flow, s
     this.spacing = spacing;
     this.relativeSpacing = relativeSpacing;
     this.rotationMode = rotationMode;
+    this.rot = 0;
+    this.rotationStep = 0;
+    // Rotation speed of 1 should correspond to one pixel movement of a point on the edge of the circle at the
+    // maximum radius per one pixel of brush movement.
+    var rotationSpeed = 1.0;
+    if (this.rotationMode === BrushTipMover.Rotation.clockwise) {
+        this.rotationStep = rotationSpeed / (2 * Math.PI * this.radius);
+    }
+    if (this.rotationMode === BrushTipMover.Rotation.counterclockwise) {
+        this.rotationStep = -rotationSpeed / (2 * Math.PI * this.radius);
+    }
+
+    // TODO: Allow continuous brush when rotation is clockwise or counterclockwise
     this.continuous = !this.relativeSpacing && this.spacing === 1 &&
-                      this.scatterOffset === 0 && this.rotationMode !== BrushTipMover.Rotation.random;
+                      this.scatterOffset === 0 && this.rotationMode === BrushTipMover.Rotation.off;
     // Calculate drawFlowAlpha to achieve the intended flow in case of maximum pressure and solid, continuous brush.
     // For non-continuous brush, the alpha gets adjusted while drawing to match the flow of the continuous brush.
     var nBlends = this.radius * 2;
@@ -162,6 +177,7 @@ BrushTipMover.prototype.move = function(x, y, pressure) {
  * approximation.
  */
 BrushTipMover.prototype.circleLineTo = function(centerX, centerY, radius, spacingMultiplier) {
+    // TODO: assert(spacingMultiplier > 0)
     if (this.targetX !== null) {
         var diff = new Vec2(centerX - this.targetX, centerY - this.targetY);
         var d = diff.length();
@@ -177,12 +193,14 @@ BrushTipMover.prototype.circleLineTo = function(centerX, centerY, radius, spacin
         while (this.t < d) {
             var t = this.t / d;
             var drawRadius = this.targetR + (radius - this.targetR) * t;
-            if (this.continuous) { // No scatter, absolute spacing of 1, constant alpha and non-random rotation.
+            if (this.continuous) { // No scatter, absolute spacing of 1, constant alpha and no rotation.
                 this.target.fillCircle(this.targetX + diff.x * t,
                                        this.targetY + diff.y * t,
                                        drawRadius, drawFlowAlpha, 0);
             } else {
-                var rot = (this.rotationMode === BrushTipMover.Rotation.random) ? Math.random() * 2 * Math.PI : 0;
+                if (this.rotationMode === BrushTipMover.Rotation.random) {
+                    this.rot = Math.random() * 2 * Math.PI;
+                }
                 var offset = Math.random() * this.scatterOffset * radius;
                 var offsetAngle = Math.random() * 2 * Math.PI;
                 if (this.relativeSpacing) {
@@ -206,9 +224,10 @@ BrushTipMover.prototype.circleLineTo = function(centerX, centerY, radius, spacin
                 }
                 this.target.fillCircle(this.targetX + diff.x * t + offset * Math.sin(offsetAngle),
                                        this.targetY + diff.y * t + offset * Math.cos(offsetAngle),
-                                       drawRadius, drawFlowAlpha, rot);
+                                       drawRadius, drawFlowAlpha, this.rot);
             }
             this.t += drawSpacing;
+            this.rot += this.rotationStep * drawSpacing;
         }
         this.t -= d;
     }
