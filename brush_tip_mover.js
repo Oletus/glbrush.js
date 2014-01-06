@@ -188,7 +188,11 @@ BrushTipMover.prototype.circleLineTo = function(centerX, centerY, radius, spacin
                 if (this.relativeSpacing) {
                     // TODO: Consider accumulating relatively spaced tip samples if they're very close to each other
                     var desiredSpacing = (this.spacing * spacingMultiplier) * drawRadius;
+                    // If the step is too small, just do an arbitrary, smallish resolution-independent step.
+                    var smallPressure = 0.01;
+                    var minSpacing = (this.spacing * spacingMultiplier) * this.radius * smallPressure;
                     if (desiredSpacing > 0) {
+                        desiredSpacing = Math.max(desiredSpacing, minSpacing);
                         // Calculate how many blends would happen with a brush of absolute spacing
                         // of 1, or if the circles don't touch each other, how many blends would
                         // happen in one circle's diameter.
@@ -196,10 +200,8 @@ BrushTipMover.prototype.circleLineTo = function(centerX, centerY, radius, spacin
                         drawFlowAlpha = colorUtil.nBlends(this.drawFlowAlpha, nBlends);
                         drawSpacing = desiredSpacing;
                     } else {
-                        // Just do an arbitrary, smallish resolution-independent step.
                         drawFlowAlpha = 0.0;
-                        var smallPressure = 0.01;
-                        drawSpacing = (this.spacing * spacingMultiplier) * this.radius * smallPressure;
+                        drawSpacing = minSpacing;
                     }
                 }
                 this.target.fillCircle(this.targetX + diff.x * t + offset * Math.sin(offsetAngle),
