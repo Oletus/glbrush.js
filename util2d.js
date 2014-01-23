@@ -1,5 +1,5 @@
 /*
- * Copyright Olli Etuaho 2012-2013.
+ * Copyright Olli Etuaho 2012-2014.
  */
 
 cssUtil = {
@@ -587,6 +587,23 @@ var Vec2 = function(x, y) {
 };
 
 /**
+ * Copy vec2 coordinates from another vec2.
+ * @param {Vec2} vec Another vector.
+ */
+Vec2.prototype.setVec2 = function(vec) {
+    this.x = vec.x;
+    this.y = vec.y;
+};
+
+/**
+ * Round the coordinates of this vector to the closest integers.
+ */
+Vec2.prototype.round = function() {
+    this.x = Math.round(this.x);
+    this.y = Math.round(this.y);
+};
+
+/**
  * Normalize this vector.
  */
 Vec2.prototype.normalize = function() {
@@ -628,6 +645,29 @@ Vec2.prototype.scale = function(mult) {
  */
 Vec2.prototype.dotProduct = function(vec) {
     return this.x * vec.x + this.y * vec.y;
+};
+
+/**
+ * Calculate the angle of this vector compared to the positive x axis, so that
+ * the angle is < PI when y < 0 and > PI when y < 0.
+ * @return {number} The angle.
+ */
+Vec2.prototype.angle = function() {
+    var angle = Math.acos(this.x / this.length());
+    if (this.y < 0) {
+        angle = Math.PI * 2 - angle;
+    }
+    return angle;
+};
+
+/**
+ * Calculate the angle difference between two vectors, with both vectors'
+ * angles calculated from the positive x axis.
+ * @param {Vec2} vec The other vector.
+ * @return {number} The difference in angles.
+ */
+Vec2.prototype.angleFrom = function(vec) {
+    return this.angle() - vec.angle();
 };
 
 /**
@@ -689,6 +729,35 @@ Vec2.prototype.distanceToLine = function(lineA, lineB) {
     var projection = new Vec2(this.x, this.y);
     projection.projectToLine(lineA, lineB);
     return this.distance(projection);
+};
+
+/**
+ * Transform this vector with a 3x3 SVG matrix.
+ * @param {SVGMatrix} svgMatrix Matrix to transform with.
+ */
+Vec2.prototype.transformSvg = function(svgMatrix) {
+    var x = svgMatrix.a * this.x + svgMatrix.c * this.y + svgMatrix.e;
+    this.y = svgMatrix.b * this.x + svgMatrix.d * this.y + svgMatrix.f;
+    this.x = x;
+};
+
+/**
+ * Translate this vector with another vector.
+ * @param {Vec2} vec Vector to translate with.
+ */
+Vec2.prototype.translate = function(vec) {
+    this.x += vec.x;
+    this.y += vec.y;
+};
+
+/**
+ * Rotate this vector with a given angle.
+ * @param {number} angle Angle to rotate with.
+ */
+Vec2.prototype.rotate = function(angle) {
+    var x = Math.cos(angle) * this.x - Math.sin(angle) * this.y;
+    this.y = Math.sin(angle) * this.x + Math.cos(angle) * this.y;
+    this.x = x;
 };
 
 
@@ -990,7 +1059,9 @@ Rect.fromCircle = function(x, y, radius) {
 };
 
 
-var canvasUtil = {};
+var canvasUtil = {
+    dummySvg: document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+};
 
 /**
  * Draw an outlined stroke using the current path.
@@ -1017,4 +1088,25 @@ canvasUtil.lightStroke = function(ctx) {
     ctx.strokeStyle = '#000';
     ctx.stroke();
     ctx.globalAlpha = 1.0;
+};
+
+/**
+ * NOTE: Didn't work on released browsers other than Firefox yet on 2014-01-24.
+ * @param {CanvasRenderingContext2D} ctx The canvas rendering context.
+ * @return {SVGMatrix} The current transform of the canvas rendering context.
+ */
+canvasUtil.getCurrentTransform = function(ctx) {
+    var t = null;
+    if (ctx.mozCurrentTransform) {
+        t = canvasUtil.dummySvg.createSVGMatrix();
+        t.a = ctx.mozCurrentTransform[0];
+        t.b = ctx.mozCurrentTransform[1];
+        t.c = ctx.mozCurrentTransform[2];
+        t.d = ctx.mozCurrentTransform[3];
+        t.e = ctx.mozCurrentTransform[4];
+        t.f = ctx.mozCurrentTransform[5];
+    } else {
+        t = ctx.currentTransform.scale(1);
+    }
+    return t;
 };
