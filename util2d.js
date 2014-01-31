@@ -1066,13 +1066,17 @@ var canvasUtil = {
 /**
  * Draw an outlined stroke using the current path.
  * @param {CanvasRenderingContext2D} ctx The canvas rendering context.
+ * @param {number} alpha Alpha multiplier for the drawing.
  */
-canvasUtil.dualStroke = function(ctx) {
-    ctx.globalAlpha = 0.5;
+canvasUtil.dualStroke = function(ctx, alpha) {
+    if (alpha === undefined) {
+        alpha = 1.0;
+    }
+    ctx.globalAlpha = 0.5 * alpha;
     ctx.lineWidth = 4.5;
     ctx.strokeStyle = '#fff';
     ctx.stroke();
-    ctx.globalAlpha = 1.0;
+    ctx.globalAlpha = 1.0 * alpha;
     ctx.lineWidth = 1.5;
     ctx.strokeStyle = '#000';
     ctx.stroke();
