@@ -29,6 +29,7 @@ var Picture = function(id, name, boundsRect, bitmapScale, mode, brushTextureData
 
     this.activeSid = 0;
     this.activeSessionEventId = 0;
+    this.lastSavedSessionEventId = 0;
 
     this.buffers = [];
     this.currentEventAttachment = -1;
@@ -69,6 +70,22 @@ var Picture = function(id, name, boundsRect, bitmapScale, mode, brushTextureData
         this.mode = undefined;
         return;
     }
+};
+
+/**
+ * @return {boolean} True if this picture hasn't changed since it last was
+ * marked as saved.
+ */
+Picture.prototype.hasBeenSaved = function() {
+    // TODO: Doesn't take undo into account. Maybe fix this.
+    return this.lastSavedSessionEventId === this.activeSessionEventId;
+};
+
+/**
+ * Mark this picture as saved.
+ */
+Picture.prototype.markAsSaved = function() {
+    this.lastSavedSessionEventId = this.activeSessionEventId;
 };
 
 /**
