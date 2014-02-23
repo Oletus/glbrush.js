@@ -196,18 +196,6 @@ describe('PictureEvent', function() {
     describe('ScatterEvent', function() {
         commonEventTests(testScatterEvent, expectTestScatterEvent);
 
-        it('handles pushCoordTriplet calls', function() {
-            var testEvent = testScatterEvent();
-            testEvent.pushCoordTriplet(1, 2, 0.77);
-            expect(testEvent.coords.length).toBe(ScatterEvent.coordsStride);
-            expect(testEvent.coords[0]).toBe(1);
-            expect(testEvent.coords[1]).toBe(2);
-            expect(testEvent.coords[2]).toBeNear(testEvent.radius * 0.77, 0.001);
-            // Default flow and rotation
-            expect(testEvent.coords[3]).toBe(testEvent.flow);
-            expect(testEvent.coords[4]).toBe(0);
-        });
-
         it('handles fillCircle calls', function() {
             var testEvent = testScatterEvent();
             testEvent.fillCircle(1, 2, 3, 0.45, 3.141);
@@ -219,7 +207,19 @@ describe('PictureEvent', function() {
             expect(testEvent.coords[4]).toBe(3.141);
         });
 
-        commonBrushEventTests(testScatterEvent);
+        it('handles pushCoordTriplet calls for testing', function() {
+            var testEvent = testScatterEventWithPushCoordTriplet();
+            testEvent.pushCoordTriplet(1, 2, 0.77);
+            expect(testEvent.coords.length).toBe(ScatterEvent.coordsStride);
+            expect(testEvent.coords[0]).toBe(1);
+            expect(testEvent.coords[1]).toBe(2);
+            expect(testEvent.coords[2]).toBeNear(testEvent.radius * 0.77, 0.001);
+            // Default flow and rotation
+            expect(testEvent.coords[3]).toBe(testEvent.flow);
+            expect(testEvent.coords[4]).toBe(0);
+        });
+
+        commonBrushEventTests(testScatterEventWithPushCoordTriplet);
 
         it('updates its bounding box if its generation is changed', function() {
             var testEvent = testScatterEvent();

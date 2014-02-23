@@ -283,8 +283,8 @@ var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params
         // Assumptions this test makes:
         expect(scatterEvent.radius).toBeLessThan(params.width / 2);
 
-        scatterEvent.pushCoordTriplet(0, 0, 1);
-        scatterEvent.pushCoordTriplet(params.width, params.height, 1);
+        scatterEvent.fillCircle(0, 0, 25, scatterEvent.flow, 0);
+        scatterEvent.fillCircle(params.width, params.height, 25, scatterEvent.flow, 0);
         buffer.pushEvent(scatterEvent, rasterizer);
         var scatterEventColor = [scatterEvent.color[0], scatterEvent.color[1],
                                  scatterEvent.color[2], scatterEvent.flow *

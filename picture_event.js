@@ -683,20 +683,6 @@ ScatterEvent.prototype.isRasterized = function() {
 };
 
 /**
- * Add a triplet of coordinates for a circle.
- * @param {number} x The x center of the circle.
- * @param {number} y The y center of the circle.
- * @param {number} pressure Used as a multiplier for the circle radius. Must be
- * larger than zero.
- */
-ScatterEvent.prototype.pushCoordTriplet = function(x, y, pressure) {
-    // Limit pressure to 5 decimals to cut on file size a bit. This rounding
-    // method should be okay as long as pressure stays within reasonable bounds.
-    pressure = Math.round(pressure * 100000) / 100000;
-    this.fillCircle(x, y, pressure * this.radius, this.flow, 0);
-};
-
-/**
  * Add coordinates for a circle.
  * @param {number} x The x center of the circle.
  * @param {number} y The y center of the circle.

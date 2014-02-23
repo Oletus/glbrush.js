@@ -21,7 +21,8 @@ BrushTipMover.Rotation = {
     off: 0,
     random: 1,
     clockwise: 2,
-    counterclockwise: 3
+    counterclockwise: 3,
+    controlled: 4
 };
 
 /**
@@ -43,19 +44,26 @@ BrushTipMover.lineSegmentLength = 5.0;
  * @param {BrushTipMover.Rotation} rotationMode How to rotate the tip samples
  * along the stroke. If something else than off, there's no guarantee that two
  * identical inputs will generate the same rotation output values.
+ * @param {number=} rotationAngle If rotationMode is controlled, angle of the brush tip sample at the starting point.
+ * If rotationMode is something else, the value is ignored.
  */
 BrushTipMover.prototype.reset = function(target, x, y, pressure, radius, flow, scatterOffset,
-                                         spacing, relativeSpacing, rotationMode) {
+                                         spacing, relativeSpacing, rotationMode, rotationAngle) {
+    if (rotationAngle === undefined) {
+        rotationAngle = 0;
+    }
     this.target = target;
 
     this.targetX = x;
     this.targetY = y;
     this.targetR = pressure * radius;
+    this.targetRot = rotationAngle;
     this.t = 0; // position along last drawn curve segment, relative to the segment's end, in pixels
 
     this.x = x;
     this.y = y;
     this.pressure = pressure;
+    this.rotationAngle = rotationAngle,
     this.radius = radius;
     this.flow = flow;
     // TODO: assert(scatterOffset >= 0);
@@ -92,9 +100,14 @@ BrushTipMover.prototype.reset = function(target, x, y, pressure, radius, flow, s
  * @param {number} x Horizontal position to move the tip to.
  * @param {number} y Vertical position to move the tip to.
  * @param {number} pressure Pressure at the position to move to.
+ * @param {number=} rotationAngle If rotationMode is controlled, angle of the brush tip sample at this point. If
+ * rotationMode is something else, the value is ignored.
  */
-BrushTipMover.prototype.move = function(x, y, pressure) {
-    var xd, yd, pd, rd;
+BrushTipMover.prototype.move = function(x, y, pressure, rotationAngle) {
+    if (rotationAngle === undefined) {
+        rotationAngle = 0;
+    }
+    var xd, yd, pd, rd, rotd;
     var dx = x - this.x;
     var dy = y - this.y;
     var d = Math.sqrt(dx * dx + dy * dy);
@@ -145,7 +158,8 @@ BrushTipMover.prototype.move = function(x, y, pressure) {
             yd = this.y * Math.pow(1.0 - t, 2) + bezierY * t * (1.0 - t) * 2 + y * Math.pow(t, 2);
             pd = this.pressure + (pressure - this.pressure) * t;
             rd = pd * this.radius;
-            this.circleLineTo(xd, yd, rd, drawLength / bezierLength);
+            rotd = mathUtil.mixAngles(this.rotationAngle, rotationAngle, t);
+            this.circleLineTo(xd, yd, rd, rotd, drawLength / bezierLength);
             t += tSegment;
         }
     }
@@ -158,6 +172,7 @@ BrushTipMover.prototype.move = function(x, y, pressure) {
     this.x = x;
     this.y = y;
     this.pressure = pressure;
+    this.rotationAngle = rotationAngle;
 };
 
 /**
@@ -172,11 +187,12 @@ BrushTipMover.prototype.move = function(x, y, pressure) {
  * @param {number} centerY The y coordinate of the center of the circle at the
  * end of the line.
  * @param {number} radius The radius at the end of the line.
+ * @param {number} rotation Rotation at the end of the line.
  * @param {number} spacingMultiplier Multiplier to adjust spacing by so that the
  * amount of tip samples drawn does not vary by the accuracy of the curve
  * approximation.
  */
-BrushTipMover.prototype.circleLineTo = function(centerX, centerY, radius, spacingMultiplier) {
+BrushTipMover.prototype.circleLineTo = function(centerX, centerY, radius, rotation, spacingMultiplier) {
     // TODO: assert(spacingMultiplier > 0)
     if (this.targetX !== null) {
         var diff = new Vec2(centerX - this.targetX, centerY - this.targetY);
@@ -200,6 +216,8 @@ BrushTipMover.prototype.circleLineTo = function(centerX, centerY, radius, spacin
             } else {
                 if (this.rotationMode === BrushTipMover.Rotation.random) {
                     this.rot = Math.random() * 2 * Math.PI;
+                } else if (this.rotationMode === BrushTipMover.Rotation.controlled) {
+                    this.rot = mathUtil.mixAngles(this.targetRot, rotation, t);
                 }
                 var offset = Math.random() * this.scatterOffset * radius;
                 var offsetAngle = Math.random() * 2 * Math.PI;
@@ -234,4 +252,5 @@ BrushTipMover.prototype.circleLineTo = function(centerX, centerY, radius, spacin
     this.targetX = centerX;
     this.targetY = centerY;
     this.targetR = radius;
+    this.targetRot = rotation;
 };
