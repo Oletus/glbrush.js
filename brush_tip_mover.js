@@ -102,10 +102,15 @@ BrushTipMover.prototype.reset = function(target, x, y, pressure, radius, flow, s
  * @param {number} pressure Pressure at the position to move to.
  * @param {number=} rotationAngle If rotationMode is controlled, angle of the brush tip sample at this point. If
  * rotationMode is something else, the value is ignored.
+ * @param {number=} rotationAngleAfter If present, the angle of the brush tip sample after this point is set to this
+ * value.
  */
-BrushTipMover.prototype.move = function(x, y, pressure, rotationAngle) {
+BrushTipMover.prototype.move = function(x, y, pressure, rotationAngle, rotationAngleAfter) {
     if (rotationAngle === undefined) {
         rotationAngle = 0;
+    }
+    if (rotationAngleAfter === undefined) {
+        rotationAngleAfter = rotationAngle;
     }
     var xd, yd, pd, rd, rotd;
     var dx = x - this.x;
@@ -172,7 +177,10 @@ BrushTipMover.prototype.move = function(x, y, pressure, rotationAngle) {
     this.x = x;
     this.y = y;
     this.pressure = pressure;
-    this.rotationAngle = rotationAngle;
+    this.rotationAngle = rotationAngleAfter;
+    if (rotationAngleAfter !== rotationAngle) {
+        this.targetRot = rotationAngleAfter;
+    }
 };
 
 /**
