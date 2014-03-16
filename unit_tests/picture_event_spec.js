@@ -299,6 +299,10 @@ describe('PictureEvent', function() {
         commonEventTests(testGradientEvent, expectTestGradientEvent);
     });
 
+    describe('RasterImportEvent', function() {
+        commonEventTests(testRasterImportEvent, expectTestRasterImportEvent);
+    });
+
     describe('BufferAddEvent', function() {
         commonEventTests(testBufferAddEvent, expectTestBufferAddEvent);
     });

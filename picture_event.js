@@ -61,23 +61,19 @@ PictureEvent.parse = function(arr, i, version) {
     } else if (eventType === 'scatter') {
         return ScatterEvent.parse(arr, i, version, sid, sessionEventId, undone);
     } else if (eventType === 'gradient') {
-        return GradientEvent.parse(arr, i, version, sid, sessionEventId,
-                                   undone);
+        return GradientEvent.parse(arr, i, version, sid, sessionEventId, undone);
+    } else if (eventType === 'rasterImport') {
+        return RasterImportEvent.parse(arr, i, version, sid, sessionEventId, undone);
     } else if (eventType === 'bufferMerge') {
-        return BufferMergeEvent.parse(arr, i, version, sid, sessionEventId,
-                                      undone);
+        return BufferMergeEvent.parse(arr, i, version, sid, sessionEventId, undone);
     } else if (eventType === 'bufferAdd') {
-        return BufferAddEvent.parse(arr, i, version, sid, sessionEventId,
-                                    undone);
+        return BufferAddEvent.parse(arr, i, version, sid, sessionEventId, undone);
     } else if (eventType === 'bufferRemove') {
-        return BufferRemoveEvent.parse(arr, i, version, sid, sessionEventId,
-                                       undone);
+        return BufferRemoveEvent.parse(arr, i, version, sid, sessionEventId, undone);
     } else if (eventType === 'bufferMove') {
-        return BufferMoveEvent.parse(arr, i, version, sid, sessionEventId,
-                                     undone);
+        return BufferMoveEvent.parse(arr, i, version, sid, sessionEventId, undone);
     } else if (eventType === 'eventHide') {
-        return EventHideEvent.parse(arr, i, version, sid, sessionEventId,
-                                    undone);
+        return EventHideEvent.parse(arr, i, version, sid, sessionEventId, undone);
     } else {
         console.log('Unexpected picture event type ' + eventType);
         return null;
@@ -883,6 +879,119 @@ GradientEvent.prototype.drawTo = function(rasterizer) {
 GradientEvent.prototype.isRasterized = function() {
     return true;
 };
+
+
+/**
+ * Event that adds an imported raster image into a buffer.
+ * @constructor
+ * @param {number} sid Session identifier. Must be an integer.
+ * @param {number} sessionEventId An event/session specific identifier. The idea
+ * is that the sid/sessionEventId pair is unique for this event, and that newer
+ * events will have greater sessionEventIds. Must be an integer.
+ * @param {boolean} undone Whether this event is undone.
+ * @param {HTMLImageElement} importedImage The imported image.
+ * @param {Rect} rect Rectangle defining the position and scale of the imported image in the buffer.
+ */
+var RasterImportEvent = function(sid, sessionEventId, undone, importedImage, rect) {
+    this.undone = undone;
+    this.sid = sid;
+    this.sessionEventId = sessionEventId;
+
+    this.importedImage = document.createElement('img');
+    this.loaded = false;
+    var that = this;
+    this.importedImage.onload = function() {
+        that.loaded = true;
+    };
+    if (importedImage.src.substring(0, 4) === 'data') {
+        this.importedImage.src = importedImage.src;
+    } else {
+        var c = document.createElement('canvas');
+        c.width = importedImage.width;
+        c.height = importedImage.height;
+        var ctx = c.getContext('2d');
+        ctx.drawImage(importedImage, 0, 0);
+        this.importedImage.src = c.toDataURL();
+    }
+    this.rect = rect;
+};
+
+RasterImportEvent.prototype = new PictureEvent('rasterImport');
+
+/**
+ * Parse a RasterImportEvent from a tokenized serialization.
+ * @param {Array.<string>} arr Array containing the tokens, split at spaces from
+ * the original serialization.
+ * @param {number} i Index of the first token to deserialize.
+ * @param {number} version Version number of the serialization format.
+ * @param {number} sid Session identifier. Must be an integer.
+ * @param {number} sessionEventId An event/session specific identifier. The idea
+ * is that the sid/sessionEventId pair is unique for this event. Must be an
+ * integer.
+ * @param {boolean} undone Whether this event is undone.
+ * @return {GradientEvent} The parsed event or null.
+ */
+RasterImportEvent.parse = function(arr, i, version, sid, sessionEventId, undone) {
+    var importedImage = document.createElement('img');
+    importedImage.src = arr[i++]; // data URI
+    var left = parseFloat(arr[i++]);
+    var right = parseFloat(arr[i++]);
+    var top = parseFloat(arr[i++]);
+    var bottom = parseFloat(arr[i++]);
+    var rect = new Rect(left, right, top, bottom);
+    return new RasterImportEvent(sid, sessionEventId, undone, importedImage, rect);
+};
+
+/**
+ * @param {number} scale Scale to multiply serialized coordinates with.
+ * @return {string} A serialization of the event.
+ */
+RasterImportEvent.prototype.serialize = function(scale) {
+    var eventMessage = this.serializePictureEvent();
+    eventMessage += ' ' + this.importedImage.src;
+    eventMessage += ' ' + this.rect.left * scale;
+    eventMessage += ' ' + this.rect.right * scale;
+    eventMessage += ' ' + this.rect.top * scale;
+    eventMessage += ' ' + this.rect.bottom * scale;
+    return eventMessage;
+};
+
+/**
+ * @param {Rect} clipRect Canvas bounds that can be used to intersect the
+ * bounding box against, though this is not mandatory.
+ * @return {Rect} The event's bounding box. This function is not allowed to
+ * change its earlier return values as a side effect.
+ */
+RasterImportEvent.prototype.getBoundingBox = function(clipRect) {
+    var bbRect = new Rect();
+    bbRect.setRect(this.rect);
+    return bbRect;
+};
+
+/**
+ * @return {boolean} Is the event drawn using a rasterizer?
+ */
+RasterImportEvent.prototype.isRasterized = function() {
+    return false;
+};
+
+/**
+ * Scale this event. This will change the coordinates of the bitmap.
+ * @param {number} scale Scaling factor. Must be larger than 0.
+ */
+RasterImportEvent.prototype.scale = function(scale) {
+    //TODO: assert(scale > 0)
+    this.rect.scale(scale);
+};
+
+/**
+ * Translate this event. This will change the coordinates of the bitmap.
+ * @param {Vec2} offset The vector to translate with.
+ */
+RasterImportEvent.prototype.translate = function(offset) {
+    this.rect.translate(offset);
+};
+
 
 /**
  * Event that adds a buffer into a Picture.

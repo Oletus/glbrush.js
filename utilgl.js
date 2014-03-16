@@ -333,8 +333,20 @@ var glStateManager = function(gl) {
     var drawFullscreenQuadInternal = function(program, uniforms) {
         var vertexPositionAttribute = program.use(uniforms);
         gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexBuffer);
-        gl.vertexAttribPointer(vertexPositionAttribute, 2, gl.FLOAT, false,
-                               0, 0);
+        gl.vertexAttribPointer(vertexPositionAttribute, 2, gl.FLOAT, false, 0, 0);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    };
+
+    var drawRectInternal = function(program, uniforms, rect) {
+        if (rect !== undefined) {
+            uniforms['uScale'] = [rect.width() / gl.drawingBufferWidth, rect.height() / gl.drawingBufferHeight];
+            // Left edge is at (rect.width() - drawingBufferWidth) * 0.5 if translation is at 0.
+            uniforms['uTranslate'] = [-uniforms['uScale'][0] + 1.0 + rect.left / gl.drawingBufferWidth * 2,
+                                      -uniforms['uScale'][1] + 1.0 + (1.0 - rect.bottom / gl.drawingBufferHeight) * 2];
+        }
+        var vertexPositionAttribute = program.use(uniforms);
+        gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexBuffer);
+        gl.vertexAttribPointer(vertexPositionAttribute, 2, gl.FLOAT, false, 0, 0);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     };
 
@@ -355,6 +367,7 @@ var glStateManager = function(gl) {
     return {
         shaderProgram: shaderProgramCache(gl),
         drawFullscreenQuad: drawFullscreenQuadInternal,
+        drawRect: drawRectInternal,
         useFbo: useFboInternal,
         useFboTex: useFboTexInternal
     };

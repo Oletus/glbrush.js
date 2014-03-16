@@ -48,9 +48,22 @@ blitShader.blitVertSrc = '  precision highp float;\n' +
 '  attribute vec2 aVertexPosition;\n' +
 '  varying vec2 vTexCoord;\n' +
 '  void main(void) {\n' +
-'    vTexCoord = vec2((aVertexPosition.x + 1.0) * 0.5, ' +
-                '(aVertexPosition.y + 1.0) * 0.5);\n' +
+'    vTexCoord = vec2((aVertexPosition.x + 1.0) * 0.5, (aVertexPosition.y + 1.0) * 0.5);\n' +
 '    gl_Position = vec4(aVertexPosition, 0.0, 1.0);\n' +
+'  }';
+
+/**
+ * Vertex shader source for drawing scaled/translated image.
+ */
+blitShader.blitScaledTranslatedVertSrc = '  precision highp float;\n' +
+'  attribute vec2 aVertexPosition;\n' +
+'  uniform vec2 uScale;\n' +
+'  uniform vec2 uTranslate;\n' +
+'  varying vec2 vTexCoord;\n' +
+'  void main(void) {\n' +
+'    vTexCoord = vec2((aVertexPosition.x + 1.0) * 0.5, (aVertexPosition.y + 1.0) * 0.5);\n' +
+'    vec2 vertexPosition = aVertexPosition * uScale + uTranslate;\n' +
+'    gl_Position = vec4(vertexPosition, 0.0, 1.0);\n' +
 '  }';
 
 /**

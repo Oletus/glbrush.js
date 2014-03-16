@@ -86,6 +86,34 @@ function expectTestGradientEvent(gradientEvent) {
     expect(gradientEvent.mode).toBe(PictureEvent.Mode.normal);
 }
 
+var testGreenDataURL = (function() {
+    var c = document.createElement('canvas');
+    c.width = 100;
+    c.height = 100;
+    var ctx = c.getContext('2d');
+    ctx.fillStyle = '#00ff00';
+    ctx.fillRect(0, 0, 100, 100);
+    return c.toDataURL();
+})();
+
+function testRasterImportEvent() {
+    var img = document.createElement('img');
+    img.src = testGreenDataURL;
+    return new RasterImportEvent(0, 1, false, img, new Rect(10, 110, 20, 120));
+}
+
+function expectTestRasterImportEvent(event) {
+    expect(event.sid).toBe(0);
+    expect(event.sessionEventId).toBe(1);
+    expect(event.undone).toBe(false);
+    expect(event.importedImage instanceof HTMLImageElement).toBe(true);
+    expect(event.importedImage.src).toBe(testGreenDataURL);
+    expect(event.rect.left).toBe(10);
+    expect(event.rect.right).toBe(110);
+    expect(event.rect.top).toBe(20);
+    expect(event.rect.bottom).toBe(120);
+}
+
 function dummyBufferMergeEvent() {
     return new BufferMergeEvent(0, 1, false, 0.78, {id: 2, isDummy: true});
 }

@@ -315,6 +315,34 @@ var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params
         buffer.free();
     });
 
+    it('blends a bitmap image', function() {
+        initTestCanvas();
+        var buffer = createBuffer(params);
+        var rasterImportEvent = testRasterImportEvent();
+
+        waitsFor(function() {
+            return rasterImportEvent.loaded;
+        });
+
+        runs(function() {
+            buffer.pushEvent(rasterImportEvent, null);
+
+            var samplePixel = buffer.getPixelRGBA(new Vec2(8, 18));
+            expect(samplePixel[0]).toBeNear(params.clearColor[0], 10);
+            expect(samplePixel[1]).toBeNear(params.clearColor[1], 10);
+            expect(samplePixel[2]).toBeNear(params.clearColor[2], 10);
+            expect(samplePixel[3]).toBeNear(params.clearColor[3], 10);
+
+            samplePixel = buffer.getPixelRGBA(new Vec2(11, 21));
+            expect(samplePixel[0]).toBeNear(0, 10);
+            expect(samplePixel[1]).toBeNear(255, 10);
+            expect(samplePixel[2]).toBeNear(0, 10);
+            expect(samplePixel[3]).toBeNear(255, 10);
+
+            buffer.free();
+        });
+    });
+
     var generateBrushEvent = function(seed, width, height) {
         var event = testBrushEvent();
         for (var j = 0; j < 10; ++j) {
@@ -884,7 +912,7 @@ describe('GLBuffer', function() {
     var glManager;
     var compositor;
     var texBlitProgram;
-    var texBlitUniforms;
+    var rectBlitProgram;
     var initTestCanvas = function() {
         if (testsInitialized) {
             return;
@@ -897,18 +925,16 @@ describe('GLBuffer', function() {
         glManager = glStateManager(gl);
         compositor = new GLCompositor(glManager, gl, 8);
         texBlitProgram = glManager.shaderProgram(blitShader.blitSrc, blitShader.blitVertSrc, {'uSrcTex': 'tex2d'});
-        texBlitUniforms = {
-            'uSrcTex': null
-        };
+        rectBlitProgram = glManager.shaderProgram(blitShader.blitSrc, blitShader.blitScaledTranslatedVertSrc,
+                                                  {'uSrcTex': 'tex2d', 'uScale': '2fv', 'uTranslate': '2fv'});
     };
 
     var createBuffer = function(params) {
         var createEvent = new BufferAddEvent(-1, -1, false, params.id,
                                              params.hasAlpha, params.clearColor,
                                              1.0, 0);
-        return new GLBuffer(gl, glManager, compositor, texBlitProgram,
-                            createEvent, params.width, params.height,
-                            params.hasUndoStates);
+        return new GLBuffer(gl, glManager, compositor, texBlitProgram, rectBlitProgram,
+                            createEvent, params.width, params.height, params.hasUndoStates);
     };
     var createRasterizer = function(params) {
         return new GLDoubleBufferedRasterizer(gl, glManager, params.width,

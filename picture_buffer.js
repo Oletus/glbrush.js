@@ -138,6 +138,8 @@ PictureBuffer.prototype.applyEvent = function(event, rasterizer) {
         this.drawRasterizerWithColor(rasterizer, event.color, event.opacity,
                                      event.mode);
         this.popClip();
+    } else if (event.eventType === 'rasterImport') {
+        this.drawImage(event.importedImage, event.rect);
     } else if (event.eventType === 'bufferMerge') {
         // TODO: assert(event.mergedBuffer !== this);
         event.mergedBuffer.mergedTo = this;
@@ -1029,6 +1031,24 @@ CanvasBuffer.drawRasterizer = function(dataCtx, targetCtx, raster, clipRect,
 };
 
 /**
+ * Blend an image with this buffer.
+ * @param {HTMLImageElement} img Image to draw.
+ * @param {Rect} rect The extents of the image in this buffer's coordinates.
+ */
+CanvasBuffer.prototype.drawImage = function(img, rect) {
+    var br = this.getCurrentClipRect().getXYWH();
+    if (br.w === 0 || br.h === 0) {
+        return;
+    }
+    this.ctx.save(); // Clip
+    this.ctx.beginPath();
+    this.ctx.rect(br.x, br.y, br.w, br.h);
+    this.ctx.clip();
+    this.ctx.drawImage(img, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top);
+    this.ctx.restore();
+};
+
+/**
  * Blend another buffer with this one.
  * @param {CanvasBuffer} buffer Buffer to blend.
  * @param {number} opacity Opacity to blend with.
@@ -1067,16 +1087,21 @@ CanvasBuffer.prototype.bytesPerPixel = function() {
  * not supported by blendFunc and merge operations.
  * @param {ShaderProgram} texBlitProgram Shader program to use for blits. Must
  * have uniform sampler uSrcTex for the source texture.
+ * @param {ShaderProgram} rectBlitProgram Shader program to use for blits. Must
+ * have uniform sampler uSrcTex for the source texture, and uScale and
+ * uTranslate to control the positioning.
  * @param {BufferAddEvent} createEvent Event that initializes the buffer.
  * @param {number} width Width of the buffer in pixels. Must be an integer.
  * @param {number} height Height of the buffer in pixels. Must be an integer.
  * @param {boolean} hasUndoStates Does this buffer store undo states?
  * @param {boolean} freed Should this buffer be left without bitmaps?
  */
-var GLBuffer = function(gl, glManager, compositor, texBlitProgram, createEvent,
+var GLBuffer = function(gl, glManager, compositor, texBlitProgram, rectBlitProgram, createEvent,
                         width, height, hasUndoStates, freed) {
     this.texBlitProgram = texBlitProgram;
     this.texBlitUniforms = texBlitProgram.uniformParameters();
+    this.rectBlitProgram = rectBlitProgram;
+    this.rectBlitUniforms = rectBlitProgram.uniformParameters();
     this.initializePictureBuffer(createEvent, width, height, hasUndoStates, freed);
     // Add undo states less often than the default, since drawing is cheap.
     this.undoStateInterval = 32;
@@ -1196,8 +1221,7 @@ GLBuffer.prototype.drawRasterizerWithColor = function(raster, color, opacity,
                                            this.height());
         this.glManager.useFboTex(helper);
         this.texBlitUniforms['uSrcTex'] = this.tex;
-        this.glManager.drawFullscreenQuad(this.texBlitProgram,
-                                          this.texBlitUniforms);
+        this.glManager.drawFullscreenQuad(this.texBlitProgram, this.texBlitUniforms);
 
         this.glManager.useFboTex(this.tex);
         this.compositor.pushBufferTex(helper, 1.0, false);
@@ -1205,6 +1229,25 @@ GLBuffer.prototype.drawRasterizerWithColor = function(raster, color, opacity,
         this.compositor.flush();
         this.gl.deleteTexture(helper);
     }
+};
+
+/**
+ * Blend an image with this buffer.
+ * @param {HTMLImageElement} img Image to draw.
+ * @param {Rect} rect The extents of the image in this buffer's coordinates.
+ */
+GLBuffer.prototype.drawImage = function(img, rect) {
+    var imageTex = glUtils.createTexture(this.gl, img.width, img.height);
+    this.gl.bindTexture(this.gl.TEXTURE_2D, imageTex);
+    this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, true);
+    this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, img);
+    this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, false);
+
+    this.updateClip();
+    this.glManager.useFboTex(this.tex);
+    this.rectBlitUniforms['uSrcTex'] = imageTex;
+    this.glManager.drawRect(this.rectBlitProgram, this.rectBlitUniforms, rect);
+    this.gl.deleteTexture(imageTex);
 };
 
 /**

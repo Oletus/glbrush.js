@@ -1058,6 +1058,28 @@ Rect.fromCircle = function(x, y, radius) {
     return new Rect(x - radius, x + radius, y - radius, y + radius);
 };
 
+/**
+ * Scale the rectangle with respect to the origin.
+ * @param {number} scale Scaling factor.
+ */
+Rect.prototype.scale = function(scale) {
+    this.left *= scale;
+    this.right *= scale;
+    this.top *= scale;
+    this.bottom *= scale;
+};
+
+/**
+ * Translate the rectangle with an offset.
+ * @param {Vec2} offset The vector to translate with.
+ */
+Rect.prototype.translate = function(offset) {
+    this.left += offset.x;
+    this.right += offset.x;
+    this.top += offset.y;
+    this.bottom += offset.y;
+};
+
 
 var canvasUtil = {
     dummySvg: document.createElementNS('http://www.w3.org/2000/svg', 'svg')

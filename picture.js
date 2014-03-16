@@ -140,9 +140,9 @@ Picture.prototype.setupGLState = function() {
     this.texBlitProgram = this.glManager.shaderProgram(blitShader.blitSrc,
                                                        blitShader.blitVertSrc,
                                                        {'uSrcTex': 'tex2d'});
-    this.texBlitUniforms = {
-        'uSrcTex': null
-    };
+    this.rectBlitProgram = this.glManager.shaderProgram(blitShader.blitSrc,
+                                                        blitShader.blitScaledTranslatedVertSrc,
+                                                        {'uSrcTex': 'tex2d', 'uScale': '2fv', 'uTranslate': '2fv'});
 
     if (!this.initRasterizers()) {
         Picture.hasFailedWebGLSanity = true;
@@ -487,7 +487,7 @@ Picture.prototype.getEventCount = function() {
 
 /**
  * Set the session with the given sid active for purposes of createBrushEvent,
- * createScatterEvent, createGradientEvent, createMergeEvent,
+ * createScatterEvent, createGradientEvent, createRasterImportEvent, createMergeEvent,
  * createBufferAddEvent, addBuffer, createBufferRemoveEvent,
  * createBufferMoveEvent, removeBuffer and undoLatest.
  * @param {number} sid The session id to activate. Must be a positive integer.
@@ -563,6 +563,19 @@ Picture.prototype.createScatterEvent = function(color, flow, opacity, radius,
 Picture.prototype.createGradientEvent = function(color, opacity, mode) {
     var event = new GradientEvent(this.activeSid, this.activeSessionEventId,
                                   false, color, opacity, mode);
+    this.activeSessionEventId++;
+    return event;
+};
+
+/**
+ * Create a raster import event using the current active session. The event is
+ * marked as not undone.
+ * @param {HTMLImageElement} importedImage The imported image.
+ * @param {Rect} rect Rectangle defining the position and scale of the imported image in the buffer.
+ * @return {RasterImportEvent} The created raster import event.
+ */
+Picture.prototype.createRasterImportEvent = function(importedImage, rect) {
+    var event = new RasterImportEvent(this.activeSid, this.activeSessionEventId, false, importedImage, rect);
     this.activeSessionEventId++;
     return event;
 };
@@ -825,7 +838,7 @@ Picture.prototype.createBuffer = function(createEvent, hasUndoStates) {
     var buffer;
     if (this.usesWebGl()) {
         buffer = new GLBuffer(this.gl, this.glManager, this.compositor,
-                              this.texBlitProgram, createEvent,
+                              this.texBlitProgram, this.rectBlitProgram, createEvent,
                               this.bitmapWidth(), this.bitmapHeight(),
                               hasUndoStates, this.freed);
     } else if (this.mode === 'canvas') {
