@@ -205,6 +205,9 @@ colorUtil.approximateAlphaForNBlends = function(flow, n) {
  * results in the given flow value.
  */
 colorUtil.alphaForNBlends = function(flow, n) {
+    if (n < 1.0) {
+        return Math.min(flow / n, 1.0);
+    }
     if (flow < 1.0) {
         var guess = colorUtil.approximateAlphaForNBlends(flow, n);
         var low = 0;

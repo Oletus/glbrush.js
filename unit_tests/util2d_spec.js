@@ -153,6 +153,17 @@ describe('util2d', function() {
             expect(colorUtil.nBlends(1.0, 0.5)).toBeNear(0.5, 0.001);
             expect(colorUtil.nBlends(0.5, 0.5)).toBeNear(0.25, 0.001);
         });
+        it('computes the alpha value that results to given alpha with less than one blends', function() {
+            // Make sure it does not get stuck when n < 1.0:
+            var flow = 0.5;
+            for (var n = 0.1; n < 0.9; n += 0.1) {
+                var alpha = colorUtil.alphaForNBlends(flow, n);
+                expect(alpha).toBeGreaterThan(flow);
+                if (alpha < 1.0) {
+                    expect(colorUtil.nBlends(alpha, n)).toBeNear(flow, 0.01);
+                }
+            }
+        });
         it('generates a visually distinct color for a given color', function() {
             var RGB = [255, 127, 255];
             var differentRGB = colorUtil.differentColor(RGB);
