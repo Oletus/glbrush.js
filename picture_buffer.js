@@ -1237,11 +1237,16 @@ GLBuffer.prototype.drawRasterizerWithColor = function(raster, color, opacity,
  * @param {Rect} rect The extents of the image in this buffer's coordinates.
  */
 GLBuffer.prototype.drawImage = function(img, rect) {
-    var imageTex = glUtils.createTexture(this.gl, img.width, img.height);
+    var imageTex = this.gl.createTexture();
     this.gl.bindTexture(this.gl.TEXTURE_2D, imageTex);
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
     this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, true);
     this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, img);
     this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, false);
+    // TODO: Enlarge image so that dimensions are POT and add a mipmap.
 
     this.updateClip();
     this.glManager.useFboTex(this.tex);

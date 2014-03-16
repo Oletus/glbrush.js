@@ -707,6 +707,7 @@ Picture.initWebGL = function(canvas) {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.enable(gl.SCISSOR_TEST);
     gl.scissor(0, 0, canvas.width, canvas.height);
+    gl.hint(gl.GENERATE_MIPMAP_HINT, gl.NICEST);
     return gl;
 };
 
