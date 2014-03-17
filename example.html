@@ -106,11 +106,13 @@ loadApp = function() {
     // Whee, resize
     var resize = function(scale) {
         drawArea.innerHTML = '';
-        picture = Picture.resize(picture, scale);
-        drawArea.appendChild(picture.pictureElement());
-        drawArea.style.width = picture.bitmapWidth();
-        drawArea.style.height = picture.bitmapHeight();
-        picture.display();
+        Picture.resize(picture, scale, function(pic) {
+            picture = pic;
+            drawArea.appendChild(picture.pictureElement());
+            drawArea.style.width = picture.bitmapWidth();
+            drawArea.style.height = picture.bitmapHeight();
+            picture.display();
+        });
     };
     createButton('0.5x', function() {
         resize(0.5);

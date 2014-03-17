@@ -111,21 +111,28 @@ var runTest = function() {
 
     var drawFrame = function() {
         if (testPics.length <= t) {
-            bitmapScale = 0.5 + t * 0.5;
-            testPics[t] = Picture.resize(testPic, bitmapScale);
+            var generatePic = function(k) {
+                bitmapScale = 0.5 + k * 0.5;
+                Picture.resize(testPic, bitmapScale, function(pic) {
+                    testPics[k] = pic;
+                });
+            };
+            generatePic(t);
+            setTimeout(drawFrame, 50);
+        } else {
+            testPic = testPics[t];
+            t = (t + 1) % 6;
+            var parent = document.getElementById('parent');
+            parent.innerHTML = '';
+            var picElement = testPic.pictureElement();
+            picElement.style.width = '100%';
+            picElement.style.height = '100%';
+            parent.appendChild(picElement);
+            testPic.display();
+            setTimeout(drawFrame, 1000);
+            var picScale = document.getElementById('picScale');
+            picScale.innerHTML = 'Bitmap width: ' + testPic.bitmapWidth();
         }
-        testPic = testPics[t];
-        t = (t + 1) % 6;
-        var parent = document.getElementById('parent');
-        parent.innerHTML = '';
-        var picElement = testPic.pictureElement();
-        picElement.style.width = '100%';
-        picElement.style.height = '100%';
-        parent.appendChild(picElement);
-        testPic.display();
-        setTimeout(drawFrame, 1000);
-        var picScale = document.getElementById('picScale');
-        picScale.innerHTML = 'Bitmap width: ' + testPic.bitmapWidth();
     }
 
     if (testPic === null) {

@@ -359,12 +359,11 @@ Picture.create = function(id, name, width, height, bitmapScale, modesToTry, brus
  * Modes are tried in the order they are in the array.
  * @param {Array.<HTMLImageElement|HTMLCanvasElement>=} brushTextureData Set of brush textures to use. Can be undefined
  * if no textures are needed.
- * @return {Object} Object containing key 'picture' for the created picture, key
- * 'metadata' for the metadata lines, and 'generationTime' for generation time
- * in milliseconds, or null if picture couldn't be created.
+ * @param {function(Object)} finishedCallback Function to be called asynchronously when loading has finished.
+ * The function will be called with one parameter, an object containing key 'picture' for the created picture,
+ * and key 'metadata' for the metadata lines.
  */
-Picture.parse = function(id, serialization, bitmapScale, modesToTry, brushTextureData) {
-    var startTime = new Date().getTime();
+Picture.parse = function(id, serialization, bitmapScale, modesToTry, brushTextureData, finishedCallback) {
     var eventStrings = serialization.split(/\r?\n/);
     var pictureParams = eventStrings[0].split(' ');
     var version = 0;
@@ -434,18 +433,16 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry, brushTextur
         }
         if (ready) {
             pic.regenerate();
-            pic.display();
+            finishedCallback({picture: pic, metadata: metadata});
         } else {
             setTimeout(regenerateIfReady, 10);
         }
     };
-    regenerateIfReady();
     for (i = 0; i < pic.buffers.length; ++i) {
         pic.buffers[i].insertionPoint = pic.buffers[i].events[0].insertionPoint;
     }
     delete pic.moveBufferInternal; // switch back to prototype's move function
-    var generationTime = new Date().getTime() - startTime;
-    return {picture: pic, metadata: metadata, generationTime: generationTime};
+    setTimeout(regenerateIfReady, 0);
 };
 
 /**
@@ -453,14 +450,17 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry, brushTextur
  * @param {Picture} pic The picture to resize.
  * @param {number} bitmapScale The scale to set to the new picture. The new
  * picture's bitmap width will be the old picture's width() * bitmapScale.
- * @return {Picture} A new, resized picture.
+ * @param {function(Picture)} finishedCallback Function that will be called
+ * asynchronously with the resized picture as a parameter when the resizing is
+ * done.
  */
-Picture.resize = function(pic, bitmapScale) {
+Picture.resize = function(pic, bitmapScale, finishedCallback) {
     var serialization = pic.serialize();
-    var pic2 = Picture.parse(pic.id, serialization, bitmapScale,
-                             [pic.mode], pic.brushTextureData).picture;
-    pic2.setCurrentEventAttachment(pic.currentEventAttachment);
-    return pic2;
+    Picture.parse(pic.id, serialization, bitmapScale,
+                  [pic.mode], pic.brushTextureData, function(parsed) {
+        parsed.picture.setCurrentEventAttachment(pic.currentEventAttachment);
+        finishedCallback(parsed.picture);
+    });
 };
 
 /**
