@@ -21,4 +21,7 @@ Code standards:
 * Style-checked with gjslint.
 * Compatible with newest Chrome, Firefox and Internet Explorer 11 (earlier IE with software backend)
 
-Contributions welcome!
+Contributions welcome! Getting started for contributors:
+
+* Install Python 2.7 and Closure linter.
+* run hooks/install.py to install automated testing hooks. Contributions that don't pass these are not accepted.
