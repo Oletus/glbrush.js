@@ -1,0 +1,29 @@
+#!/usr/bin/python
+
+print 'Running pre-commit checks'
+
+import subprocess
+import os
+import sys
+import platform
+
+# TODO: Make this use a python interface in gjslint (might require changes to gjslint)
+
+p = subprocess.Popen('git rev-parse --show-toplevel', stdout=subprocess.PIPE)
+top_path, stderr = p.communicate()
+top_path = top_path.strip()
+
+checker_path = os.path.join(top_path, 'check_style.bat')
+if platform.system() != 'Windows':
+    checker_path = os.path.join(top_path, 'check_style.sh')
+
+p = subprocess.Popen(checker_path, stdout=subprocess.PIPE)
+stdout, stderr = p.communicate()
+succeeded_checks = stdout.count('files checked, no errors found')
+
+if succeeded_checks == 2:
+    print 'PASS: No code style issues found'
+else:
+    print 'FAIL: Code style issues found'
+    print stdout
+    sys.exit(1)
