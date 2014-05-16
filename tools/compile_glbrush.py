@@ -31,6 +31,9 @@ def compile_glbrush(output_path):
     restore_dir = os.getcwd()
     file_path = os.path.dirname(os.path.abspath(__file__))
     compiler_path = os.path.abspath(os.path.join(file_path, '..', 'compile'))
+    lib_js_list = lib_js()
+    if not os.path.exists(compiler_path):
+        os.mkdir(compiler_path)
     os.chdir(compiler_path)
 
     if not os.path.exists('compiler.jar'):
@@ -40,7 +43,7 @@ def compile_glbrush(output_path):
 
     # Compile a package that's usable within another app, so WHITESPACE_ONLY
     command = ['java', '-jar', 'compiler.jar', '--compilation_level', 'WHITESPACE_ONLY', '--js']
-    command += lib_js()
+    command += lib_js_list
     command += ['--js_output_file', output_path]
     print ' '.join(command)
     subprocess.call(command)
