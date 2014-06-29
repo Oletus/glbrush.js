@@ -78,6 +78,7 @@ loadApp = function() {
             ++pressureInd;
             var pressure = (Math.sin(pressureInd * 0.4) + 2.0) * 0.33;
             var coords = getRelativeCoords(e, drawArea);
+            picture.pictureTransform.inverseTransform(coords);
             currentEvent.pushCoordTriplet(coords.x, coords.y, pressure);
             picture.setCurrentEvent(currentEvent);
             picture.display();

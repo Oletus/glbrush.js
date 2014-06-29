@@ -1450,7 +1450,7 @@ Picture.prototype.animate = function(simultaneousStrokes, speed,
                     var eventToAnimate = that.eventToAnimate(eventIndex);
                     var event = eventToAnimate.event;
                     if (that.animators[i].animationPos >= 1.0) {
-                        event.drawTo(that.animators[i].rasterizer, this.pictureTransform);
+                        event.drawTo(that.animators[i].rasterizer, that.pictureTransform);
                         var buffer = that.animationBuffers[
                             that.animators[i].bufferIndex];
                         buffer.pushEvent(event, that.animators[i].rasterizer);
@@ -1466,7 +1466,7 @@ Picture.prototype.animate = function(simultaneousStrokes, speed,
                         event.animationCoord = untilCoord;
                         untilCoord = Math.ceil(untilCoord / 3) * 3;
                         event.drawTo(that.animators[i].rasterizer,
-                                     this.pictureTransform,
+                                     that.pictureTransform,
                                      untilCoord);
                     }
                 }
