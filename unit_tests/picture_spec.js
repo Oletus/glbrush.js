@@ -15,7 +15,7 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
     it('initializes', function() {
         expect(pic.id).toBe(-1);
         expect(pic.name).toBe('testpicturename');
-        expect(pic.bitmapScale).toBe(2.0);
+        expect(pic.pictureTransform.scale).toBe(2.0);
         expect(pic.mode).toEqual(mode);
         expect(pic.width()).toBe(width);
         expect(pic.height()).toBe(height);
@@ -273,7 +273,7 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 10, 0, 0,
                                               PictureEvent.Mode.normal);
         brushEvent.pushCoordTriplet(0, 0, 1.0);
-        brushEvent.pushCoordTriplet(pic.bitmapWidth(), pic.bitmapHeight(), 1.0);
+        brushEvent.pushCoordTriplet(pic.width(), pic.height(), 1.0);
         pic.pushEvent(1337, brushEvent);
         var pic2;
         var pic3;
@@ -297,6 +297,7 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
             expect(pic3.height()).toBe(pic.height());
             expect(pic3.bitmapWidth()).toBe(pic3.width() * 0.5);
             expect(pic3.bitmapHeight()).toBe(pic3.height() * 0.5);
+            expect(pic3.pictureTransform.scale).toBe(0.5);
             var samplePixel = pic3.getPixelRGBA(new Vec2(pic3.bitmapWidth() - 1,
                                                          pic3.bitmapHeight() - 1));
             expect(samplePixel[0]).toBe(56);
@@ -304,8 +305,8 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
             expect(samplePixel[2]).toBe(78);
             expect(samplePixel[3]).toBe(255);
             var event = pic3.buffers[0].events[1];
-            expect(event.coords[3]).toBeNear(pic3.bitmapWidth(), 1);
-            expect(event.coords[4]).toBeNear(pic3.bitmapHeight(), 1);
+            expect(event.coords[3]).toBeNear(pic3.width(), 1);
+            expect(event.coords[4]).toBeNear(pic3.height(), 1);
             pic3.destroy();
         });
     });
@@ -330,7 +331,7 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         pic.addBuffer(1338, clearColor2, false);
         pic.setBufferOpacity(1338, 0.5);
         var pic2;
-        Picture.resize(pic, pic.bitmapScale, function(p2) {
+        Picture.resize(pic, pic.pictureTransform.scale, function(p2) {
             pic2 = p2;
         });
         waitsFor(function() {
@@ -357,7 +358,7 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         expect(pic.buffers[1].mergedTo).toBe(pic.buffers[0]);
 
         var pic2;
-        Picture.resize(pic, pic.bitmapScale, function(p2) {
+        Picture.resize(pic, pic.pictureTransform.scale, function(p2) {
             pic2 = p2;
         });
         waitsFor(function() {
@@ -375,7 +376,7 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 10, 0, 0,
                                               PictureEvent.Mode.normal);
         brushEvent.pushCoordTriplet(0, 0, 1.0);
-        brushEvent.pushCoordTriplet(pic.bitmapWidth(), pic.bitmapHeight(), 1.0);
+        brushEvent.pushCoordTriplet(pic.width(), pic.height(), 1.0);
         pic.pushEvent(1337, brushEvent);
         var undoneEvent = pic.undoLatest();
         expect(undoneEvent).toBe(brushEvent);
@@ -392,7 +393,7 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 10, 0, 0,
                                               PictureEvent.Mode.normal);
         brushEvent.pushCoordTriplet(0, 0, 1.0);
-        brushEvent.pushCoordTriplet(pic.bitmapWidth(), pic.bitmapHeight(), 1.0);
+        brushEvent.pushCoordTriplet(pic.width(), pic.height(), 1.0);
         pic.pushEvent(1337, brushEvent);
         var undoneEvent = pic.undoLatest();
         expect(pic.buffers[0].events.length).toBe(2);
@@ -407,7 +408,7 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 10, 0, 0,
                                               PictureEvent.Mode.normal);
         brushEvent.pushCoordTriplet(0, 0, 1.0);
-        brushEvent.pushCoordTriplet(pic.bitmapWidth(), pic.bitmapHeight(), 1.0);
+        brushEvent.pushCoordTriplet(pic.width(), pic.height(), 1.0);
         pic.pushEvent(1337, brushEvent);
         pic.setActiveSession(pic.activeSid + 1);
         var undoneEvent = pic.undoLatest();
@@ -565,7 +566,7 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         pic.addBuffer(1337, clearColor, false);
         pic.removeBuffer(1337);
         var pic2;
-        Picture.resize(pic, pic.bitmapScale, function(p2) {
+        Picture.resize(pic, pic.pictureTransform.scale, function(p2) {
             pic2 = p2;
         });
         waitsFor(function() {
@@ -612,7 +613,7 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 10, 0, 0,
                                               PictureEvent.Mode.normal);
         brushEvent.pushCoordTriplet(0, 0, 1.0);
-        brushEvent.pushCoordTriplet(pic.bitmapWidth(), pic.bitmapHeight(), 1.0);
+        brushEvent.pushCoordTriplet(pic.width(), pic.height(), 1.0);
         pic.pushEvent(1337, brushEvent);
         pic.redoEventSessionId(pic.activeSid, pic.activeSessionEventId - 2);
         expect(pic.buffers[0].freed).toBe(false);
@@ -671,7 +672,7 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         pic.moveBuffer(9001, 0);
         pic.moveBuffer(1338, 0);
         var pic2;
-        Picture.resize(pic, pic.bitmapScale, function(p2) {
+        Picture.resize(pic, pic.pictureTransform.scale, function(p2) {
             pic2 = p2;
         });
         waitsFor(function() {
@@ -697,7 +698,7 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         pic.insertEvent(1337, brushEvent);
         expect(pic.buffers[0].insertionPoint).toBe(2);
         var pic2;
-        Picture.resize(pic, pic.bitmapScale, function(p2) {
+        Picture.resize(pic, pic.pictureTransform.scale, function(p2) {
             pic2 = p2;
         });
         waitsFor(function() {
@@ -795,7 +796,7 @@ var doPictureTest = function(mode) {
             expect(pic.parsedVersion).toBe(0);
             expect(pic.id).toBe(-1);
             expect(pic.name).toBe(null);
-            expect(pic.bitmapScale).toBe(2.0);
+            expect(pic.pictureTransform.scale).toBe(2.0);
             expect(pic.mode).toEqual(mode);
             expect(pic.width()).toBe(122);
             expect(pic.height()).toBe(234);

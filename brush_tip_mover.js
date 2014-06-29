@@ -114,6 +114,8 @@ BrushTipMover.prototype.move = function(x, y, pressure, rotationAngle, rotationA
     if (rotationAngleAfter === undefined) {
         rotationAngleAfter = rotationAngle;
     }
+    x = this.transform.transformX(x, y);
+    y = this.transform.transformY(x, y);
     var xd, yd, pd, rd, rotd;
     var dx = x - this.x;
     var dy = y - this.y;

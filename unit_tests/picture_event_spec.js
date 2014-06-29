@@ -11,7 +11,7 @@ describe('PictureEvent', function() {
 
         it('is the same after serialization and parsing', function() {
             var event = creator();
-            var serialization = event.serialize(1.0);
+            var serialization = event.serialize();
             var splitSerialization = serialization.split(' ');
             var parsedEvent = PictureEvent.parse(splitSerialization, 0,
                                                  Picture.formatVersion);

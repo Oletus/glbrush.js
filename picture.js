@@ -38,9 +38,10 @@ var Picture = function(id, name, boundsRect, bitmapScale, mode, brushTextureData
     this.currentEventColor = [255, 255, 255];
 
     this.boundsRect = boundsRect;
-    this.bitmapScale = bitmapScale;
-    var bitmapWidth = Math.floor(this.boundsRect.width() * this.bitmapScale);
-    var bitmapHeight = Math.floor(this.boundsRect.height() * this.bitmapScale);
+    this.pictureTransform = new AffineTransform();
+    this.pictureTransform.scale = bitmapScale;
+    var bitmapWidth = Math.floor(this.boundsRect.width() * bitmapScale);
+    var bitmapHeight = Math.floor(this.boundsRect.height() * bitmapScale);
     this.bitmapRect = new Rect(0, bitmapWidth, 0, bitmapHeight);
 
     // Shouldn't use more GPU memory than this for buffers and rasterizers
@@ -54,8 +55,6 @@ var Picture = function(id, name, boundsRect, bitmapScale, mode, brushTextureData
     this.canvas = document.createElement('canvas');
     this.canvas.width = this.bitmapWidth();
     this.canvas.height = this.bitmapHeight();
-
-    this.pictureTransform = new AffineTransform();
 
     if (this.usesWebGl()) {
         if (!this.setupGLState()) {
@@ -406,7 +405,6 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry, brushTextur
         } else {
             var arr = eventStrings[i].split(' ');
             var pictureEvent = PictureEvent.parse(arr, 0, version);
-            pictureEvent.scale(bitmapScale);
             if (pictureEvent.eventType === 'bufferMerge') {
                 mergeEvents.push(pictureEvent);
             }
@@ -484,7 +482,6 @@ Picture.formatVersion = 4;
  * least two subsequent versions.
  */
 Picture.prototype.serialize = function() {
-    var serializationScale = 1.0 / this.bitmapScale;
     var nameSerialization = this.name === null ? 'unnamed' : 'named ' + window.btoa(this.name);
     var serialization = ['picture version ' + Picture.formatVersion + ' ' +
                          this.width() + ' ' + this.height() + ' ' + nameSerialization];
@@ -492,7 +489,7 @@ Picture.prototype.serialize = function() {
         var buffer = this.buffers[i];
         buffer.events[0].insertionPoint = buffer.insertionPoint;
         for (var j = 0; j < buffer.events.length; ++j) {
-            serialization.push(buffer.events[j].serialize(serializationScale));
+            serialization.push(buffer.events[j].serialize());
         }
     }
     return serialization.join('\n');
@@ -958,16 +955,6 @@ Picture.prototype.width = function() {
  */
 Picture.prototype.height = function() {
     return this.boundsRect.height();
-};
-
-/**
- * Scale the parsed event according to this picture's bitmap scale. The event's
- * data is scaled, but it will still be serialized using the original
- * coordinates, within floating point accuracy.
- * @param {PictureEvent} event Event to scale.
- */
-Picture.prototype.scaleParsedEvent = function(event) {
-    event.scale(this.bitmapScale);
 };
 
 /**

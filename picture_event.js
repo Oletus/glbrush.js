@@ -202,14 +202,13 @@ BrushEvent.prototype = new PictureEvent('brush');
 BrushEvent.coordsStride = 3; // x, y and pressure coordinates belong together
 
 /**
- * @param {number} scale Scale to multiply serialized coordinates with.
  * @return {string} A serialization of the event.
  */
-BrushEvent.prototype.serialize = function(scale) {
+BrushEvent.prototype.serialize = function() {
     var eventMessage = this.serializePictureEvent();
     eventMessage += ' ' + colorUtil.serializeRGB(this.color);
     eventMessage += ' ' + this.flow + ' ' + this.opacity;
-    eventMessage += ' ' + (this.radius * scale);
+    eventMessage += ' ' + this.radius;
     eventMessage += ' ' + this.textureId;
     if (this.soft) {
         eventMessage += ' 1.0';
@@ -217,20 +216,19 @@ BrushEvent.prototype.serialize = function(scale) {
         eventMessage += ' 0.0';
     }
     eventMessage += ' ' + this.mode;
-    eventMessage += this.serializeCoords(scale);
+    eventMessage += this.serializeCoords();
     return eventMessage;
 };
 
 /**
- * @param {number} scale Scale to multiply serialized coordinates with.
  * @return {string} A serialization of the coordinates.
  */
-BrushEvent.prototype.serializeCoords = function(scale) {
+BrushEvent.prototype.serializeCoords = function() {
     var eventCoordsMessage = '';
     var i = 0;
     while (i < this.coords.length) {
-        eventCoordsMessage += ' ' + this.coords[i++] * scale;
-        eventCoordsMessage += ' ' + this.coords[i++] * scale;
+        eventCoordsMessage += ' ' + this.coords[i++];
+        eventCoordsMessage += ' ' + this.coords[i++];
         eventCoordsMessage += ' ' + this.coords[i++];
     }
     return eventCoordsMessage;
@@ -556,16 +554,15 @@ ScatterEvent.prototype = new PictureEvent('scatter');
 ScatterEvent.prototype.serialize = BrushEvent.prototype.serialize;
 
 /**
- * @param {number} scale Scale to multiply serialized coordinates with.
  * @return {string} A serialization of the coordinates.
  */
-ScatterEvent.prototype.serializeCoords = function(scale) {
+ScatterEvent.prototype.serializeCoords = function() {
     var eventCoordsMessage = '';
     var i = 0;
     while (i < this.coords.length) {
-        eventCoordsMessage += ' ' + this.coords[i++] * scale;
-        eventCoordsMessage += ' ' + this.coords[i++] * scale;
-        eventCoordsMessage += ' ' + this.coords[i++] * scale; // radius
+        eventCoordsMessage += ' ' + this.coords[i++];
+        eventCoordsMessage += ' ' + this.coords[i++];
+        eventCoordsMessage += ' ' + this.coords[i++]; // radius
         eventCoordsMessage += ' ' + this.coords[i++]; // flow
         eventCoordsMessage += ' ' + this.coords[i++]; // rotation
     }
@@ -765,19 +762,18 @@ GradientEvent.parse = function(arr, i, version, sid, sessionEventId, undone) {
 };
 
 /**
- * @param {number} scale Scale to multiply serialized coordinates with.
  * @return {string} A serialization of the event.
  */
-GradientEvent.prototype.serialize = function(scale) {
+GradientEvent.prototype.serialize = function() {
     var eventMessage = this.serializePictureEvent();
     eventMessage += ' ' + colorUtil.serializeRGB(this.color);
     eventMessage += ' ' + this.opacity;
     eventMessage += ' ' + this.mode;
     var i = 0;
-    eventMessage += ' ' + this.coords0.x * scale;
-    eventMessage += ' ' + this.coords0.y * scale;
-    eventMessage += ' ' + this.coords1.x * scale;
-    eventMessage += ' ' + this.coords1.y * scale;
+    eventMessage += ' ' + this.coords0.x;
+    eventMessage += ' ' + this.coords0.y;
+    eventMessage += ' ' + this.coords1.x;
+    eventMessage += ' ' + this.coords1.y;
     return eventMessage;
 };
 
@@ -966,16 +962,15 @@ RasterImportEvent.parse = function(arr, i, version, sid, sessionEventId, undone)
 };
 
 /**
- * @param {number} scale Scale to multiply serialized coordinates with.
  * @return {string} A serialization of the event.
  */
-RasterImportEvent.prototype.serialize = function(scale) {
+RasterImportEvent.prototype.serialize = function() {
     var eventMessage = this.serializePictureEvent();
     eventMessage += ' ' + this.importedImage.src;
-    eventMessage += ' ' + this.rect.left * scale;
-    eventMessage += ' ' + this.rect.right * scale;
-    eventMessage += ' ' + this.rect.top * scale;
-    eventMessage += ' ' + this.rect.bottom * scale;
+    eventMessage += ' ' + this.rect.left;
+    eventMessage += ' ' + this.rect.right;
+    eventMessage += ' ' + this.rect.top;
+    eventMessage += ' ' + this.rect.bottom;
     return eventMessage;
 };
 
@@ -1101,10 +1096,9 @@ BufferAddEvent.parse = function(arr, i, version, sid, sessionEventId, undone) {
 };
 
 /**
- * @param {number} scale Scale to multiply serialized coordinates with.
  * @return {string} A serialization of the event.
  */
-BufferAddEvent.prototype.serialize = function(scale) {
+BufferAddEvent.prototype.serialize = function() {
     var eventMessage = this.serializePictureEvent();
     eventMessage += ' ' + this.bufferId;
     eventMessage += ' ' + (this.hasAlpha ? '1' : '0');
@@ -1184,10 +1178,9 @@ BufferRemoveEvent.parse = function(arr, i, version, sid, sessionEventId,
 };
 
 /**
- * @param {number} scale Scale to multiply serialized coordinates with.
  * @return {string} A serialization of the event.
  */
-BufferRemoveEvent.prototype.serialize = function(scale) {
+BufferRemoveEvent.prototype.serialize = function() {
     var eventMessage = this.serializePictureEvent();
     eventMessage += ' ' + this.bufferId;
     return eventMessage;
@@ -1267,10 +1260,9 @@ BufferMoveEvent.parse = function(arr, i, version, sid, sessionEventId, undone) {
 };
 
 /**
- * @param {number} scale Scale to multiply serialized coordinates with.
  * @return {string} A serialization of the event.
  */
-BufferMoveEvent.prototype.serialize = function(scale) {
+BufferMoveEvent.prototype.serialize = function() {
     var eventMessage = this.serializePictureEvent();
     eventMessage += ' ' + this.movedId;
     eventMessage += ' ' + this.fromIndex;
@@ -1354,10 +1346,9 @@ BufferMergeEvent.parse = function(arr, i, version, sid, sessionEventId,
 };
 
 /**
- * @param {number} scale Scale to multiply serialized coordinates with.
  * @return {string} A serialization of the event.
  */
-BufferMergeEvent.prototype.serialize = function(scale) {
+BufferMergeEvent.prototype.serialize = function() {
     var eventMessage = this.serializePictureEvent();
     eventMessage += ' ' + this.opacity;
     eventMessage += ' ' + this.mergedBuffer.id;
@@ -1428,10 +1419,9 @@ EventHideEvent.parse = function(arr, i, version, sid, sessionEventId, undone) {
 };
 
 /**
- * @param {number} scale Scale to multiply serialized coordinates with.
  * @return {string} A serialization of the event.
  */
-EventHideEvent.prototype.serialize = function(scale) {
+EventHideEvent.prototype.serialize = function() {
     var eventMessage = this.serializePictureEvent();
     eventMessage += ' ' + this.hiddenSid;
     eventMessage += ' ' + this.hiddenSessionEventId;

@@ -580,6 +580,18 @@ describe('util2d', function() {
             expect(v.y).toBe(26);
         });
 
+        it('inverse transforms a vector', function() {
+            var a = new AffineTransform();
+            a.translate.x = 7;
+            a.translate.y = 11;
+            a.scale = 5;
+            var v = new Vec2(2, 3);
+            a.transform(v);
+            a.inverseTransform(v);
+            expect(v.x).toBe(2);
+            expect(v.y).toBe(3);
+        });
+
         it('scales and translates a rectangle', function() {
             var a = new AffineTransform();
             a.translate.x = 7;

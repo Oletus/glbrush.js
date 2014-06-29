@@ -782,6 +782,15 @@ AffineTransform.prototype.transform = function(vec) {
 };
 
 /**
+ * Inverse transform the given vector.
+ * @param {Vec2} vec Vector to transform in-place.
+ */
+AffineTransform.prototype.inverseTransform = function(vec) {
+    vec.x = (vec.x - this.translate.x) / this.scale;
+    vec.y = (vec.y - this.translate.y) / this.scale;
+};
+
+/**
  * Transform the given coordinate.
  * @param {number} x X coordinate.
  * @param {number} y Y coordinate.
@@ -808,6 +817,15 @@ AffineTransform.prototype.transformY = function(x, y) {
  */
 AffineTransform.prototype.scaleValue = function(v) {
     return v * this.scale;
+};
+
+/**
+ * Inverse scale the given coordinate.
+ * @param {number} v Coordinate.
+ * @return {number} Scaled coordinate.
+ */
+AffineTransform.prototype.inverseScale = function(v) {
+    return v / this.scale;
 };
 
 /**
