@@ -33,6 +33,7 @@ BrushTipMover.lineSegmentLength = 5.0;
 /**
  * Reset the brush tip position and the target to draw to.
  * @param {Object} target Target that implements the fillCircle interface.
+ * @param {AffineTransform} transform Transform for the event coordinates.
  * @param {number} x Horizontal position to place the tip to.
  * @param {number} y Vertical position to place the tip to.
  * @param {number} pressure Pressure at the start of the stroke.
@@ -47,24 +48,25 @@ BrushTipMover.lineSegmentLength = 5.0;
  * @param {number=} rotationAngle If rotationMode is controlled, angle of the brush tip sample at the starting point.
  * If rotationMode is something else, the value is ignored.
  */
-BrushTipMover.prototype.reset = function(target, x, y, pressure, radius, flow, scatterOffset,
+BrushTipMover.prototype.reset = function(target, transform, x, y, pressure, radius, flow, scatterOffset,
                                          spacing, relativeSpacing, rotationMode, rotationAngle) {
     if (rotationAngle === undefined) {
         rotationAngle = 0;
     }
     this.target = target;
+    this.transform = transform;
 
-    this.targetX = x;
-    this.targetY = y;
-    this.targetR = pressure * radius;
+    this.targetX = transform.transformX(x, y);
+    this.targetY = transform.transformY(x, y);
+    this.targetR = transform.scaleValue(pressure * radius);
     this.targetRot = rotationAngle;
     this.t = 0; // position along last drawn curve segment, relative to the segment's end, in pixels
 
-    this.x = x;
-    this.y = y;
+    this.x = this.targetX;
+    this.y = this.targetY;
     this.pressure = pressure;
     this.rotationAngle = rotationAngle,
-    this.radius = radius;
+    this.radius = transform.scaleValue(radius);
     this.flow = flow;
     // TODO: assert(scatterOffset >= 0);
     this.scatterOffset = scatterOffset;

@@ -94,11 +94,12 @@ PictureEvent.copy = function(event) {
  * Determine whether this event's bounding box intersects with the given
  * rectangle.
  * @param {Rect} rect The rectangle to intersect with.
+ * @param {AffineTransform} transform Transform for the event coordinates.
  * @return {boolean} Does the event's axis-aligned bounding box intersect the
  * given rectangle?
  */
-PictureEvent.prototype.boundsIntersectRect = function(rect) {
-    return this.getBoundingBox(rect).intersectsRectRoundedOut(rect);
+PictureEvent.prototype.boundsIntersectRect = function(rect, transform) {
+    return this.getBoundingBox(rect, transform).intersectsRectRoundedOut(rect);
 };
 
 /**
@@ -463,15 +464,17 @@ BrushEvent.BBRasterizer.prototype.flushCircles = function() {};
 /**
  * Draw the brush event to the given rasterizer's bitmap.
  * @param {BaseRasterizer} rasterizer The rasterizer to use.
+ * @param {AffineTransform} transform Transform for the event coordinates.
  * @param {number} untilCoord Maximum coordinate index to draw + 1.
  */
-BrushEvent.prototype.drawTo = function(rasterizer, untilCoord) {
+BrushEvent.prototype.drawTo = function(rasterizer, transform, untilCoord) {
     var drawState = rasterizer.getDrawEventState(this, BrushEventState);
     // Use different tips for BB and normal drawing to avoid clearing the rasterizer all the time while drawing
     var brushTip = rasterizer === this.boundingBoxRasterizer ? this.bbTip : this.brushTip;
     if (untilCoord === undefined) {
         untilCoord = this.coords.length;
     }
+    // TODO: Reset also if transform has changed
     if (drawState.coordsInd > untilCoord || brushTip.target !== rasterizer) {
         rasterizer.clearDirty();
         drawState = rasterizer.getDrawEventState(this, BrushEventState);
@@ -486,7 +489,8 @@ BrushEvent.prototype.drawTo = function(rasterizer, untilCoord) {
         var x = this.coords[i++];
         var y = this.coords[i++];
         var pressure = this.coords[i++];
-        brushTip.reset(rasterizer, x, y, pressure, this.radius, this.flow, 0, 1, false, BrushTipMover.Rotation.off);
+        brushTip.reset(rasterizer, transform, x, y, pressure, this.radius, this.flow, 0, 1, false,
+                       BrushTipMover.Rotation.off);
     }
 
     while (i + BrushEvent.coordsStride <= untilCoord) {
@@ -502,11 +506,12 @@ BrushEvent.prototype.drawTo = function(rasterizer, untilCoord) {
 /**
  * @param {Rect} clipRect Canvas bounds that can be used to intersect the
  * bounding box against, though this is not mandatory.
+ * @param {AffineTransform} transform Transform for the event coordinates.
  * @return {Rect} The event's bounding box. This function is not allowed to
  * change its earlier return values as a side effect.
  */
-BrushEvent.prototype.getBoundingBox = function(clipRect) {
-    this.drawTo(this.boundingBoxRasterizer);
+BrushEvent.prototype.getBoundingBox = function(clipRect, transform) {
+    this.drawTo(this.boundingBoxRasterizer, transform);
     return this.boundingBoxRasterizer.boundingBox;
 };
 
@@ -643,9 +648,10 @@ ScatterEvent.prototype.getBoundingBox = BrushEvent.prototype.getBoundingBox;
 /**
  * Draw the brush event to the given rasterizer's bitmap.
  * @param {BaseRasterizer} rasterizer The rasterizer to use.
+ * @param {AffineTransform} transform Transform for the event coordinates.
  * @param {number} untilCoord Maximum coordinate index to draw + 1.
  */
-ScatterEvent.prototype.drawTo = function(rasterizer, untilCoord) {
+ScatterEvent.prototype.drawTo = function(rasterizer, transform, untilCoord) {
     var drawState = rasterizer.getDrawEventState(this, BrushEventState);
     if (untilCoord === undefined) {
         untilCoord = this.coords.length;
@@ -665,7 +671,10 @@ ScatterEvent.prototype.drawTo = function(rasterizer, untilCoord) {
         var radius = this.coords[i++];
         var flow = this.coords[i++];
         var rotation = this.coords[i++];
-        rasterizer.fillCircle(x, y, radius, flow, rotation);
+        rasterizer.fillCircle(transform.transformX(x, y),
+                              transform.transformY(x, y),
+                              transform.scaleValue(radius),
+                              flow, rotation);
     }
     drawState.coordsInd = i;
     rasterizer.flushCircles();
@@ -800,31 +809,38 @@ GradientEvent.prototype.translate = function(offset) {
 /**
  * @param {Rect} clipRect Canvas bounds that can be used to intersect the
  * bounding box against, though this is not mandatory.
+ * @param {AffineTransform} transform Transform for the event coordinates.
  * @return {Rect} The event's bounding box. This function is not allowed to
  * change its earlier return values as a side effect.
  */
-GradientEvent.prototype.getBoundingBox = function(clipRect) {
+GradientEvent.prototype.getBoundingBox = function(clipRect, transform) {
     var boundingBox = new Rect(clipRect.left, clipRect.right,
                                clipRect.top, clipRect.bottom);
-    if (this.coords0.y === this.coords1.y) {
-        if (this.coords1.x > this.coords0.x) {
-            boundingBox.limitLeft(this.coords0.x - 1);
-        } else if (this.coords1.x < this.coords0.x) {
-            boundingBox.limitRight(this.coords0.x + 1);
+    var coords0 = new Vec2();
+    var coords1 = new Vec2();
+    coords0.setVec2(this.coords0);
+    coords1.setVec2(this.coords1);
+    transform.transform(coords0);
+    transform.transform(coords1);
+    if (coords0.y === coords1.y) {
+        if (coords1.x > coords0.x) {
+            boundingBox.limitLeft(coords0.x - 1);
+        } else if (coords1.x < coords0.x) {
+            boundingBox.limitRight(coords0.x + 1);
         } else {
             boundingBox.makeEmpty();
         }
     } else {
         // y = slope * x + b
-        var normalSlope = -1.0 / this.coords0.slope(this.coords1);
-        var normalB = this.coords0.y - normalSlope * this.coords0.x;
+        var normalSlope = -1.0 / coords0.slope(coords1);
+        var normalB = coords0.y - normalSlope * coords0.x;
         if (normalSlope === 0.0) {
-            if (this.coords0.y < this.coords1.y) {
-                boundingBox.limitTop(this.coords0.y - 1);
+            if (coords0.y < coords1.y) {
+                boundingBox.limitTop(coords0.y - 1);
             } else {
-                boundingBox.limitBottom(this.coords0.y + 1);
+                boundingBox.limitBottom(coords0.y + 1);
             }
-        } else if (normalSlope < 0 && this.coords1.y < this.coords0.y) {
+        } else if (normalSlope < 0 && coords1.y < coords0.y) {
             // the covered area is in the top left corner
             // intersection with left edge
             boundingBox.limitBottom(normalSlope * boundingBox.left +
@@ -832,7 +848,7 @@ GradientEvent.prototype.getBoundingBox = function(clipRect) {
             // intersection with top edge
             boundingBox.limitRight((boundingBox.top - normalB) /
                                    normalSlope + 1);
-        } else if (normalSlope > 0 && this.coords1.y < this.coords0.y) {
+        } else if (normalSlope > 0 && coords1.y < coords0.y) {
             // the covered area is in the top right corner
             // intersection with right edge
             boundingBox.limitBottom(normalSlope * boundingBox.right +
@@ -840,7 +856,7 @@ GradientEvent.prototype.getBoundingBox = function(clipRect) {
             // intersection with top edge
             boundingBox.limitLeft((boundingBox.top - normalB) /
                                   normalSlope - 1);
-        } else if (normalSlope < 0 && this.coords1.y > this.coords0.y) {
+        } else if (normalSlope < 0 && coords1.y > coords0.y) {
             // the covered area is in the bottom right corner
             // intersection with right edge
             boundingBox.limitTop(normalSlope * boundingBox.right + normalB - 1);
@@ -848,7 +864,7 @@ GradientEvent.prototype.getBoundingBox = function(clipRect) {
             boundingBox.limitLeft((boundingBox.bottom - normalB) /
                                   normalSlope - 1);
         } else {
-            // TODO: assert(normalSlope > 0 && this.coords1.y > this.coords0.y);
+            // TODO: assert(normalSlope > 0 && coords1.y > coords0.y);
             // the covered area is in the bottom left corner
             // intersection with left edge
             boundingBox.limitTop(normalSlope * boundingBox.left + normalB - 1);
@@ -863,13 +879,20 @@ GradientEvent.prototype.getBoundingBox = function(clipRect) {
 /**
  * Draw the GradientEvent to the given rasterizer's bitmap.
  * @param {BaseRasterizer} rasterizer The rasterizer to use.
+ * @param {AffineTransform} transform Transform for the event coordinates.
  */
-GradientEvent.prototype.drawTo = function(rasterizer) {
+GradientEvent.prototype.drawTo = function(rasterizer, transform) {
     var drawState = rasterizer.getDrawEventState(this, GradientEventState);
     if (drawState.drawn) {
         return;
     }
-    rasterizer.linearGradient(this.coords1, this.coords0);
+    var coords0 = new Vec2();
+    var coords1 = new Vec2();
+    coords0.setVec2(this.coords0);
+    coords1.setVec2(this.coords1);
+    transform.transform(coords0);
+    transform.transform(coords1);
+    rasterizer.linearGradient(coords1, coords0);
     drawState.drawn = true;
 };
 

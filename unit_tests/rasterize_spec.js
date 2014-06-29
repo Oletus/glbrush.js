@@ -117,7 +117,8 @@ describe('Rasterizing system', function() {
         }
         testRasterizer.beginCircles(true, 0);
 
-        brushTip.reset(testRasterizer, 0, 0, 1, 0.5, 0.1, 0, 1, false, BrushTipMover.Rotation.off);
+        brushTip.reset(testRasterizer, new AffineTransform(),
+                       0, 0, 1, 0.5, 0.1, 0, 1, false, BrushTipMover.Rotation.off);
         expect(testRasterizer.soft).toBe(true);
         expect(testRasterizer.t).toBe(0);
         brushTip.circleLineTo(0, 0, 1, 0.5, 1.0);
@@ -222,7 +223,8 @@ describe('Rasterizing system', function() {
         var countCalls = function(scale, scatter, randomRotation) {
             var testRasterizer = new TestRasterizer(123, 456);
             var brushTip = new BrushTipMover(false);
-            brushTip.reset(testRasterizer, 0, 0, 1, 2, 0.1, (scatter ? 1 : 0), /* spacing */ 0.001 * scale,
+            brushTip.reset(testRasterizer, new AffineTransform(),
+                           0, 0, 1, 2, 0.1, (scatter ? 1 : 0), /* spacing */ 0.001 * scale,
                            /* relativeSpacing */ scatter,
                            randomRotation ? BrushTipMover.Rotation.random : BrushTipMover.Rotation.off);
             brushTip.move(1 * scale, 0, 1);

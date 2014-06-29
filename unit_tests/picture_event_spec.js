@@ -67,13 +67,13 @@ describe('PictureEvent', function() {
             testEvent.radius = 3;
             testEvent.pushCoordTriplet(0, 0, 1);
             testEvent.pushCoordTriplet(1, 0, 1);
-            var oldBox = testEvent.getBoundingBox(new Rect(-10, 10, -10, -10));
+            var oldBox = testEvent.getBoundingBox(new Rect(-10, 10, -10, -10), new AffineTransform());
             var oldLeft = oldBox.left;
             var oldRight = oldBox.right;
             var oldTop = oldBox.top;
             var oldBottom = oldBox.bottom;
             testEvent.pushCoordTriplet(3, 0, 1);
-            var box = testEvent.getBoundingBox(new Rect(-10, 10, -10, -10));
+            var box = testEvent.getBoundingBox(new Rect(-10, 10, -10, -10), new AffineTransform());
             expect(box).toBe(oldBox);
             expect(box.right).toBeNear(oldRight + 2, 0.01);
             expect(box.left).toBeNear(oldLeft, 0.01);
@@ -86,13 +86,13 @@ describe('PictureEvent', function() {
             testEvent.radius = 3;
             testEvent.pushCoordTriplet(0, 0, 1);
             testEvent.pushCoordTriplet(1, 1, 1);
-            var oldBox = testEvent.getBoundingBox(new Rect(-10, 10, -10, -10));
+            var oldBox = testEvent.getBoundingBox(new Rect(-10, 10, -10, -10), new AffineTransform());
             var oldLeft = oldBox.left;
             var oldRight = oldBox.right;
             var oldTop = oldBox.top;
             var oldBottom = oldBox.bottom;
             testEvent.translate(new Vec2(2, 1));
-            var box = testEvent.getBoundingBox(new Rect(-10, 10, -10, -10));
+            var box = testEvent.getBoundingBox(new Rect(-10, 10, -10, -10), new AffineTransform());
             expect(box).toBe(oldBox);
             expect(box.right).toBeNear(oldRight + 2, 0.01);
             expect(box.left).toBeNear(oldLeft + 2, 0.01);
@@ -106,13 +106,13 @@ describe('PictureEvent', function() {
             testEvent.radius = radius;
             testEvent.pushCoordTriplet(0, 0, 1);
             testEvent.pushCoordTriplet(1, 1, 1);
-            var oldBox = testEvent.getBoundingBox(new Rect(-10, 10, -10, -10));
+            var oldBox = testEvent.getBoundingBox(new Rect(-10, 10, -10, -10), new AffineTransform());
             var oldLeft = oldBox.left;
             var oldRight = oldBox.right;
             var oldTop = oldBox.top;
             var oldBottom = oldBox.bottom;
             testEvent.scale(2.0);
-            var box = testEvent.getBoundingBox(new Rect(-10, 10, -10, -10));
+            var box = testEvent.getBoundingBox(new Rect(-10, 10, -10, -10), new AffineTransform());
             expect(box).not.toBe(oldBox);
             expect(box.right).toBeGreaterThan(oldRight + radius - 0.1);
             expect(box.left).toBeLessThan(oldLeft - radius + 0.1);
@@ -224,10 +224,10 @@ describe('PictureEvent', function() {
         it('updates its bounding box if its generation is changed', function() {
             var testEvent = testScatterEvent();
             testEvent.fillCircle(0, 0, 3, 1.0, 0);
-            var oldBox = testEvent.getBoundingBox(new Rect(-10, 10, -10, -10));
+            var oldBox = testEvent.getBoundingBox(new Rect(-10, 10, -10, -10), new AffineTransform());
             testEvent.coords[2] = 5; // Increase radius manually
             ++testEvent.generation;
-            var box = testEvent.getBoundingBox(new Rect(-10, 10, -10, -10));
+            var box = testEvent.getBoundingBox(new Rect(-10, 10, -10, -10), new AffineTransform());
             expect(box).not.toBe(oldBox);
             expect(box.right).toBeNear(oldBox.right + 2, 0.01);
             expect(box.left).toBeNear(oldBox.left - 2, 0.01);
@@ -256,7 +256,7 @@ describe('PictureEvent', function() {
         it('receives stroke data from BrushTipMover', function() {
             var testEvent = testScatterEvent();
             var tipMover = new BrushTipMover(false);
-            tipMover.reset(testEvent, 1, 2, 0.3, testEvent.radius, testEvent.flow, 0, 1, false,
+            tipMover.reset(testEvent, new AffineTransform(), 1, 2, 0.3, testEvent.radius, testEvent.flow, 0, 1, false,
                            BrushTipMover.Rotation.off);
             tipMover.move(2.5, 2, 0.3);
             var drawFlowAlpha = colorUtil.alphaForNBlends(testEvent.flow, testEvent.radius * 2);
@@ -276,7 +276,7 @@ describe('PictureEvent', function() {
         it('receives stroke data with random rotations from BrushTipMover', function() {
             var testEvent = testScatterEvent();
             var tipMover = new BrushTipMover(false);
-            tipMover.reset(testEvent, 1, 2, 0.3, testEvent.radius, testEvent.flow, 0, 1, false,
+            tipMover.reset(testEvent, new AffineTransform(), 1, 2, 0.3, testEvent.radius, testEvent.flow, 0, 1, false,
                            BrushTipMover.Rotation.random);
             tipMover.move(100, 2, 0.3);
             var count = 0;

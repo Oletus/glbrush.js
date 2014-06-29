@@ -894,7 +894,7 @@ describe('CanvasBuffer', function() {
         var createEvent = new BufferAddEvent(-1, -1, false, params.id,
                                              params.hasAlpha, params.clearColor,
                                              1.0, 0);
-        return new CanvasBuffer(createEvent, params.width, params.height,
+        return new CanvasBuffer(createEvent, params.width, params.height, new AffineTransform(),
                                 params.hasUndoStates);
     };
     var createRasterizer = function(params) {
@@ -934,7 +934,7 @@ describe('GLBuffer', function() {
                                              params.hasAlpha, params.clearColor,
                                              1.0, 0);
         return new GLBuffer(gl, glManager, compositor, texBlitProgram, rectBlitProgram,
-                            createEvent, params.width, params.height, params.hasUndoStates);
+                            createEvent, params.width, params.height, new AffineTransform(), params.hasUndoStates);
     };
     var createRasterizer = function(params) {
         return new GLDoubleBufferedRasterizer(gl, glManager, params.width,

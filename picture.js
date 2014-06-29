@@ -55,6 +55,8 @@ var Picture = function(id, name, boundsRect, bitmapScale, mode, brushTextureData
     this.canvas.width = this.bitmapWidth();
     this.canvas.height = this.bitmapHeight();
 
+    this.pictureTransform = new AffineTransform();
+
     if (this.usesWebGl()) {
         if (!this.setupGLState()) {
             this.mode = undefined;
@@ -862,11 +864,11 @@ Picture.prototype.createBuffer = function(createEvent, hasUndoStates) {
     if (this.usesWebGl()) {
         buffer = new GLBuffer(this.gl, this.glManager, this.compositor,
                               this.texBlitProgram, this.rectBlitProgram, createEvent,
-                              this.bitmapWidth(), this.bitmapHeight(),
+                              this.bitmapWidth(), this.bitmapHeight(), this.pictureTransform,
                               hasUndoStates, this.freed);
     } else if (this.mode === 'canvas') {
         buffer = new CanvasBuffer(createEvent, this.bitmapWidth(),
-                                  this.bitmapHeight(), hasUndoStates, this.freed);
+                                  this.bitmapHeight(), this.pictureTransform, hasUndoStates, this.freed);
     }
     if (hasUndoStates) {
         if (buffer.events[0].undone) {
@@ -1280,7 +1282,7 @@ Picture.prototype.setCurrentEvent = function(cEvent) {
     this.currentEvent = cEvent;
     if (this.currentEvent) {
         this.currentEventRasterizer.resetClip();
-        this.currentEvent.drawTo(this.currentEventRasterizer);
+        this.currentEvent.drawTo(this.currentEventRasterizer, this.pictureTransform);
     }
     this.updateCurrentEventMode();
 };
@@ -1325,7 +1327,7 @@ Picture.prototype.display = function() {
                                                    this.currentEventColor,
                                                    this.currentEvent.opacity,
                                                    this.currentEventMode,
-                             this.currentEvent.getBoundingBox(this.bitmapRect));
+                             this.currentEvent.getBoundingBox(this.bitmapRect, this.pictureTransform));
                 } else {
                     // Even if there's no this.currentEvent at the moment, push
                     // so that the GLCompositor can avoid extra shader changes.
@@ -1461,7 +1463,7 @@ Picture.prototype.animate = function(simultaneousStrokes, speed,
                     var eventToAnimate = that.eventToAnimate(eventIndex);
                     var event = eventToAnimate.event;
                     if (that.animators[i].animationPos >= 1.0) {
-                        event.drawTo(that.animators[i].rasterizer);
+                        event.drawTo(that.animators[i].rasterizer, this.pictureTransform);
                         var buffer = that.animationBuffers[
                             that.animators[i].bufferIndex];
                         buffer.pushEvent(event, that.animators[i].rasterizer);
@@ -1477,6 +1479,7 @@ Picture.prototype.animate = function(simultaneousStrokes, speed,
                         event.animationCoord = untilCoord;
                         untilCoord = Math.ceil(untilCoord / 3) * 3;
                         event.drawTo(that.animators[i].rasterizer,
+                                     this.pictureTransform,
                                      untilCoord);
                     }
                 }
@@ -1552,7 +1555,7 @@ Picture.prototype.displayAnimation = function() {
                 this.compositor.pushRasterizer(this.animators[ri].rasterizer,
                                                event.color, event.opacity,
                                                event.mode,
-                                               event.getBoundingBox(this.bitmapRect));
+                                               event.getBoundingBox(this.bitmapRect, this.pictureTransform));
             }
         }
     }

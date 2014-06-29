@@ -16,17 +16,20 @@ var PictureBuffer = function() {};
  * @param {BufferAddEvent} createEvent Event that initializes the buffer.
  * @param {number} width Width of the buffer in pixels. Must be an integer.
  * @param {number} height Height of the buffer in pixels. Must be an integer.
+ * @param {AffineTransform} transform Transform to apply to all event coordinates.
  * @param {boolean} hasUndoStates Does this buffer store undo states? Defaults
  * to false.
  * @param {boolean} freed Should this buffer be left without bitmaps?
  * @protected
  */
-PictureBuffer.prototype.initializePictureBuffer = function(createEvent, width, height, hasUndoStates, freed) {
+PictureBuffer.prototype.initializePictureBuffer = function(createEvent, width, height, transform,
+                                                           hasUndoStates, freed) {
     // TODO: assert(createEvent.hasAlpha || createEvent.clearColor[3] === 255);
     this.hasAlpha = createEvent.hasAlpha;
     this.id = createEvent.bufferId;
     this.ww = width;
     this.hh = height;
+    this.transform = transform;
     this.events = [];
     this.isDummy = false;
     this.mergedTo = null;
@@ -81,6 +84,7 @@ PictureBuffer.prototype.opacity = function() {
  * Re-rasterize all events using the given rasterizer. Subject to the current
  * clipping rectangle.
  * @param {BaseRasterizer} rasterizer The rasterizer.
+ *
  */
 PictureBuffer.prototype.playbackAll = function(rasterizer) {
     this.playbackStartingFrom(0, rasterizer);
@@ -92,6 +96,7 @@ PictureBuffer.prototype.playbackAll = function(rasterizer) {
  * @param {number} eventIndex The event index to start from, inclusive. Must be
  * an integer.
  * @param {BaseRasterizer} rasterizer The rasterizer.
+ *
  * @protected
  */
 PictureBuffer.prototype.playbackStartingFrom = function(eventIndex,
@@ -100,7 +105,7 @@ PictureBuffer.prototype.playbackStartingFrom = function(eventIndex,
     var nextUndoStateIndex = this.previousUndoStateIndex(eventIndex) + 1;
     for (var i = eventIndex; i < this.events.length; i++) {
         if (!this.events[i].undone &&
-            this.events[i].boundsIntersectRect(clipRect)) {
+            this.events[i].boundsIntersectRect(clipRect, this.transform)) {
             this.applyEvent(this.events[i], rasterizer);
         }
         if (this.undoStates !== null && !this.freed &&
@@ -118,6 +123,7 @@ PictureBuffer.prototype.playbackStartingFrom = function(eventIndex,
  * buffers if necessary in case of a merge event.
  * @param {PictureEvent} event The event to rasterize and apply.
  * @param {BaseRasterizer} rasterizer The rasterizer to use.
+ *
  * @protected
  */
 PictureBuffer.prototype.applyEvent = function(event, rasterizer) {
@@ -127,19 +133,22 @@ PictureBuffer.prototype.applyEvent = function(event, rasterizer) {
         if (event.hideCount > 0) {
             return;
         }
-        var boundingBox = event.getBoundingBox(this.boundsRect);
+        var boundingBox = event.getBoundingBox(this.boundsRect, this.transform);
         this.pushClipRect(boundingBox);
         if (this.getCurrentClipRect().isEmpty()) {
             this.popClip();
             return;
         }
         rasterizer.setClip(this.getCurrentClipRect());
-        event.drawTo(rasterizer);
+        event.drawTo(rasterizer, this.transform);
         this.drawRasterizerWithColor(rasterizer, event.color, event.opacity,
                                      event.mode);
         this.popClip();
     } else if (event.eventType === 'rasterImport') {
-        this.drawImage(event.importedImage, event.rect);
+        var transformedRect = new Rect();
+        transformedRect.setRect(event.rect);
+        this.transform.transformRect(transformedRect);
+        this.drawImage(event.importedImage, transformedRect);
     } else if (event.eventType === 'bufferMerge') {
         // TODO: assert(event.mergedBuffer !== this);
         event.mergedBuffer.mergedTo = this;
@@ -160,6 +169,7 @@ PictureBuffer.prototype.applyEvent = function(event, rasterizer) {
  * Apply an event that should not be re-applied on playback.
  * @param {PictureEvent} event The event to apply.
  * @param {BaseRasterizer} rasterizer The rasterizer to use.
+ *
  * @protected
  */
 PictureBuffer.prototype.applyCountingEvent = function(event, rasterizer) {
@@ -182,6 +192,7 @@ PictureBuffer.prototype.applyCountingEvent = function(event, rasterizer) {
  * Push an event to the top of this buffer's event stack.
  * @param {PictureEvent} event Event to push.
  * @param {BaseRasterizer} rasterizer The rasterizer to use.
+ *
  */
 PictureBuffer.prototype.pushEvent = function(event, rasterizer) {
     this.events.push(event);
@@ -197,6 +208,7 @@ PictureBuffer.prototype.pushEvent = function(event, rasterizer) {
  * updated.
  * @param {PictureBuffer} changedBuffer The merged buffer that changed.
  * @param {BaseRasterizer} rasterizer The rasterizer to use.
+ *
  * @protected
  */
 PictureBuffer.prototype.mergedBufferChanged = function(changedBuffer,
@@ -220,6 +232,7 @@ PictureBuffer.prototype.mergedBufferChanged = function(changedBuffer,
  * closer to the top of the buffer than events with lower sessionEventIds.
  * @param {PictureEvent} event Event to insert.
  * @param {BaseRasterizer} rasterizer The rasterizer to use.
+ *
  */
 PictureBuffer.prototype.insertEvent = function(event, rasterizer) {
     if (this.insertionPoint === this.events.length) {
@@ -254,13 +267,14 @@ PictureBuffer.prototype.setInsertionPoint = function(insertionPoint) {
  * which case the buffer is cleared completely.
  * @param {BaseRasterizer} rasterizer The rasterizer to use. The clip rect
  * should be set in the rasterizer in advance.
+ *
  */
 PictureBuffer.prototype.replaceWithEvent = function(event, rasterizer) {
     // TODO: assert(this.clipStack.length === 0);
     if (this.events.length > 2) {
         this.clear(this.events[0].clearColor);
     } else if (this.events.length === 2) {
-        this.pushClipRect(this.events[1].getBoundingBox(this.boundsRect));
+        this.pushClipRect(this.events[1].getBoundingBox(this.boundsRect, this.transform));
         this.clear(this.events[0].clearColor);
         this.popClip();
     }
@@ -278,6 +292,7 @@ PictureBuffer.prototype.replaceWithEvent = function(event, rasterizer) {
  * have two keys: event, and alpha which determines that event's alpha value
  * affecting this pixel. The objects are sorted from front to back.
  * @param {Vec2} coords Position of the pixel in bitmap coordinates.
+ *
  * @return {Array.<Object>} Objects that contain events touching this pixel.
  */
 PictureBuffer.prototype.blamePixel = function(coords) {
@@ -289,9 +304,9 @@ PictureBuffer.prototype.blamePixel = function(coords) {
     while (i >= 1) {
         if (!this.events[i].undone && this.events[i].isRasterized() &&
             this.events[i].hideCount === 0) {
-            var boundingBox = this.events[i].getBoundingBox(coordsRect);
+            var boundingBox = this.events[i].getBoundingBox(coordsRect, this.transform);
             if (boundingBox.containsRoundedOut(coords)) {
-                this.events[i].drawTo(this.blameRasterizer);
+                this.events[i].drawTo(this.blameRasterizer, this.transform);
                 if (this.blameRasterizer.getPixel(coords) !== 0) {
                     var blameAlpha = this.blameRasterizer.getPixel(coords) *
                                      this.events[i].opacity;
@@ -671,7 +686,7 @@ PictureBuffer.prototype.playbackAfterChange = function(eventIndex, rasterizer,
         this.changeUndoStatesFrom(eventIndex, false, followingStateCostChange,
                                   followingStateMove);
     } else {
-        var bBox = this.events[eventIndex].getBoundingBox(this.boundsRect);
+        var bBox = this.events[eventIndex].getBoundingBox(this.boundsRect, this.transform);
         this.pushClipRect(bBox);
         // Undo states following the event are invalidated. The invalidated
         // area is not stored, but it is effectively bBox. playbackStartingFrom
@@ -747,7 +762,7 @@ PictureBuffer.prototype.isOpaque = function() {
 PictureBuffer.prototype.pickEventsMostlyInside = function(rect) {
     var inside = [];
     for (var i = 1; i < this.events.length; ++i) {
-        var bb = this.events[i].getBoundingBox(this.boundsRect);
+        var bb = this.events[i].getBoundingBox(this.boundsRect, this.transform);
         if (bb && !this.events[i].undone && bb.isMostlyInside(rect)) {
             inside.push(this.events[i]);
         }
@@ -789,11 +804,12 @@ PictureBuffer.prototype.isListed = function() {
  * @param {BufferAddEvent} createEvent Event that initializes the buffer.
  * @param {number} width Width of the buffer in pixels. Must be an integer.
  * @param {number} height Height of the buffer in pixels. Must be an integer.
+ * @param {AffineTransform} transform Transform to apply to all event coordinates.
  * @param {boolean} hasUndoStates Does this buffer store undo states?
  * @param {boolean} freed Should this buffer be left without bitmaps?
  */
-var CanvasBuffer = function(createEvent, width, height, hasUndoStates, freed) {
-    this.initializePictureBuffer(createEvent, width, height, hasUndoStates, freed);
+var CanvasBuffer = function(createEvent, width, height, transform, hasUndoStates, freed) {
+    this.initializePictureBuffer(createEvent, width, height, transform, hasUndoStates, freed);
     this.canvas = null;
     this.ctx = null;
     if (!this.freed) {
@@ -1093,16 +1109,17 @@ CanvasBuffer.prototype.bytesPerPixel = function() {
  * @param {BufferAddEvent} createEvent Event that initializes the buffer.
  * @param {number} width Width of the buffer in pixels. Must be an integer.
  * @param {number} height Height of the buffer in pixels. Must be an integer.
+ * @param {AffineTransform} transform Transform to apply to all event coordinates.
  * @param {boolean} hasUndoStates Does this buffer store undo states?
  * @param {boolean} freed Should this buffer be left without bitmaps?
  */
 var GLBuffer = function(gl, glManager, compositor, texBlitProgram, rectBlitProgram, createEvent,
-                        width, height, hasUndoStates, freed) {
+                        width, height, transform, hasUndoStates, freed) {
     this.texBlitProgram = texBlitProgram;
     this.texBlitUniforms = texBlitProgram.uniformParameters();
     this.rectBlitProgram = rectBlitProgram;
     this.rectBlitUniforms = rectBlitProgram.uniformParameters();
-    this.initializePictureBuffer(createEvent, width, height, hasUndoStates, freed);
+    this.initializePictureBuffer(createEvent, width, height, transform, hasUndoStates, freed);
     // Add undo states less often than the default, since drawing is cheap.
     this.undoStateInterval = 32;
     this.gl = gl;
