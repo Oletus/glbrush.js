@@ -440,6 +440,43 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry, brushTextur
     var i = 1;
     var rasterImportEvents = [];
 
+    var generateUpdates = function() {
+        // Reconstruct a chain of PictureUpdates that will result in the parsed picture.
+
+        var buffersPushed = [];
+        var pushedBufferUpdates = function(buf) {
+            for (var k = 0; k < buffersPushed.length; ++k) {
+                if (buffersPushed[k] === buf.id) {
+                    return true;
+                }
+            }
+            return false;
+        };
+        var pushBufferUpdates = function(buf) {
+            buffersPushed.push(buf.id);
+            for (var k = 0; k < buf.events.length; ++k) {
+                var event = buf.events[k];
+                if (event.eventType === 'bufferMerge' && !pushedBufferUpdates(event.mergedBuffer)) {
+                    pushBufferUpdates(event.mergedBuffer);
+                }
+                var update = new PictureUpdate('add_picture_event');
+                update.setPictureEvent(buf.id, event);
+                pic.pushUpdate(update, false);
+                if (event.undone) {
+                    var undoUpdate = new PictureUpdate('undo');
+                    undoUpdate.setUndoEvent(event.sid, event.sessionEventId);
+                    pic.pushUpdate(undoUpdate, false);
+                }
+            }
+        };
+
+        for (var j = 0; j < pic.buffers.length; ++j) {
+            if (!pic.buffers[j].isMerged()) {
+                pushBufferUpdates(pic.buffers[j]);
+            }
+        }
+    };
+
     var regenerateIfReady = function() {
         var ready = true;
         for (i = 0; i < rasterImportEvents.length; ++i) {
@@ -449,6 +486,9 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry, brushTextur
         }
         if (ready) {
             pic.regenerate();
+            if (version < 5) {
+                generateUpdates();
+            }
             finishedCallback({picture: pic, metadata: metadata});
         } else {
             setTimeout(regenerateIfReady, 10);
@@ -482,14 +522,14 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry, brushTextur
             }
         }
 
-        // Merged buffer might not have been present when the merge target buffer was parsed
+        // Merged buffer might not have been present when the merge target buffer was parsed.
+        // This will only set mergedBuffer on the events.
+        // mergedTo will be set on buffers when the picture is regenerated.
         for (var j = 0; j < mergeEvents.length; ++j) {
             pic.undummify(mergeEvents[j]);
         }
 
         delete pic.moveBufferInternal; // switch back to prototype's move function
-
-        // TODO: Construct a sequence of PictureUpdates that reconstructs the picture.
     } else {
         // Parse PictureUpdates and process them in the original order.
         while (i < eventStrings.length) {
@@ -557,9 +597,6 @@ Picture.formatVersion = 5;
  */
 Picture.prototype.serialize = function() {
     var formatVersion = Picture.formatVersion;
-    if (this.parsedVersion !== null && this.parsedVersion < 5) {
-        formatVersion = 4;
-    }
     var nameSerialization = this.name === null ? 'unnamed' : 'named ' + window.btoa(this.name);
     var serialization = ['picture version ' + formatVersion + ' ' +
                          this.width() + ' ' + this.height() + ' ' + nameSerialization];
@@ -567,17 +604,8 @@ Picture.prototype.serialize = function() {
         var buffer = this.buffers[i];
         buffer.events[0].insertionPoint = buffer.insertionPoint;
     }
-    if (formatVersion < 5) {
-        for (var i = 0; i < this.buffers.length; ++i) {
-            var buffer = this.buffers[i];
-            for (var j = 0; j < buffer.events.length; ++j) {
-                serialization.push(buffer.events[j].serialize());
-            }
-        }
-    } else {
-        for (var i = 0; i < this.updates.length; ++i) {
-            serialization.push(this.updates[i].serialize());
-        }
+    for (var i = 0; i < this.updates.length; ++i) {
+        serialization.push(this.updates[i].serialize());
     }
     return serialization.join('\n');
 };
