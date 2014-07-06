@@ -481,6 +481,15 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry, brushTextur
                 ++i;
             }
         }
+
+        // Merged buffer might not have been present when the merge target buffer was parsed
+        for (var j = 0; j < mergeEvents.length; ++j) {
+            pic.undummify(mergeEvents[j]);
+        }
+
+        delete pic.moveBufferInternal; // switch back to prototype's move function
+
+        // TODO: Construct a sequence of PictureUpdates that reconstructs the picture.
     } else {
         // Parse PictureUpdates and process them in the original order.
         while (i < eventStrings.length) {
@@ -488,6 +497,10 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry, brushTextur
                 break;
             } else {
                 var update = PictureUpdate.parse(eventStrings[i]);
+                if (update.updateType === 'add_picture_event' &&
+                    update.pictureEvent.eventType === 'rasterImport') {
+                    rasterImportEvents.push(update.pictureEvent);
+                }
                 pic.pushUpdate(update);
                 ++i;
             }
@@ -497,17 +510,6 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry, brushTextur
     var metadata = [];
     if (i < eventStrings.length && eventStrings[i] === 'metadata') {
         metadata = eventStrings.slice(i);
-    }
-
-    if (version < 5) {
-        // Merged buffer might not have been present when the merge target buffer was parsed
-        for (i = 0; i < mergeEvents.length; ++i) {
-            pic.undummify(mergeEvents[i]);
-        }
-
-        delete pic.moveBufferInternal; // switch back to prototype's move function
-
-        // TODO: Construct a sequence of PictureUpdates that reconstructs the picture.
     }
 
     for (i = 0; i < pic.buffers.length; ++i) {
