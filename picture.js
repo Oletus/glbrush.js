@@ -12,8 +12,10 @@
  * @param {string=} mode Either 'webgl', 'no-texdata-webgl' or 'canvas'. Defaults to 'webgl'.
  * @param {Array.<HTMLImageElement|HTMLCanvasElement>=} brushTextureData Set of brush textures to use. Can be undefined
  * if no textures are needed.
+ * @param {HTMLCanvasElement=} externalCanvas Canvas element to use to composit this picture to. Must be of the correct
+ * width and height. If not supplied one will be created.
  */
-var Picture = function(id, name, boundsRect, bitmapScale, mode, brushTextureData) {
+var Picture = function(id, name, boundsRect, bitmapScale, mode, brushTextureData, externalCanvas) {
     this.id = id;
     this.name = name;
     if (mode === undefined) {
@@ -31,7 +33,8 @@ var Picture = function(id, name, boundsRect, bitmapScale, mode, brushTextureData
     this.activeSessionEventId = 0;
     this.lastSavedSessionEventId = 0;
 
-    this.buffers = [];
+    this.buffers = []; // PictureBuffers
+    this.updates = []; // PictureUpdates (state changes used as the basis of serialization and animation).
     this.currentEventAttachment = -1;
     this.currentEvent = null;
     this.currentEventMode = PictureEvent.Mode.normal;
@@ -52,9 +55,18 @@ var Picture = function(id, name, boundsRect, bitmapScale, mode, brushTextureData
     this.memoryUse = this.bitmapWidth() * this.bitmapHeight() * 4;
 
     this.container = null;
-    this.canvas = document.createElement('canvas');
-    this.canvas.width = this.bitmapWidth();
-    this.canvas.height = this.bitmapHeight();
+    if (externalCanvas) {
+        if (externalCanvas.width === this.bitmapWidth() && externalCanvas.height === this.bitmapHeight()) {
+            this.canvas = externalCanvas;
+        } else {
+            console.log('externalCanvas supplied to picture has wrong size');
+        }
+    }
+    if (!this.canvas) {
+        this.canvas = document.createElement('canvas');
+        this.canvas.width = this.bitmapWidth();
+        this.canvas.height = this.bitmapHeight();
+    }
 
     if (this.usesWebGl()) {
         if (!this.setupGLState()) {
@@ -71,6 +83,34 @@ var Picture = function(id, name, boundsRect, bitmapScale, mode, brushTextureData
         this.mode = undefined;
         return;
     }
+};
+
+/**
+ * Add a PictureUpdate to this picture. This is the preferred way to interface with the Picture for applications which
+ * don't require inserting events to the middle of buffers. It enables serializing the picture and playing back an
+ * animation of its progress.
+ * @param {PictureUpdate} update The update to add.
+ * @param {boolean=} changeState Whether to change the state of the picture according to this update. Defaults to true,
+ * use false to keep the update stack consistent with the event data if you are using other functions to add/change
+ * events.
+ */
+Picture.prototype.pushUpdate = function(update, changeState) {
+    if (changeState === undefined) {
+        changeState = true;
+    }
+    if (changeState) {
+        if (update.updateType === 'undo') {
+            var undone = this.undoEventSessionId(update.undoneSid, update.undoneSessionEventId);
+            if (undone === null) {
+                console.log('pushUpdate: did not find the event to undo with session event id ' +
+                            update.undoneSessionEventId);
+                return;
+            }
+        } else if (update.updateType === 'add_picture_event') {
+            this.pushEvent(update.targetLayerId, update.pictureEvent);
+        }
+    }
+    this.updates.push(update);
 };
 
 /**
@@ -172,7 +212,7 @@ Picture.prototype.destroy = function() {
 };
 
 /**
- * Add a buffer to the top of the buffer stack.
+ * Add a buffer to the top of the buffer stack. Does the operation through pushUpdate.
  * @param {number} id Identifier for this buffer. Unique at the Picture level.
  * Should be an integer >= 0.
  * @param {Array.<number>} clearColor 4-component array with RGBA color that's
@@ -181,29 +221,35 @@ Picture.prototype.destroy = function() {
  */
 Picture.prototype.addBuffer = function(id, clearColor, hasAlpha) {
     var addEvent = this.createBufferAddEvent(id, hasAlpha, clearColor);
-    this.pushEvent(id, addEvent);
+    var update = new PictureUpdate('add_picture_event');
+    update.setPictureEvent(id, addEvent);
+    this.pushUpdate(update);
 };
 
 /**
  * Mark a buffer as removed from the stack. It won't be composited, but it can
- * still be changed.
+ * still be changed. Does the operation through pushUpdate.
  * @param {number} id Identifier for the removed buffer.
  */
 Picture.prototype.removeBuffer = function(id) {
     var removeEvent = this.createBufferRemoveEvent(id);
-    this.pushEvent(id, removeEvent);
+    var update = new PictureUpdate('add_picture_event');
+    update.setPictureEvent(id, removeEvent);
+    this.pushUpdate(update);
 };
 
 /**
  * Move a buffer to the given index in the buffer stack. Current event stays
- * attached to the moved buffer, if it exists.
+ * attached to the moved buffer, if it exists. Does the operation through pushUpdate.
  * @param {number} movedId The id of the buffer to move.
  * @param {number} toIndex The index to move this buffer to. Must be an integer
  * between 0 and Picture.buffers.length - 1.
  */
 Picture.prototype.moveBuffer = function(movedId, toIndex) {
     var moveEvent = this.createBufferMoveEvent(movedId, toIndex);
-    this.pushEvent(movedId, moveEvent);
+    var update = new PictureUpdate('add_picture_event');
+    update.setPictureEvent(movedId, moveEvent);
+    this.pushUpdate(update);
 };
 
 /**
@@ -387,43 +433,13 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry, brushTextur
     }
     var pic = Picture.create(id, name, width, height, bitmapScale, modesToTry, brushTextureData);
     pic.parsedVersion = version;
-    pic.moveBufferInternal = function() {}; // Move events can be processed out
-    // of order here, so we don't apply them. Instead rely on buffers being
-    // already in the correct order.
 
-    // First parse all buffers without rasterizing, then rasterize starting from merged buffers (regenerate).
+    // First parse all buffers without rasterizing, then rasterize after rasterImport events are loaded.
     pic.freed = true;
-    // TODO: Maybe serialization and parsing would be simpler and more reliable
-    // if events were serialized and parsed in the order they were applied?
+
     var i = 1;
-    var currentId = -1;
-    var mergeEvents = [];
     var rasterImportEvents = [];
-    while (i < eventStrings.length) {
-        if (eventStrings[i] === 'metadata') {
-            break;
-        } else {
-            var arr = eventStrings[i].split(' ');
-            var pictureEvent = PictureEvent.parse(arr, 0, version);
-            if (pictureEvent.eventType === 'bufferMerge') {
-                mergeEvents.push(pictureEvent);
-            }
-            if (pictureEvent.eventType === 'rasterImport') {
-                rasterImportEvents.push(pictureEvent);
-            }
-            pic.pushEvent(currentId, pictureEvent);
-            currentId = pic.buffers[pic.buffers.length - 1].id;
-            ++i;
-        }
-    }
-    var metadata = [];
-    if (i < eventStrings.length && eventStrings[i] === 'metadata') {
-        metadata = eventStrings.slice(i);
-    }
-    // Merged buffer might not have been present when the merge target buffer was parsed
-    for (i = 0; i < mergeEvents.length; ++i) {
-        pic.undummify(mergeEvents[i]);
-    }
+
     var regenerateIfReady = function() {
         var ready = true;
         for (i = 0; i < rasterImportEvents.length; ++i) {
@@ -438,10 +454,66 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry, brushTextur
             setTimeout(regenerateIfReady, 10);
         }
     };
+
+    if (version < 5) {
+        // Parse events, old style.
+
+        pic.moveBufferInternal = function() {}; // Move events can be processed out
+        // of order here, so we don't apply them. Instead rely on buffers being
+        // already in the correct order.
+
+        var currentId = -1;
+        var mergeEvents = [];
+        while (i < eventStrings.length) {
+            if (eventStrings[i] === 'metadata') {
+                break;
+            } else {
+                var arr = eventStrings[i].split(' ');
+                var pictureEvent = PictureEvent.parse(arr, 0, version);
+                if (pictureEvent.eventType === 'bufferMerge') {
+                    mergeEvents.push(pictureEvent);
+                }
+                if (pictureEvent.eventType === 'rasterImport') {
+                    rasterImportEvents.push(pictureEvent);
+                }
+                pic.pushEvent(currentId, pictureEvent);
+                currentId = pic.buffers[pic.buffers.length - 1].id;
+                ++i;
+            }
+        }
+    } else {
+        // Parse PictureUpdates and process them in the original order.
+        while (i < eventStrings.length) {
+            if (eventStrings[i] === 'metadata') {
+                break;
+            } else {
+                var update = PictureUpdate.parse(eventStrings[i]);
+                pic.pushUpdate(update);
+                ++i;
+            }
+        }
+    }
+
+    var metadata = [];
+    if (i < eventStrings.length && eventStrings[i] === 'metadata') {
+        metadata = eventStrings.slice(i);
+    }
+
+    if (version < 5) {
+        // Merged buffer might not have been present when the merge target buffer was parsed
+        for (i = 0; i < mergeEvents.length; ++i) {
+            pic.undummify(mergeEvents[i]);
+        }
+
+        delete pic.moveBufferInternal; // switch back to prototype's move function
+
+        // TODO: Construct a sequence of PictureUpdates that reconstructs the picture.
+    }
+
     for (i = 0; i < pic.buffers.length; ++i) {
         pic.buffers[i].insertionPoint = pic.buffers[i].events[0].insertionPoint;
     }
-    delete pic.moveBufferInternal; // switch back to prototype's move function
+
     setTimeout(regenerateIfReady, 0);
 };
 
@@ -474,7 +546,7 @@ Picture.prototype.maxBitmapScale = function() {
 };
 
 /** @const */
-Picture.formatVersion = 4;
+Picture.formatVersion = 5;
 
 /**
  * @return {string} A serialization of this Picture. Can be parsed into a new
@@ -482,14 +554,27 @@ Picture.formatVersion = 4;
  * least two subsequent versions.
  */
 Picture.prototype.serialize = function() {
+    var formatVersion = Picture.formatVersion;
+    if (this.parsedVersion !== null && this.parsedVersion < 5) {
+        formatVersion = 4;
+    }
     var nameSerialization = this.name === null ? 'unnamed' : 'named ' + window.btoa(this.name);
-    var serialization = ['picture version ' + Picture.formatVersion + ' ' +
+    var serialization = ['picture version ' + formatVersion + ' ' +
                          this.width() + ' ' + this.height() + ' ' + nameSerialization];
     for (var i = 0; i < this.buffers.length; ++i) {
         var buffer = this.buffers[i];
         buffer.events[0].insertionPoint = buffer.insertionPoint;
-        for (var j = 0; j < buffer.events.length; ++j) {
-            serialization.push(buffer.events[j].serialize());
+    }
+    if (formatVersion < 5) {
+        for (var i = 0; i < this.buffers.length; ++i) {
+            var buffer = this.buffers[i];
+            for (var j = 0; j < buffer.events.length; ++j) {
+                serialization.push(buffer.events[j].serialize());
+            }
+        }
+    } else {
+        for (var i = 0; i < this.updates.length; ++i) {
+            serialization.push(this.updates[i].serialize());
         }
     }
     return serialization.join('\n');
@@ -974,7 +1059,9 @@ Picture.prototype.afterRemove = function(buffer) {
 };
 
 /**
- * Add an event to the top of one of this picture's buffers.
+ * Add an event to the top of one of this picture's buffers. Using this
+ * directly requires that you also add the same event through pushUpdate,
+ * otherwise you can not use serialization or animation functionality.
  * @param {number} targetBufferId The id of the buffer to apply the event to. In
  * case the event is a buffer add event, the id is ignored.
  * @param {PictureEvent} event Event to add.
@@ -1021,7 +1108,9 @@ Picture.prototype.pushEvent = function(targetBufferId, event) {
  * insertion point is relatively close to the top of the buffer, and that the
  * event should maintain the rule that events with higher sessionEventIds from
  * the same session are closer to the top of the buffer than events with lower
- * sessionEventIds.
+ * sessionEventIds. Using this directly requires that you also add the same
+ * event through pushUpdate, otherwise you can not use serialization or
+ * animation functionality.
  * @param {number} targetBufferId The id of the buffer to insert the event to.
  * @param {PictureEvent} event Event to insert. Can not be a BufferAddEvent or
  * a BufferMoveEvent. TODO: Fix this for BufferMoveEvent.
@@ -1106,7 +1195,9 @@ Picture.prototype.moveBufferInternal = function(fromIndex, toIndex) {
 /**
  * Undo the latest non-undone event applied to this picture by the current
  * active session. Won't do anything in case the latest event is a merge event
- * applied to a buffer that is itself removed or merged.
+ * applied to a buffer that is itself removed or merged. Using this directly
+ * requires that you also undo the same event through pushUpdate, otherwise
+ * you can not use serialization or animation functionality.
  * @param {boolean} keepLastBuffer Don't undo the last remaining buffer.
  * Defaults to true.
  * @return {PictureEvent} The event that was undone or null if no event found.
@@ -1172,7 +1263,9 @@ Picture.prototype.undoEventIndex = function(buffer, eventIndex) {
 };
 
 /**
- * Undo the specified event applied to this picture.
+ * Undo the specified event applied to this picture.  Using this directly
+ * requires that you also undo the same event through pushUpdate, otherwise
+ * you can not use serialization or animation functionality.
  * @param {number} sid The session id of the event.
  * @param {number} sessionEventId The session-specific event id of the event.
  * @return {PictureEvent} Undone event or null if couldn't undo.
@@ -1194,6 +1287,7 @@ Picture.prototype.undoEventSessionId = function(sid, sessionEventId) {
 
 /**
  * Redo the specified event applied to this picture by marking it not undone.
+ * TODO: Redos are not supported in animation/serialization. Fix this.
  * @param {number} sid The session id of the event.
  * @param {number} sessionEventId The session-specific event id of the event.
  * @return {boolean} True if the event was found.
@@ -1234,6 +1328,7 @@ Picture.prototype.redoEventSessionId = function(sid, sessionEventId) {
 
 /**
  * Remove the specified event from this picture entirely.
+ * TODO: Removes are not supported in animation/serialization. Fix this.
  * @param {number} sid The session id of the event.
  * @param {number} sessionEventId The session-specific event id of the event.
  * @return {boolean} True on success.
@@ -1261,8 +1356,8 @@ Picture.prototype.removeEventSessionId = function(sid, sessionEventId) {
 
 /**
  * Update the currentEvent of this picture, meant to contain the event that the
- * user is currently drawing. The event is assumed to already be in the picture
- * bitmap coordinates in pixels, not in the picture coordinates.
+ * user is currently drawing. The event is assumed to be in the picture coordinates,
+ * not in the bitmap coordinates in pixels.
  * @param {PictureEvent} cEvent The event the user is currently drawing or null.
  */
 Picture.prototype.setCurrentEvent = function(cEvent) {
@@ -1275,10 +1370,27 @@ Picture.prototype.setCurrentEvent = function(cEvent) {
 };
 
 /**
+ * Update the currentEvent of this picture, meant to contain the event that is
+ * currently being animated.
+ * @param {PictureEvent} cEvent The event the user is currently drawing or null.
+ * @param {number} untilCoord Only draw until this index.
+ * @protected
+ */
+Picture.prototype.setCurrentAnimationEvent = function(cEvent, untilCoord) {
+    this.currentEvent = cEvent;
+    if (this.currentEvent) {
+        this.currentEventRasterizer.resetClip();
+        this.currentEvent.drawTo(this.currentEventRasterizer, this.pictureTransform, untilCoord);
+    }
+    this.updateCurrentEventMode();
+};
+
+/**
  * Search for event from sourceBuffer, remove it from there if it is found, and
  * push it to targetBuffer. The move should maintain the rule that events with
  * higher sessionEventIds from the same session are closer to the top of the
  * buffer than events with lower sessionEventIds.
+ * TODO: Moves are not supported in animation/serialization. Fix this.
  * @param {number} targetBufferId The id of the buffer to push the event to.
  * @param {number} sourceBufferId The id of the buffer to search the event
  * from.
@@ -1344,8 +1456,6 @@ Picture.prototype.regenerate = function() {
 /**
  * Play back an animation displaying the progress of this picture from start to
  * finish.
- * @param {number} simultaneousStrokes How many subsequent events to animate
- * simultaneously. Must be at least 1.
  * @param {number} speed Speed at which to animate the individual events. Must
  * be between 0 and 1.
  * @param {function()=} animationFinishedCallBack Function to call when the
@@ -1353,20 +1463,22 @@ Picture.prototype.regenerate = function() {
  * @return {boolean} Returns true if the animation was started or is still in
  * progress from an earlier call.
  */
-Picture.prototype.animate = function(simultaneousStrokes, speed,
-                                     animationFinishedCallBack) {
+Picture.prototype.animate = function(speed, animationFinishedCallBack) {
     if (this.animating) {
         return true;
     }
     var that = this;
     this.animating = true;
-    if (this.buffers.length === 0) {
-        setTimeout(function() {
-            that.animating = false;
-            if (animationFinishedCallBack !== undefined) {
-                animationFinishedCallBack();
-            }
-        }, 0);
+
+    var finishAnimating = function() {
+        that.stopAnimating();
+        if (animationFinishedCallBack !== undefined) {
+            animationFinishedCallBack();
+        }
+    };
+
+    if (this.updates.length === 0) {
+        setTimeout(finishAnimating, 0);
         return true;
     }
     if (speed === undefined) {
@@ -1374,121 +1486,58 @@ Picture.prototype.animate = function(simultaneousStrokes, speed,
     }
     this.animationSpeed = speed;
 
-    this.totalEvents = 0;
-    this.animationBuffers = [];
-    // TODO: Currently playback is from bottom to top and doesn't support merge
-    // events. Switch to a timestamp-based approach.
-    for (var i = 0; i < this.buffers.length; ++i) {
-        if (this.buffers[i].isListed()) {
-            // Create event doesn't count
-            this.totalEvents += this.buffers[i].events.length - 1;
-            var createEvent = new BufferAddEvent(-1, -1, false, -1,
-                                                 this.buffers[i].hasAlpha,
-                                                 this.buffers[i].events[0].clearColor,
-                                                 this.buffers[i].events[0].opacity);
-            var buffer = this.createBuffer(createEvent, false);
-            this.animationBuffers.push(buffer);
-        }
-    }
-
-    simultaneousStrokes = Math.min(simultaneousStrokes, this.totalEvents);
-    var j = -1;
-    this.eventToAnimate = function(index) {
-        var listedIndex = 0;
-        for (var i = 0; i < that.buffers.length; ++i) {
-            if (this.buffers[i].isListed()) {
-                if (index < that.buffers[i].events.length - 1) {
-                    return {event: that.buffers[i].events[index + 1],
-                            bufferIndex: listedIndex}; // index in this.animationBuffers
-                } else {
-                    index -= that.buffers[i].events.length - 1;
-                }
-                ++listedIndex;
-            }
-        }
-        return null; // should not be reached
-    };
-
-    function getNextEventIndexToAnimate() {
-        ++j;
-        while (j < that.totalEvents && (that.eventToAnimate(j).event.undone ||
-               !that.eventToAnimate(j).event.isRasterized() ||
-               that.eventToAnimate(j).event.hideCount > 0)) {
-            ++j;
-        }
-        var bufferIndex = 0;
-        var eventToAnimate = that.eventToAnimate(j);
-        if (eventToAnimate !== null) {
-            bufferIndex = eventToAnimate.bufferIndex;
-        }
-        return {eventIndex: j, bufferIndex: bufferIndex};
-    };
-
-    this.animators = [];
-    var Animator = function(animationPos) {
-        this.rasterizer = that.createRasterizer(true);
-        var indices = getNextEventIndexToAnimate();
-        this.bufferIndex = indices.bufferIndex;
-        this.eventIndex = indices.eventIndex;
-        this.animationPos = animationPos;
-    };
-
-    for (var i = 0; i < simultaneousStrokes; ++i) {
-        this.animators.push(new Animator(-i / simultaneousStrokes));
-    }
+    var totalUpdates = this.updates.length;
+    this.animationPicture = new Picture(-1, 'animationPic', this.boundsRect, this.pictureTransform.scale, this.mode,
+                                        this.brushTextureData, this.canvas);
+    var updateIndex = 0;
+    var updateT = 0;
+    var update = null;
+    var picEvent = null;
 
     var animationFrame = function() {
-        if (!that.animating) {
-            return;
-        }
-        var finishedRasterizers = 0;
-        for (var i = 0; i < simultaneousStrokes; ++i) {
-            var eventIndex = that.animators[i].eventIndex;
-            if (eventIndex < that.totalEvents) {
-                that.animators[i].animationPos += that.animationSpeed;
-                if (that.animators[i].animationPos > 0) {
-                    var eventToAnimate = that.eventToAnimate(eventIndex);
-                    var event = eventToAnimate.event;
-                    if (that.animators[i].animationPos >= 1.0) {
-                        event.drawTo(that.animators[i].rasterizer, that.pictureTransform);
-                        var buffer = that.animationBuffers[
-                            that.animators[i].bufferIndex];
-                        buffer.pushEvent(event, that.animators[i].rasterizer);
-                        var indices = getNextEventIndexToAnimate();
-                        that.animators[i].eventIndex = indices.eventIndex;
-                        that.animators[i].bufferIndex = indices.bufferIndex;
-                        that.animators[i].rasterizer.clear();
-                        that.animators[i].rasterizer.resetClip();
-                        that.animators[i].animationPos -= 1.0;
-                    } else if (event.eventType === 'brush') {
-                        var untilCoord = event.coords.length *
-                                      that.animators[i].animationPos;
-                        event.animationCoord = untilCoord;
-                        untilCoord = Math.ceil(untilCoord / 3) * 3;
-                        event.drawTo(that.animators[i].rasterizer,
-                                     that.pictureTransform,
-                                     untilCoord);
+        if (updateIndex < totalUpdates) {
+            if (updateT === 0) {
+                var updateStr = that.updates[updateIndex].serialize();
+                update = PictureUpdate.parse(updateStr);
+                if (update.updateType === 'add_picture_event') {
+                    picEvent = update.pictureEvent;
+                    picEvent.undone = false;
+                    if (picEvent.eventType === 'brush') {
+                        that.animationPicture.setCurrentEventAttachment(update.targetLayerId);
+                        that.animationPicture.setCurrentAnimationEvent(picEvent, 0);
+                    } else {
+                        updateT = 1;
                     }
+                } else {
+                    updateT = 1;
                 }
+            }
+            if (updateT < 1) {
+                updateT += that.animationSpeed;
+                if (updateT > 1) {
+                    updateT = 1;
+                }
+                var untilCoord = picEvent.coords.length * updateT;
+                untilCoord = Math.ceil(untilCoord / 3) * 3;
+                picEvent.drawTo(that.animationPicture.currentEventRasterizer, that.pictureTransform, untilCoord);
+
+                that.animationPicture.display();
+                window.requestAnimationFrame(animationFrame);
             } else {
-                if (that.animators[i].rasterizer !== null) {
-                    that.animators[i].rasterizer.free();
-                    that.animators[i].rasterizer = null;
-                }
-                ++finishedRasterizers;
+                that.animationPicture.pushUpdate(update);
+                that.animationPicture.setCurrentAnimationEvent(null);
+                ++updateIndex;
+                updateT = 0;
+
+                that.animationPicture.display();
+                window.setTimeout(animationFrame, 50);
             }
-        }
-        if (finishedRasterizers !== simultaneousStrokes) {
-            that.displayAnimation();
-            requestAnimationFrame(animationFrame);
         } else {
-            that.stopAnimating();
-            if (animationFinishedCallBack !== undefined) {
-                animationFinishedCallBack();
-            }
+            finishAnimating();
         }
     };
-    requestAnimationFrame(animationFrame);
+
+    animationFrame();
     return true;
 };
 
@@ -1498,55 +1547,10 @@ Picture.prototype.animate = function(simultaneousStrokes, speed,
 Picture.prototype.stopAnimating = function() {
     if (this.animating) {
         this.animating = false;
-        var i;
-        for (i = 0; i < this.animators.length; ++i) {
-            if (this.animators[i].rasterizer !== null) {
-                this.animators[i].rasterizer.free();
-                this.animators[i].rasterizer = null;
-            }
-        }
-        for (i = 0; i < this.animationBuffers.length; ++i) {
-            this.animationBuffers[i].free();
-        }
-        this.animationBuffers = null;
-        this.eventToAnimate = null;
+        // TODO: this.animationPicture.free();
+        this.animationPicture = null;
         this.display();
     }
-};
-
-/**
- * Display the current animation frame on the canvas.
- * @protected
- */
-Picture.prototype.displayAnimation = function() {
-    if (this.usesWebGl()) {
-        this.glManager.useFbo(null);
-        this.gl.scissor(0, 0, this.bitmapWidth(), this.bitmapHeight());
-    }
-    var i, j;
-    var rasterizerIndexOffset = 0;
-    for (i = 0; i < this.animators.length; ++i) {
-        if (this.animators[i].eventIndex <
-            this.animators[rasterizerIndexOffset].eventIndex) {
-            rasterizerIndexOffset = i;
-        }
-    }
-    for (i = 0; i < this.animationBuffers.length; ++i) {
-        this.compositor.pushBuffer(this.animationBuffers[i]);
-        for (j = 0; j < this.animators.length; ++j) {
-            // Start from the rasterizer that's first in the bottom-to-top order
-            var ri = (j + rasterizerIndexOffset) % this.animators.length;
-            if (this.animators[ri].eventIndex < this.totalEvents &&
-                this.animators[ri].bufferIndex === i) {
-                var event = this.eventToAnimate(this.animators[ri].eventIndex).event;
-                this.compositor.pushRasterizer(this.animators[ri].rasterizer,
-                                               event.color, event.opacity,
-                                               event.mode,
-                                               event.getBoundingBox(this.bitmapRect, this.pictureTransform));
-            }
-        }
-    }
-    this.compositor.flush();
 };
 
 /**

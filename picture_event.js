@@ -25,7 +25,7 @@ var GradientEventState = function() {
 };
 
 /**
- * An event that changes a picture buffer's state.
+ * An event that is a part of the picture buffer's state.
  * @constructor
  * @param {string} eventType A short identifier for the type of the event. May
  * not contain spaces.

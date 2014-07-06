@@ -274,7 +274,9 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
                                               PictureEvent.Mode.normal);
         brushEvent.pushCoordTriplet(0, 0, 1.0);
         brushEvent.pushCoordTriplet(pic.width(), pic.height(), 1.0);
-        pic.pushEvent(1337, brushEvent);
+        var update = new PictureUpdate('add_picture_event');
+        update.setPictureEvent(1337, brushEvent);
+        pic.pushUpdate(update);
         var pic2;
         var pic3;
         Picture.resize(pic, 0.5, function(p2) {
@@ -354,7 +356,9 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         var clearColor2 = [0, 0, 0];
         pic.addBuffer(1338, clearColor2, false);
         var mergeEvent = pic.createMergeEvent(1, 0.7);
-        pic.pushEvent(1337, mergeEvent);
+        var update = new PictureUpdate('add_picture_event');
+        update.setPictureEvent(1337, mergeEvent);
+        pic.pushUpdate(update);
         expect(pic.buffers[1].mergedTo).toBe(pic.buffers[0]);
 
         var pic2;

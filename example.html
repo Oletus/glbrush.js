@@ -16,6 +16,7 @@
 <script type="text/javascript" src="rasterize.js"></script>
 <script type="text/javascript" src="picture_buffer.js"></script>
 <script type="text/javascript" src="undo_state.js"></script>
+<script type="text/javascript" src="picture_update.js"></script>
 <script type="text/javascript" src="picture.js"></script>
 <script type="text/javascript">
 /**
@@ -67,7 +68,9 @@ loadApp = function() {
     drawArea.onmouseup = function(e) {
         if (currentEvent !== null) {
             picture.setCurrentEvent(null);
-            picture.pushEvent(0, currentEvent);
+            var update = new PictureUpdate('add_picture_event');
+            update.setPictureEvent(0, currentEvent);
+            picture.pushUpdate(update);
             picture.display();
             currentEvent = null;
         }
@@ -95,25 +98,32 @@ loadApp = function() {
 
     // Add undo to the mix just for kicks
     createButton('Undo', function() {
-        picture.undoLatest();
+        var undone = picture.undoLatest();
+        if (undone) {
+            var update = new PictureUpdate('undo');
+            update.setUndoEvent(undone.sid, undone.sessionEventId);
+            picture.pushUpdate(update, false);
+        }
         picture.display();
     });
 
     // And animation!
     createButton('Animate', function() {
-        picture.animate(4, 0.1);
+        picture.animate(0.15);
     });
 
     // Whee, resize
     var resize = function(scale) {
-        drawArea.innerHTML = '';
-        Picture.resize(picture, scale, function(pic) {
-            picture = pic;
-            drawArea.appendChild(picture.pictureElement());
-            drawArea.style.width = picture.bitmapWidth();
-            drawArea.style.height = picture.bitmapHeight();
-            picture.display();
-        });
+        if (!picture.animating) {
+            drawArea.innerHTML = '';
+            Picture.resize(picture, scale, function(pic) {
+                picture = pic;
+                drawArea.appendChild(picture.pictureElement());
+                drawArea.style.width = picture.bitmapWidth();
+                drawArea.style.height = picture.bitmapHeight();
+                picture.display();
+            });
+        }
     };
     createButton('0.5x', function() {
         resize(0.5);
