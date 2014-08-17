@@ -67,13 +67,14 @@ describe('PictureEvent', function() {
             testEvent.radius = 3;
             testEvent.pushCoordTriplet(0, 0, 1);
             testEvent.pushCoordTriplet(1, 0, 1);
-            var oldBox = testEvent.getBoundingBox(new Rect(-10, 10, -10, -10), new AffineTransform());
+            var transform = new AffineTransform();
+            var oldBox = testEvent.getBoundingBox(new Rect(-10, 10, -10, -10), transform);
             var oldLeft = oldBox.left;
             var oldRight = oldBox.right;
             var oldTop = oldBox.top;
             var oldBottom = oldBox.bottom;
             testEvent.pushCoordTriplet(3, 0, 1);
-            var box = testEvent.getBoundingBox(new Rect(-10, 10, -10, -10), new AffineTransform());
+            var box = testEvent.getBoundingBox(new Rect(-10, 10, -10, -10), transform);
             expect(box).toBe(oldBox);
             expect(box.right).toBeNear(oldRight + 2, 0.01);
             expect(box.left).toBeNear(oldLeft, 0.01);
@@ -86,13 +87,14 @@ describe('PictureEvent', function() {
             testEvent.radius = 3;
             testEvent.pushCoordTriplet(0, 0, 1);
             testEvent.pushCoordTriplet(1, 1, 1);
-            var oldBox = testEvent.getBoundingBox(new Rect(-10, 10, -10, -10), new AffineTransform());
+            var transform = new AffineTransform();
+            var oldBox = testEvent.getBoundingBox(new Rect(-10, 10, -10, -10), transform);
             var oldLeft = oldBox.left;
             var oldRight = oldBox.right;
             var oldTop = oldBox.top;
             var oldBottom = oldBox.bottom;
             testEvent.translate(new Vec2(2, 1));
-            var box = testEvent.getBoundingBox(new Rect(-10, 10, -10, -10), new AffineTransform());
+            var box = testEvent.getBoundingBox(new Rect(-10, 10, -10, -10), transform);
             expect(box).toBe(oldBox);
             expect(box.right).toBeNear(oldRight + 2, 0.01);
             expect(box.left).toBeNear(oldLeft + 2, 0.01);
@@ -118,6 +120,28 @@ describe('PictureEvent', function() {
             expect(box.left).toBeLessThan(oldLeft - radius + 0.1);
             expect(box.top).toBeLessThan(oldTop - radius + 0.1);
             expect(box.bottom).toBeGreaterThan(oldBottom + radius - 0.1);
+        });
+
+        it('updates its bounding box if the transform changes', function() {
+            var testEvent = creator();
+            testEvent.radius = 3;
+            testEvent.pushCoordTriplet(0, 0, 1);
+            testEvent.pushCoordTriplet(1, 1, 1);
+            var transform = new AffineTransform();
+            var oldBox = testEvent.getBoundingBox(new Rect(-10, 10, -10, -10), transform);
+            var oldLeft = oldBox.left;
+            var oldRight = oldBox.right;
+            var oldTop = oldBox.top;
+            var oldBottom = oldBox.bottom;
+            transform.translate.x += 2;
+            transform.translate.y += 1;
+            ++transform.generation;
+            var box = testEvent.getBoundingBox(new Rect(-10, 10, -10, -10), transform);
+            expect(box).not.toBe(oldBox);
+            expect(box.right).toBeNear(oldRight + 2, 0.01);
+            expect(box.left).toBeNear(oldLeft + 2, 0.01);
+            expect(box.top).toBeNear(oldTop + 1, 0.01);
+            expect(box.bottom).toBeNear(oldBottom + 1, 0.01);
         });
     };
 

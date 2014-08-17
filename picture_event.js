@@ -395,6 +395,8 @@ BrushEvent.BBRasterizer = function() {
     this.state = null;
     this.boundingBox = null;
     this.generation = -1;
+    this.transform = null;
+    this.transformGeneration = 0;
 };
 
 /**
@@ -408,16 +410,21 @@ BrushEvent.BBRasterizer.prototype.clearDirty = function() {
 /**
  * Get draw event state for the given event.
  * @param {BrushEvent} event The event to be rasterized.
+ * @param {AffineTransform} transform The transform to check to determine whether a
+ * clear needs to be performed. Does not affect the rasterizer's operation.
  * @param {function()} stateConstructor Constructor for creating a new draw
  * event state object unless the event already has been rasterized to this
  * rasterizer's bitmap.
  * @return {Object} Draw event state for the given event.
  */
-BrushEvent.BBRasterizer.prototype.getDrawEventState = function(event, stateConstructor) {
-    if (this.boundingBox === null || event.generation !== this.generation) {
+BrushEvent.BBRasterizer.prototype.getDrawEventState = function(event, transform, stateConstructor) {
+    if (this.boundingBox === null || event.generation !== this.generation || transform !== this.transform ||
+        transform.generation !== this.transformGeneration) {
         this.state = new stateConstructor();
         this.boundingBox = new Rect();
         this.generation = event.generation;
+        this.transform = transform;
+        this.transformGeneration = transform.generation;
     }
     return this.state;
 };
@@ -466,7 +473,7 @@ BrushEvent.BBRasterizer.prototype.flushCircles = function() {};
  * @param {number} untilCoord Maximum coordinate index to draw + 1.
  */
 BrushEvent.prototype.drawTo = function(rasterizer, transform, untilCoord) {
-    var drawState = rasterizer.getDrawEventState(this, BrushEventState);
+    var drawState = rasterizer.getDrawEventState(this, transform, BrushEventState);
     // Use different tips for BB and normal drawing to avoid clearing the rasterizer all the time while drawing
     var brushTip = rasterizer === this.boundingBoxRasterizer ? this.bbTip : this.brushTip;
     if (untilCoord === undefined) {
@@ -475,7 +482,7 @@ BrushEvent.prototype.drawTo = function(rasterizer, transform, untilCoord) {
     // TODO: Reset also if transform has changed
     if (drawState.coordsInd > untilCoord || brushTip.target !== rasterizer) {
         rasterizer.clearDirty();
-        drawState = rasterizer.getDrawEventState(this, BrushEventState);
+        drawState = rasterizer.getDrawEventState(this, transform, BrushEventState);
     }
     // TODO: assert(this.coords.length % BrushEvent.coordsStride === 0);
     // TODO: assert(untilCoord % BrushEvent.coordsStride === 0);
@@ -649,13 +656,13 @@ ScatterEvent.prototype.getBoundingBox = BrushEvent.prototype.getBoundingBox;
  * @param {number} untilCoord Maximum coordinate index to draw + 1.
  */
 ScatterEvent.prototype.drawTo = function(rasterizer, transform, untilCoord) {
-    var drawState = rasterizer.getDrawEventState(this, BrushEventState);
+    var drawState = rasterizer.getDrawEventState(this, transform, BrushEventState);
     if (untilCoord === undefined) {
         untilCoord = this.coords.length;
     } else {
         if (drawState.coordsInd > untilCoord) {
             rasterizer.clearDirty();
-            drawState = rasterizer.getDrawEventState(this, BrushEventState);
+            drawState = rasterizer.getDrawEventState(this, transform, BrushEventState);
         }
     }
     var i = drawState.coordsInd;
@@ -878,7 +885,7 @@ GradientEvent.prototype.getBoundingBox = function(clipRect, transform) {
  * @param {AffineTransform} transform Transform for the event coordinates.
  */
 GradientEvent.prototype.drawTo = function(rasterizer, transform) {
-    var drawState = rasterizer.getDrawEventState(this, GradientEventState);
+    var drawState = rasterizer.getDrawEventState(this, transform, GradientEventState);
     if (drawState.drawn) {
         return;
     }

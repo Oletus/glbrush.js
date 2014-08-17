@@ -11,7 +11,7 @@ var testBufferParams = {
     hasAlpha: true
 };
 
-var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params) {
+var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, createRasterizer, params) {
     it('initializes', function() {
         // This is a hacky way of doing global setup for this group of tests.
         // But just running global setup before any tests are run doesn't work
@@ -887,6 +887,43 @@ var testBuffer = function(initTestCanvas, createBuffer, createRasterizer, params
         rasterizer.free();
         buffer.free();
     });
+
+    it('is cropped', function() {
+        initTestCanvas();
+        var buffer = createBuffer(params);
+        var rasterizer = createRasterizer(params);
+        var brushEvent = fillingBrushEvent(params.width, params.height,
+                                           [0, 0, 0], 0.5,
+                                           PictureEvent.Mode.normal);
+        buffer.pushEvent(brushEvent, rasterizer);
+        var brushEvent = fillingBrushEvent(params.width, params.height,
+                                       [90, 30, 60], 1.0,
+                                       PictureEvent.Mode.normal);
+        brushEvent.translate(new Vec2(-params.width * 3, -params.height * 3));
+        buffer.pushEvent(brushEvent, rasterizer);
+
+        var newWidth = Math.ceil(params.width * 0.5);
+        var newHeight = Math.ceil(params.height * 0.5);
+        resizeTestCanvas(newWidth, newHeight);
+        rasterizer = createRasterizer({width: newWidth, height: newHeight});
+
+        buffer.transform.translate.x = params.width * 3;
+        buffer.transform.translate.y = params.width * 3;
+        ++buffer.transform.generation;
+        buffer.crop(newWidth, newHeight,
+                    new Vec2(buffer.transform.translate.x, buffer.transform.translate.y),
+                    rasterizer);
+
+        expect(buffer.width()).toBe(newWidth);
+        expect(buffer.height()).toBe(newHeight);
+        var samplePixel = buffer.getPixelRGBA(new Vec2(0, 0));
+        expect(samplePixel[0]).toBeNear(90, 4);
+        expect(samplePixel[1]).toBeNear(30, 4);
+        expect(samplePixel[2]).toBeNear(60, 4);
+
+        rasterizer.free();
+        buffer.free();
+    });
 };
 
 describe('CanvasBuffer', function() {
@@ -900,7 +937,7 @@ describe('CanvasBuffer', function() {
     var createRasterizer = function(params) {
         return new Rasterizer(params.width, params.height, null);
     };
-    testBuffer(function() {}, createBuffer, createRasterizer, testBufferParams);
+    testBuffer(function() {}, function() {}, createBuffer, createRasterizer, testBufferParams);
 });
 
 describe('GLBuffer', function() {
@@ -929,6 +966,12 @@ describe('GLBuffer', function() {
                                                   {'uSrcTex': 'tex2d', 'uScale': '2fv', 'uTranslate': '2fv'});
     };
 
+    var resizeTestCanvas = function(width, height) {
+        canvas.width = width;
+        canvas.height = height;
+        gl.viewport(0, 0, width, height);
+    };
+
     var createBuffer = function(params) {
         var createEvent = new BufferAddEvent(-1, -1, false, params.id,
                                              params.hasAlpha, params.clearColor,
@@ -937,9 +980,8 @@ describe('GLBuffer', function() {
                             createEvent, params.width, params.height, new AffineTransform(), params.hasUndoStates);
     };
     var createRasterizer = function(params) {
-        return new GLDoubleBufferedRasterizer(gl, glManager, params.width,
-                                              params.height, null);
+        return new GLDoubleBufferedRasterizer(gl, glManager, params.width, params.height, null);
     };
 
-    testBuffer(initTestCanvas, createBuffer, createRasterizer, params);
+    testBuffer(initTestCanvas, resizeTestCanvas, createBuffer, createRasterizer, params);
 });

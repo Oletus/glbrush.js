@@ -33,6 +33,8 @@ BaseRasterizer.prototype.initBaseRasterizer = function(width, height, brushTextu
     this.drawEvent = null;
     this.drawEventState = null;
     this.drawEventGeneration = -1;
+    this.drawEventTransform = null;
+    this.drawEventTransformGeneration = -1;
     this.drawEventClipRect = new Rect(0, this.width, 0, this.height);
     this.dirtyArea = new Rect();
 };
@@ -75,18 +77,23 @@ BaseRasterizer.prototype.clearDirty = function() {
  * Assumes that the intention is to rasterize the given event, and clears any
  * previous events from the rasterizer.
  * @param {PictureEvent} event The event to be rasterized.
+ * @param {AffineTransform} transform The transform to check to determine whether a
+ * clear needs to be performed. Does not affect the rasterizer's operation.
  * @param {function()} stateConstructor Constructor for creating a new draw
  * event state object unless the event already has been rasterized to this
  * rasterizer's bitmap.
  * @return {Object} Draw event state for the given event.
  */
-BaseRasterizer.prototype.getDrawEventState = function(event, stateConstructor) {
+BaseRasterizer.prototype.getDrawEventState = function(event, transform, stateConstructor) {
     if (event !== this.drawEvent || event.generation !== this.drawEventGeneration ||
-        !this.drawEventClipRect.containsRect(this.clipRect)) {
+        !this.drawEventClipRect.containsRect(this.clipRect) || transform !== this.drawEventTransform ||
+        transform.generation !== this.drawEventTransformGeneration) {
         this.clearDirty();
         this.drawEvent = event;
         this.drawEventState = new stateConstructor();
         this.drawEventGeneration = event.generation;
+        this.drawEventTransform = transform;
+        this.drawEventTransformGeneration = transform.generation;
     }
     this.drawEventClipRect.setRect(this.clipRect);
     return this.drawEventState;

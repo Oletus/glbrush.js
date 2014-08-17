@@ -27,8 +27,6 @@ PictureBuffer.prototype.initializePictureBuffer = function(createEvent, width, h
     // TODO: assert(createEvent.hasAlpha || createEvent.clearColor[3] === 255);
     this.hasAlpha = createEvent.hasAlpha;
     this.id = createEvent.bufferId;
-    this.ww = width;
-    this.hh = height;
     this.transform = transform;
     this.events = [];
     this.isDummy = false;
@@ -47,7 +45,7 @@ PictureBuffer.prototype.initializePictureBuffer = function(createEvent, width, h
         this.undoStates = null;
     }
 
-    this.boundsRect = new Rect(0, width, 0, height);
+    this.bitmapRect = new Rect(0, width, 0, height);
     this.clipStack = [];
     this.currentClipRect = new Rect(0, width, 0, height);
 
@@ -60,17 +58,34 @@ PictureBuffer.prototype.initializePictureBuffer = function(createEvent, width, h
 };
 
 /**
+ * Crop the buffer. Note that the transform set to the buffer must be updated prior to running this function.
+ * @param {number} width Width of the buffer in pixels. Must be an integer.
+ * @param {number} height Height of the buffer in pixels. Must be an integer.
+ * @param {Vec2} translate How much to translate the existing picture.
+ * @param {BaseRasterizer} rasterizer The rasterizer.
+ */
+PictureBuffer.prototype.crop = function(width, height, translate, rasterizer) {
+    // TODO: Consider preserving the existing data, only translating it to place.
+    // The thing that makes this tricky is that the translation coordinates are not necessarily integers.
+    this.free();
+    this.bitmapRect = new Rect(0, width, 0, height);
+    this.clipStack = [];
+    this.currentClipRect = new Rect(0, width, 0, height);
+    this.regenerate(true, rasterizer);
+};
+
+/**
  * @return {number} The width of the buffer in pixels.
  */
 PictureBuffer.prototype.width = function() {
-    return this.ww;
+    return this.bitmapRect.width();
 };
 
 /**
  * @return {number} The height of the buffer in pixels.
  */
 PictureBuffer.prototype.height = function() {
-    return this.hh;
+    return this.bitmapRect.height();
 };
 
 /**
@@ -133,7 +148,7 @@ PictureBuffer.prototype.applyEvent = function(event, rasterizer) {
         if (event.hideCount > 0) {
             return;
         }
-        var boundingBox = event.getBoundingBox(this.boundsRect, this.transform);
+        var boundingBox = event.getBoundingBox(this.bitmapRect, this.transform);
         this.pushClipRect(boundingBox);
         if (this.getCurrentClipRect().isEmpty()) {
             this.popClip();
@@ -274,7 +289,7 @@ PictureBuffer.prototype.replaceWithEvent = function(event, rasterizer) {
     if (this.events.length > 2) {
         this.clear(this.events[0].clearColor);
     } else if (this.events.length === 2) {
-        this.pushClipRect(this.events[1].getBoundingBox(this.boundsRect, this.transform));
+        this.pushClipRect(this.events[1].getBoundingBox(this.bitmapRect, this.transform));
         this.clear(this.events[0].clearColor);
         this.popClip();
     }
@@ -347,7 +362,7 @@ PictureBuffer.prototype.popClip = function() {
         return;
     }
     this.clipStack.pop();
-    this.currentClipRect.setRect(this.boundsRect);
+    this.currentClipRect.setRect(this.bitmapRect);
     for (var i = 0; i < this.clipStack.length; ++i) {
         this.currentClipRect.intersectRectRoundedOut(this.clipStack[i]);
     }
@@ -686,7 +701,7 @@ PictureBuffer.prototype.playbackAfterChange = function(eventIndex, rasterizer,
         this.changeUndoStatesFrom(eventIndex, false, followingStateCostChange,
                                   followingStateMove);
     } else {
-        var bBox = this.events[eventIndex].getBoundingBox(this.boundsRect, this.transform);
+        var bBox = this.events[eventIndex].getBoundingBox(this.bitmapRect, this.transform);
         this.pushClipRect(bBox);
         // Undo states following the event are invalidated. The invalidated
         // area is not stored, but it is effectively bBox. playbackStartingFrom
@@ -762,7 +777,7 @@ PictureBuffer.prototype.isOpaque = function() {
 PictureBuffer.prototype.pickEventsMostlyInside = function(rect) {
     var inside = [];
     for (var i = 1; i < this.events.length; ++i) {
-        var bb = this.events[i].getBoundingBox(this.boundsRect, this.transform);
+        var bb = this.events[i].getBoundingBox(this.bitmapRect, this.transform);
         if (bb && !this.events[i].undone && bb.isMostlyInside(rect)) {
             inside.push(this.events[i]);
         }

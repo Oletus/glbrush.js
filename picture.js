@@ -6,7 +6,7 @@
  * @constructor
  * @param {number} id Picture's unique id number.
  * @param {string} name Name of the picture. May be null.
- * @param {Rect} boundsRect Picture bounds. x and y should always be zero.
+ * @param {Rect} boundsRect Picture bounds in picture coordinates. Left and top bounds may be negative.
  * @param {number} bitmapScale Scale for rasterizing the picture. Events that
  * are pushed to this picture get this scale applied to them.
  * @param {string=} mode Either 'webgl', 'no-texdata-webgl' or 'canvas'. Defaults to 'webgl'.
@@ -40,12 +40,9 @@ var Picture = function(id, name, boundsRect, bitmapScale, mode, brushTextureData
     this.currentEventMode = PictureEvent.Mode.normal;
     this.currentEventColor = [255, 255, 255];
 
-    this.boundsRect = boundsRect;
     this.pictureTransform = new AffineTransform();
     this.pictureTransform.scale = bitmapScale;
-    var bitmapWidth = Math.floor(this.boundsRect.width() * bitmapScale);
-    var bitmapHeight = Math.floor(this.boundsRect.height() * bitmapScale);
-    this.bitmapRect = new Rect(0, bitmapWidth, 0, bitmapHeight);
+    this.setBounds(boundsRect);
 
     // Shouldn't use more GPU memory than this for buffers and rasterizers
     // combined. Just guessing for a good generic limit, since WebGL won't give
@@ -111,6 +108,47 @@ Picture.prototype.pushUpdate = function(update, changeState) {
         }
     }
     this.updates.push(update);
+};
+
+/**
+ * Set the bounds of the picture. Will resize the bitmaps, translating the existing bitmap contents to the right
+ * position and fill in any empty areas that might appear.
+ * @param {Rect} boundsRect Picture bounds in picture coordinates. Left and top bounds may be negative.
+ */
+Picture.prototype.crop = function(boundsRect) {
+    var bitmapTranslate = new Vec2();
+    bitmapTranslate.setVec2(this.pictureTransform.translate);
+    bitmapTranslate.scale(-1);
+    this.setBounds(boundsRect);
+    bitmapTranslate.translate(this.pictureTransform.translate);
+    this.genericRasterizer.free();
+    this.currentEventRasterizer.free();
+    this.canvas.width = this.bitmapRect.width();
+    this.canvas.height = this.bitmapRect.height();
+    if (this.usesWebGl()) {
+        this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+    }
+    this.initRasterizers();
+    for (var i = 0; i < this.buffers.length; ++i) {
+        this.buffers[i].crop(this.bitmapRect.width(), this.bitmapRect.height(), bitmapTranslate,
+                             this.genericRasterizer);
+    }
+    this.display();
+};
+
+/**
+ * Set the bounds of the picture. Sets pictureTransform to translate events to the bitmap coordinates.
+ * @param {Rect} boundsRect Picture bounds in picture coordinates. Left and top bounds may be negative.
+ * @protected
+ */
+Picture.prototype.setBounds = function(boundsRect) {
+    this.pictureTransform.translate.x = -boundsRect.left * this.pictureTransform.scale;
+    this.pictureTransform.translate.y = -boundsRect.top * this.pictureTransform.scale;
+    ++this.pictureTransform.generation;
+    this.boundsRect = boundsRect;
+    var bitmapWidth = Math.floor(this.boundsRect.width() * this.pictureTransform.scale);
+    var bitmapHeight = Math.floor(this.boundsRect.height() * this.pictureTransform.scale);
+    this.bitmapRect = new Rect(0, bitmapWidth, 0, bitmapHeight);
 };
 
 /**

@@ -770,6 +770,7 @@ Vec2.prototype.rotate = function(angle) {
 var AffineTransform = function() {
     this.scale = 1.0;
     this.translate = new Vec2(0, 0);
+    this.generation = 0; // Id number that can be used to determine the transform's identity.
 };
 
 /**
