@@ -1,3 +1,4 @@
 /nbproject/
 compile/compiler.jar
 compile/glbrush_min.js
+*.pyc
