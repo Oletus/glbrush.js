@@ -340,9 +340,12 @@ var glStateManager = function(gl) {
     var drawRectInternal = function(program, uniforms, rect) {
         if (rect !== undefined) {
             uniforms['uScale'] = [rect.width() / gl.drawingBufferWidth, rect.height() / gl.drawingBufferHeight];
-            // Left edge is at (rect.width() - drawingBufferWidth) * 0.5 if translation is at 0.
-            uniforms['uTranslate'] = [-uniforms['uScale'][0] + 1.0 + rect.left / gl.drawingBufferWidth * 2,
-                                      -uniforms['uScale'][1] + 1.0 + (1.0 - rect.bottom / gl.drawingBufferHeight) * 2];
+            // Without any translation, the scaled rect would be centered in the gl viewport.
+            // uTranslate = rect center point in gl coordinates.
+            var rectCenter = new Vec2(rect.left + rect.width() * 0.5, rect.top + rect.height() * 0.5);
+            rectCenter.x = (rectCenter.x / gl.drawingBufferWidth) * 2 - 1;
+            rectCenter.y = (1 - rectCenter.y / gl.drawingBufferHeight) * 2 - 1;
+            uniforms['uTranslate'] = [rectCenter.x, rectCenter.y];
         }
         var vertexPositionAttribute = program.use(uniforms);
         gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexBuffer);
