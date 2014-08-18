@@ -25,6 +25,17 @@ var CanvasUndoState = function(index, cost, width, height, srcCanvas) {
 };
 
 /**
+ * Set the bitmap dimensions of the undo state. Can only be done when the undo state is freed.
+ * @param {number} width The new width.
+ * @param {number} height The new height.
+ */
+CanvasUndoState.prototype.setDimensions = function(width, height) {
+    // TODO: assert(this.canvas === null);
+    this.width = width;
+    this.height = height;
+};
+
+/**
  * Ensure that the undo state has a canvas to use.
  * @protected
  */
@@ -110,6 +121,17 @@ var GLUndoState = function(index, cost, srcTex, gl, glManager, texBlitProgram,
     this.update(srcTex, new Rect(0, this.width, 0, this.height));
     this.index = index;
     this.cost = cost;
+};
+
+/**
+ * Set the bitmap dimensions of the undo state. Can only be done when the undo state is freed.
+ * @param {number} width The new width.
+ * @param {number} height The new height.
+ */
+GLUndoState.prototype.setDimensions = function(width, height) {
+    // TODO: assert(this.tex === null);
+    this.width = width;
+    this.height = height;
 };
 
 /**

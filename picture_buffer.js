@@ -68,6 +68,11 @@ PictureBuffer.prototype.crop = function(width, height, translate, rasterizer) {
     // TODO: Consider preserving the existing data, only translating it to place.
     // The thing that makes this tricky is that the translation coordinates are not necessarily integers.
     this.free();
+    if (this.undoStates !== null) {
+        for (var i = 0; i < this.undoStates.length; ++i) {
+            this.undoStates[i].setDimensions(width, height);
+        }
+    }
     this.bitmapRect = new Rect(0, width, 0, height);
     this.clipStack = [];
     this.currentClipRect = new Rect(0, width, 0, height);
