@@ -924,6 +924,43 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         rasterizer.free();
         buffer.free();
     });
+
+    it('undoes an event after being cropped', function() {
+        initTestCanvas();
+        var buffer = createBuffer(params);
+        var rasterizer = createRasterizer(params);
+        fillBuffer(buffer, rasterizer, buffer.undoStateInterval + 1); // We want to hit an undo state in this test.
+        var brushEvent = fillingBrushEvent(params.width, params.height,
+                                       [90, 30, 60], 1.0,
+                                       PictureEvent.Mode.normal);
+        brushEvent.translate(new Vec2(-params.width * 3, -params.height * 3));
+        buffer.pushEvent(brushEvent, rasterizer);
+
+        var newWidth = Math.ceil(params.width * 0.5);
+        var newHeight = Math.ceil(params.height * 0.5);
+        resizeTestCanvas(newWidth, newHeight);
+        rasterizer = createRasterizer({width: newWidth, height: newHeight});
+
+        buffer.transform.translate.x = params.width * 3;
+        buffer.transform.translate.y = params.width * 3;
+        ++buffer.transform.generation;
+        buffer.crop(newWidth, newHeight,
+                    new Vec2(buffer.transform.translate.x, buffer.transform.translate.y),
+                    rasterizer);
+
+        var undoneEvent = buffer.undoEventIndex(buffer.events.length - 1, rasterizer, false);
+        expect(undoneEvent).toBe(brushEvent);
+
+        expect(buffer.width()).toBe(newWidth);
+        expect(buffer.height()).toBe(newHeight);
+        var samplePixel = buffer.getPixelRGBA(new Vec2(0, 0));
+        expect(samplePixel[0]).toBeNear(params.clearColor[0], 4);
+        expect(samplePixel[1]).toBeNear(params.clearColor[1], 4);
+        expect(samplePixel[2]).toBeNear(params.clearColor[2], 4);
+
+        rasterizer.free();
+        buffer.free();
+    });
 };
 
 describe('CanvasBuffer', function() {
