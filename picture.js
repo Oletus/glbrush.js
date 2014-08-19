@@ -126,10 +126,7 @@ Picture.prototype.crop = function(boundsRect, bitmapScale) {
 
     this.pictureTransform.scale = bitmapScale;
     this.setBounds(boundsRect);
-    if (bitmapScale > this.maxBitmapScale()) {
-        this.pictureTransform.scale = this.maxBitmapScale();
-        this.setBounds(boundsRect);
-    }
+
     this.canvas.width = this.bitmapRect.width();
     this.canvas.height = this.bitmapRect.height();
     if (this.usesWebGl()) {
@@ -143,15 +140,19 @@ Picture.prototype.crop = function(boundsRect, bitmapScale) {
 };
 
 /**
- * Set the bounds of the picture. Sets pictureTransform to translate events to the bitmap coordinates.
+ * Set the bounds of the picture. Sets pictureTransform to translate events to the bitmap coordinates. Will respect
+ * maximum framebuffer size.
  * @param {Rect} boundsRect Picture bounds in picture coordinates. Left and top bounds may be negative.
  * @protected
  */
 Picture.prototype.setBounds = function(boundsRect) {
+    this.boundsRect = boundsRect;
+    if (this.pictureTransform.scale > this.maxBitmapScale()) {
+        this.pictureTransform.scale = this.maxBitmapScale();
+    }
     this.pictureTransform.translate.x = -boundsRect.left * this.pictureTransform.scale;
     this.pictureTransform.translate.y = -boundsRect.top * this.pictureTransform.scale;
     ++this.pictureTransform.generation;
-    this.boundsRect = boundsRect;
     var bitmapWidth = Math.floor(this.boundsRect.width() * this.pictureTransform.scale);
     var bitmapHeight = Math.floor(this.boundsRect.height() * this.pictureTransform.scale);
     this.bitmapRect = new Rect(0, bitmapWidth, 0, bitmapHeight);
@@ -405,8 +406,7 @@ Picture.prototype.setBufferOpacity = function(bufferId, opacity) {
  * Create a Picture object.
  * @param {number} id Picture's unique id number.
  * @param {string} name Name of the picture. May be null.
- * @param {number} width Picture width.
- * @param {number} height Picture height.
+ * @param {Rect} boundsRect Picture bounds in picture coordinates. Left and top bounds may be negative.
  * @param {number} bitmapScale Scale for rasterizing the picture. Events that
  * are pushed to this picture get this scale applied to them.
  * @param {Array.<string>} modesToTry Modes to try to initialize the picture.
@@ -416,14 +416,13 @@ Picture.prototype.setBufferOpacity = function(bufferId, opacity) {
  * if no textures are needed.
  * @return {Picture} The created picture or null if one couldn't be created.
  */
-Picture.create = function(id, name, width, height, bitmapScale, modesToTry, brushTextureData) {
-    var pictureBounds = new Rect(0, width, 0, height);
+Picture.create = function(id, name, boundsRect, bitmapScale, modesToTry, brushTextureData) {
     var i = 0;
     var pic = null;
     while (i < modesToTry.length && pic === null) {
         var mode = modesToTry[i];
         if (glUtils.supportsTextureUnits(4) || mode === 'canvas') {
-            pic = new Picture(id, name, pictureBounds, bitmapScale, mode, brushTextureData);
+            pic = new Picture(id, name, boundsRect, bitmapScale, mode, brushTextureData);
             if (pic.mode === undefined) {
                 pic = null;
             }
@@ -458,6 +457,8 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry, brushTextur
     var eventStrings = serialization.split(/\r?\n/);
     var pictureParams = eventStrings[0].split(' ');
     var version = 0;
+    var left = 0;
+    var top = 0;
     var width = 0;
     var height = 0;
     var name = null;
@@ -466,8 +467,15 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry, brushTextur
         height = parseInt(pictureParams[2]);
     } else {
         version = parseInt(pictureParams[2]);
-        width = parseInt(pictureParams[3]);
-        height = parseInt(pictureParams[4]);
+        if (version < 6) {
+            width = parseInt(pictureParams[3]);
+            height = parseInt(pictureParams[4]);
+        } else {
+            left = parseInt(pictureParams[3]);
+            top = parseInt(pictureParams[4]);
+            width = parseInt(pictureParams[5]);
+            height = parseInt(pictureParams[6]);
+        }
     }
     if (version > 2) {
         var hasName = pictureParams[5];
@@ -475,7 +483,8 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry, brushTextur
             name = window.atob(pictureParams[6]);
         }
     }
-    var pic = Picture.create(id, name, width, height, bitmapScale, modesToTry, brushTextureData);
+    var pic = Picture.create(id, name, new Rect(left, left + width, top, top + height),
+                             bitmapScale, modesToTry, brushTextureData);
     pic.parsedVersion = version;
 
     // First parse all buffers without rasterizing, then rasterize after rasterImport events are loaded.
@@ -634,7 +643,7 @@ Picture.prototype.maxBitmapScale = function() {
 };
 
 /** @const */
-Picture.formatVersion = 5;
+Picture.formatVersion = 6;
 
 /**
  * @return {string} A serialization of this Picture. Can be parsed into a new
@@ -645,7 +654,9 @@ Picture.prototype.serialize = function() {
     var formatVersion = Picture.formatVersion;
     var nameSerialization = this.name === null ? 'unnamed' : 'named ' + window.btoa(this.name);
     var serialization = ['picture version ' + formatVersion + ' ' +
-                         this.width() + ' ' + this.height() + ' ' + nameSerialization];
+                         this.boundsRect.left + ' ' + this.boundsRect.top + ' ' +
+                         this.width() + ' ' + this.height() + ' ' +
+                         nameSerialization];
     for (var i = 0; i < this.buffers.length; ++i) {
         var buffer = this.buffers[i];
         buffer.events[0].insertionPoint = buffer.insertionPoint;
@@ -1105,14 +1116,14 @@ Picture.prototype.bitmapHeight = function() {
 };
 
 /**
- * @return {number} The width of the picture.
+ * @return {number} The width of the picture's current bounds.
  */
 Picture.prototype.width = function() {
     return this.boundsRect.width();
 };
 
 /**
- * @return {number} The height of the picture.
+ * @return {number} The height of the picture's current bounds.
  */
 Picture.prototype.height = function() {
     return this.boundsRect.height();
