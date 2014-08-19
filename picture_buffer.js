@@ -61,12 +61,12 @@ PictureBuffer.prototype.initializePictureBuffer = function(createEvent, width, h
  * Crop the buffer. Note that the transform set to the buffer must be updated prior to running this function.
  * @param {number} width Width of the buffer in pixels. Must be an integer.
  * @param {number} height Height of the buffer in pixels. Must be an integer.
- * @param {Vec2} translate How much to translate the existing picture.
  * @param {BaseRasterizer} rasterizer The rasterizer.
  */
-PictureBuffer.prototype.crop = function(width, height, translate, rasterizer) {
+PictureBuffer.prototype.crop = function(width, height, rasterizer) {
     // TODO: Consider preserving the existing data, only translating it to place.
     // The thing that makes this tricky is that the translation coordinates are not necessarily integers.
+    // The picture could also be scaled when cropping to respect the maximum framebuffer size constraints.
     this.free();
     if (this.undoStates !== null) {
         for (var i = 0; i < this.undoStates.length; ++i) {

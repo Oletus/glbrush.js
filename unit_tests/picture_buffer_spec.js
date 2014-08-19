@@ -910,9 +910,7 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         buffer.transform.translate.x = params.width * 3;
         buffer.transform.translate.y = params.width * 3;
         ++buffer.transform.generation;
-        buffer.crop(newWidth, newHeight,
-                    new Vec2(buffer.transform.translate.x, buffer.transform.translate.y),
-                    rasterizer);
+        buffer.crop(newWidth, newHeight, rasterizer);
 
         expect(buffer.width()).toBe(newWidth);
         expect(buffer.height()).toBe(newHeight);
@@ -944,9 +942,7 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         buffer.transform.translate.x = params.width * 3;
         buffer.transform.translate.y = params.width * 3;
         ++buffer.transform.generation;
-        buffer.crop(newWidth, newHeight,
-                    new Vec2(buffer.transform.translate.x, buffer.transform.translate.y),
-                    rasterizer);
+        buffer.crop(newWidth, newHeight, rasterizer);
 
         var undoneEvent = buffer.undoEventIndex(buffer.events.length - 1, rasterizer, false);
         expect(undoneEvent).toBe(brushEvent);

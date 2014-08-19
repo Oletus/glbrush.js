@@ -114,15 +114,22 @@ Picture.prototype.pushUpdate = function(update, changeState) {
  * Set the bounds of the picture. Will resize the bitmaps, translating the existing bitmap contents to the right
  * position and fill in any empty areas that might appear.
  * @param {Rect} boundsRect Picture bounds in picture coordinates. Left and top bounds may be negative.
+ * @param {number=} bitmapScale Scale for the picture's bitmap. Will be clamped so that maximum framebuffer size limit
+ * is respected. Defaults to not changing the scale.
  */
-Picture.prototype.crop = function(boundsRect) {
-    var bitmapTranslate = new Vec2();
-    bitmapTranslate.setVec2(this.pictureTransform.translate);
-    bitmapTranslate.scale(-1);
-    this.setBounds(boundsRect);
-    bitmapTranslate.translate(this.pictureTransform.translate);
+Picture.prototype.crop = function(boundsRect, bitmapScale) {
+    if (bitmapScale === undefined) {
+        bitmapScale = this.pictureTransform.scale;
+    }
     this.genericRasterizer.free();
     this.currentEventRasterizer.free();
+
+    this.pictureTransform.scale = bitmapScale;
+    this.setBounds(boundsRect);
+    if (bitmapScale > this.maxBitmapScale()) {
+        this.pictureTransform.scale = this.maxBitmapScale();
+        this.setBounds(boundsRect);
+    }
     this.canvas.width = this.bitmapRect.width();
     this.canvas.height = this.bitmapRect.height();
     if (this.usesWebGl()) {
@@ -130,8 +137,7 @@ Picture.prototype.crop = function(boundsRect) {
     }
     this.initRasterizers();
     for (var i = 0; i < this.buffers.length; ++i) {
-        this.buffers[i].crop(this.bitmapRect.width(), this.bitmapRect.height(), bitmapTranslate,
-                             this.genericRasterizer);
+        this.buffers[i].crop(this.bitmapRect.width(), this.bitmapRect.height(), this.genericRasterizer);
     }
     this.display();
 };
@@ -605,6 +611,8 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry, brushTextur
  * @param {function(Picture)} finishedCallback Function that will be called
  * asynchronously with the resized picture as a parameter when the resizing is
  * done.
+ * @deprecated prefer using member function crop() instead. TODO: Implement a
+ * 'copy' method to replace other possible uses of resize.
  */
 Picture.resize = function(pic, bitmapScale, finishedCallback) {
     var serialization = pic.serialize();
