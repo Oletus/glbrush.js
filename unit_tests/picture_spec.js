@@ -215,13 +215,13 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         expect(samplePixel[3]).toBeNear(blendedPixel[3], 8);
     });
 
-    it('resizes', function() {
+    it('resizes when being copied', function() {
         var clearColor = [12, 23, 34];
         pic.addBuffer(1337, clearColor, false);
         var pic2;
-        Picture.resize(pic, 3.0, function(p2) {
+        Picture.copy(pic, function(p2) {
             pic2 = p2;
-        });
+        }, 3.0);
         waitsFor(function() {
             return pic2 !== undefined;
         });
@@ -245,29 +245,22 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
     it('resizes to the maximum scale', function() {
         var clearColor = [12, 23, 34];
         pic.addBuffer(1337, clearColor, false);
-        var pic2;
-        Picture.resize(pic, pic.maxBitmapScale(), function(p2) {
-            pic2 = p2;
-        });
-        waitsFor(function() {
-            return pic2 !== undefined;
-        });
-        runs(function() {
-            expect(pic2.width()).toBe(pic.width());
-            expect(pic2.height()).toBe(pic.height());
-            var maxWidth = glUtils.maxFramebufferSize;
-            expect(pic2.bitmapWidth()).toBeLessThan(maxWidth + 1);
-            expect(pic2.bitmapHeight()).toBeLessThan(maxWidth + 1);
-            var samplePixel = pic2.getPixelRGBA(new Vec2(0, 0));
-            expect(samplePixel[0]).toBe(12);
-            expect(samplePixel[1]).toBe(23);
-            expect(samplePixel[2]).toBe(34);
-            expect(samplePixel[3]).toBe(255);
-            pic2.destroy();
-        });
+        pic.crop(pic.boundsRect, pic.maxBitmapScale());
+        expect(pic.width()).toBe(width);
+        expect(pic.height()).toBe(height);
+        var maxWidth = glUtils.maxFramebufferSize;
+        expect(pic.bitmapWidth()).toBeLessThan(maxWidth + 1);
+        expect(pic.bitmapHeight()).toBeLessThan(maxWidth + 1);
+        var samplePixel = pic.getPixelRGBA(new Vec2(0, 0));
+        expect(samplePixel[0]).toBe(12);
+        expect(samplePixel[1]).toBe(23);
+        expect(samplePixel[2]).toBe(34);
+        expect(samplePixel[3]).toBe(255);
     });
 
-    it('does not change if it is resized to the same size twice', function() {
+    it('handles bitmapScale as relative to the picture dimensions, not bitmap dimensions', function() {
+        // The picture is copied twice with the same bitmapScale, and we check that the dimensions are the same
+        // in both of the two copies.
         var clearColor = [12, 23, 34];
         pic.addBuffer(1337, clearColor, false);
         var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 10, 0, 0,
@@ -279,17 +272,17 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         pic.pushUpdate(update);
         var pic2;
         var pic3;
-        Picture.resize(pic, 0.5, function(p2) {
+        Picture.copy(pic, function(p2) {
             pic2 = p2;
-        });
+        }, 0.5);
         waitsFor(function() {
             return pic2 !== undefined;
         });
         runs(function() {
-            Picture.resize(pic2, 0.5, function(p3) {
+            Picture.copy(pic2, function(p3) {
                 pic3 = p3;
                 pic2.destroy();
-            });
+            }, 0.5);
         });
         waitsFor(function() {
             return pic3 !== undefined;
@@ -333,7 +326,7 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         pic.addBuffer(1338, clearColor2, false);
         pic.setBufferOpacity(1338, 0.5);
         var pic2;
-        Picture.resize(pic, pic.pictureTransform.scale, function(p2) {
+        Picture.copy(pic, function(p2) {
             pic2 = p2;
         });
         waitsFor(function() {
@@ -362,7 +355,7 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         expect(pic.buffers[1].mergedTo).toBe(pic.buffers[0]);
 
         var pic2;
-        Picture.resize(pic, pic.pictureTransform.scale, function(p2) {
+        Picture.copy(pic, function(p2) {
             pic2 = p2;
         });
         waitsFor(function() {
@@ -570,7 +563,7 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         pic.addBuffer(1337, clearColor, false);
         pic.removeBuffer(1337);
         var pic2;
-        Picture.resize(pic, pic.pictureTransform.scale, function(p2) {
+        Picture.copy(pic, function(p2) {
             pic2 = p2;
         });
         waitsFor(function() {
@@ -676,7 +669,7 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         pic.moveBuffer(9001, 0);
         pic.moveBuffer(1338, 0);
         var pic2;
-        Picture.resize(pic, pic.pictureTransform.scale, function(p2) {
+        Picture.copy(pic, function(p2) {
             pic2 = p2;
         });
         waitsFor(function() {
@@ -702,7 +695,7 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         pic.insertEvent(1337, brushEvent);
         expect(pic.buffers[0].insertionPoint).toBe(2);
         var pic2;
-        Picture.resize(pic, pic.pictureTransform.scale, function(p2) {
+        Picture.copy(pic, function(p2) {
             pic2 = p2;
         });
         waitsFor(function() {

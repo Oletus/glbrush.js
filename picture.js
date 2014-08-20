@@ -613,17 +613,19 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry, brushTextur
 };
 
 /**
- * Create a resized copy of the given picture at the given scale.
- * @param {Picture} pic The picture to resize.
- * @param {number} bitmapScale The scale to set to the new picture. The new
- * picture's bitmap width will be the old picture's width() * bitmapScale.
+ * Create a copy of the given picture. You may optionally scale the picture at
+ * the same time.
+ * @param {Picture} pic The picture to copy.
  * @param {function(Picture)} finishedCallback Function that will be called
- * asynchronously with the resized picture as a parameter when the resizing is
- * done.
- * @deprecated prefer using member function crop() instead. TODO: Implement a
- * 'copy' method to replace other possible uses of resize.
+ * asynchronously with the copy once copying is done.
+ * @param {number=} bitmapScale The scale to set to the new picture. The new
+ * picture's bitmap width will be the old picture's width() * bitmapScale.
+ * Defaults to keeping the current scale.
  */
-Picture.resize = function(pic, bitmapScale, finishedCallback) {
+Picture.copy = function(pic, finishedCallback, bitmapScale) {
+    if (bitmapScale === undefined) {
+        bitmapScale = pic.pictureTransform.scale;
+    }
     var serialization = pic.serialize();
     Picture.parse(pic.id, serialization, bitmapScale,
                   [pic.mode], pic.brushTextureData, function(parsed) {
