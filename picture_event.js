@@ -349,8 +349,7 @@ BrushEvent.prototype.translate = function(offset) {
             this.coords[i] += offset.y;
         }
     }
-    ++this.generation; // This invalidates any real rasterizers which have this event cached.
-    this.boundingBoxRasterizer.translate(offset, this.generation);
+    ++this.generation; // This invalidates any rasterizers (including BBRasterizer) which have this event cached.
 };
 
 /**
@@ -444,21 +443,6 @@ BrushEvent.BBRasterizer.prototype.beginCircles = function() {};
  */
 BrushEvent.BBRasterizer.prototype.fillCircle = function(centerX, centerY, radius, flowAlpha, rotation) {
     this.boundingBox.unionCircle(centerX, centerY, Math.max(radius, 1.0) + 1.0);
-};
-
-/**
- * Translate the bounding box.
- * @param {Vec2} offset Amount to translate with.
- * @param {number} generation Generation to set in case bounding box can be updated.
- */
-BrushEvent.BBRasterizer.prototype.translate = function(offset, generation) {
-    if (this.boundingBox !== null && this.generation === generation - 1) {
-        this.boundingBox.left += offset.x;
-        this.boundingBox.right += offset.x;
-        this.boundingBox.top += offset.y;
-        this.boundingBox.bottom += offset.y;
-        this.generation = generation;
-    }
 };
 
 /**
@@ -642,8 +626,7 @@ ScatterEvent.prototype.translate = function(offset) {
             this.coords[i] += offset.y;
         }
     }
-    ++this.generation; // This invalidates any real rasterizers which have this event cached.
-    this.boundingBoxRasterizer.translate(offset, this.generation);
+    ++this.generation; // This invalidates any rasterizers (including BBRasterizer) which have this event cached.
 };
 
 /** @inheritDoc */

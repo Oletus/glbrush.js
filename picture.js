@@ -136,7 +136,6 @@ Picture.prototype.crop = function(boundsRect, bitmapScale) {
     for (var i = 0; i < this.buffers.length; ++i) {
         this.buffers[i].crop(this.bitmapRect.width(), this.bitmapRect.height(), this.genericRasterizer);
     }
-    this.display();
 };
 
 /**

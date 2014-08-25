@@ -95,7 +95,7 @@ describe('PictureEvent', function() {
             var oldBottom = oldBox.bottom;
             testEvent.translate(new Vec2(2, 1));
             var box = testEvent.getBoundingBox(new Rect(-10, 10, -10, -10), transform);
-            expect(box).toBe(oldBox);
+            expect(box).not.toBe(oldBox);
             expect(box.right).toBeNear(oldRight + 2, 0.01);
             expect(box.left).toBeNear(oldLeft + 2, 0.01);
             expect(box.top).toBeNear(oldTop + 1, 0.01);
