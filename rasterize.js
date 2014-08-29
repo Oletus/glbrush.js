@@ -157,6 +157,9 @@ BaseRasterizer.prototype.flushCircles = function() {
 BaseRasterizer.prototype.free = function() {
 };
 
+/** Minimum width or height for performing the sanity check. */
+BaseRasterizer.minSize = 10;
+
 /**
  * Do a basic sanity check by drawing things and reading back the pixels,
  * checking that they're roughly within the expected boundaries.

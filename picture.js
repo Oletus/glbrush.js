@@ -146,6 +146,9 @@ Picture.prototype.crop = function(boundsRect, bitmapScale) {
  */
 Picture.prototype.setBounds = function(boundsRect) {
     this.boundsRect = boundsRect;
+    if (this.pictureTransform.scale < this.minBitmapScale()) {
+        this.pictureTransform.scale = this.minBitmapScale();
+    }
     if (this.pictureTransform.scale > this.maxBitmapScale()) {
         this.pictureTransform.scale = this.maxBitmapScale();
     }
@@ -641,6 +644,14 @@ Picture.prototype.maxBitmapScale = function() {
     // Note: if WebGL is unsupported, falls back to default (unconfirmed)
     // glUtils.maxFramebufferSize. This is a reasonable value for 2D canvas.
     return glUtils.maxFramebufferSize / Math.max(this.width(), this.height());
+};
+
+/**
+ * @return {number} The minimum scale to which this picture can be reliably
+ * resized on the current configuration.
+ */
+Picture.prototype.minBitmapScale = function() {
+    return BaseRasterizer.minSize / Math.min(this.width(), this.height()) * 1.0001;
 };
 
 /** @const */
