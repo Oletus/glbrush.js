@@ -2,6 +2,8 @@
  * Copyright Olli Etuaho 2012-2013.
  */
 
+'use strict';
+
 /**
  * @constructor
  * @param {number} id Picture's unique id number.
@@ -1545,7 +1547,7 @@ Picture.prototype.display = function() {
  */
 Picture.prototype.regenerate = function() {
     this.freed = false;
-    for (i = 0; i < this.buffers.length; ++i) {
+    for (var i = 0; i < this.buffers.length; ++i) {
         if (this.buffers[i].freed) {
             this.buffers[i].regenerate(true, this.genericRasterizer);
         }

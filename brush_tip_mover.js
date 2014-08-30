@@ -2,6 +2,8 @@
  * Copyright Olli Etuaho 2013.
  */
 
+'use strict';
+
 /**
  * Utility for generating a series of individual tip sample positions from
  * control points.

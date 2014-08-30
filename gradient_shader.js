@@ -2,6 +2,8 @@
  * Copyright Olli Etuaho 2013.
  */
 
+'use strict';
+
 /**
  * A shader program for drawing a gradient.
  * @constructor

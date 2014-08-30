@@ -2,6 +2,8 @@
  * Copyright Olli Etuaho 2013.
  */
 
+'use strict';
+
 function testRGB() {
     var color = [];
     color[0] = 12;
@@ -308,7 +310,7 @@ function countColoredPixelsInImage(img, color, tolerance) {
     ctx.drawImage(img, 0, 0);
     var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     var pixels = 0;
-    for (i = 0; i < imageData.data.length; i += 4) {
+    for (var i = 0; i < imageData.data.length; i += 4) {
         if (Math.abs(imageData.data[i] - color[0]) < tolerance &&
             Math.abs(imageData.data[i + 1] - color[1]) < tolerance &&
             Math.abs(imageData.data[i + 2] - color[2]) < tolerance &&

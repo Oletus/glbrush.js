@@ -2,7 +2,9 @@
  * Copyright Olli Etuaho 2012-2014.
  */
 
-cssUtil = {
+'use strict';
+
+var cssUtil = {
     rgbString: null,
     rgbaString: null
 };
@@ -29,7 +31,7 @@ cssUtil.rgbaString = function(rgbaArray) {
     ',' + Math.floor(rgbaArray[2]) + ',' + (rgbaArray[3] / 255) + ')';
 };
 
-colorUtil = {
+var colorUtil = {
     unpremultiply: null,
     premultiply: null,
     blend: null,
@@ -442,7 +444,7 @@ colorUtil.blendLinearDodge = function(a, b) {
     return mathUtil.clamp(0, 255, a + b);
 };
 
-mathUtil = {
+var mathUtil = {
     mix: null,
     fmod: null,
     mixAngles: null,

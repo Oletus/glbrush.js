@@ -2,6 +2,8 @@
  * Copyright Olli Etuaho 2013.
  */
 
+'use strict';
+
 var testBufferParams = {
     id: 0,
     width: 100,

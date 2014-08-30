@@ -2,6 +2,8 @@
  * Copyright Olli Etuaho 2012-2013.
  */
 
+'use strict';
+
 /**
  * A buffer for 2D picture data. Contains a series of picture events in back-
  * to-front order and a combined bitmap representation of them. Not to be

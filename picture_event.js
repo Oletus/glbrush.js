@@ -2,6 +2,8 @@
  * Copyright Olli Etuaho 2012-2013.
  */
 
+'use strict';
+
 /**
  * Draw state for a brush event. Used to resume drawTo() from a point along
  * the brush stroke.

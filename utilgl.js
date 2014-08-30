@@ -2,7 +2,9 @@
  * Copyright Olli Etuaho 2012-2013.
  */
 
-glUtils = {
+'use strict';
+
+var glUtils = {
     createTexture: null,
     getShader: null,
     initGl: null,

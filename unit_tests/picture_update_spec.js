@@ -1,3 +1,9 @@
+/*
+ * Copyright Olli Etuaho 2014.
+ */
+
+'use strict';
+
 describe('PictureUpdate', function() {
     it('initializes', function() {
         var testUpdate = new PictureUpdate('add_picture_event');

@@ -2,6 +2,8 @@
  * Copyright Olli Etuaho 2012-2013.
  */
 
+'use strict';
+
 /**
  * A base object for a rasterizer that can blend together monochrome circles and
  * draw gradients. Do not instance this directly.
@@ -692,7 +694,7 @@ Rasterizer.prototype.linearGradient = function(coords1, coords0) {
  * normal built-in blends can be used.
  * @enum {number}
  */
-GLRasterizerFormat = {
+var GLRasterizerFormat = {
     redGreen: 0,
     alpha: 1
 };
@@ -838,7 +840,7 @@ GLDoubleBufferedRasterizer.prototype.generateShaderPrograms = function(
     this.texUniformParameters = [];
 
     // TODO: assert(nFillShader.length == nSoftShader.length);
-    for (i = 0; i < nFillShader.length; ++i) {
+    for (var i = 0; i < nFillShader.length; ++i) {
         this.nFillCircleProgram.push(nFillShader[i].programInstance(this.gl));
         this.nSoftCircleProgram.push(nSoftShader[i].programInstance(this.gl));
         this.nTexCircleProgram.push(nTexShader[i].programInstance(this.gl));

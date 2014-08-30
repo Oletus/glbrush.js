@@ -2,6 +2,8 @@
  * Copyright Olli Etuaho 2013.
  */
 
+'use strict';
+
 describe('PictureEvent', function() {
     var commonEventTests = function(creator, tester) {
         it('initializes', function() {

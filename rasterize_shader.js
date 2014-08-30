@@ -2,6 +2,8 @@
  * Copyright Olli Etuaho 2013.
  */
 
+'use strict';
+
 /**
  * A shader program generator. Inherited objects must generate 1 shader program
  * and implement uniforms(width, height), vertexSource(), and fragmentSource().

@@ -2,6 +2,8 @@
  * Copyright Olli Etuaho 2013.
  */
 
+'use strict';
+
 /**
  * Storage for bitmap data from a past PictureBuffer state.
  * @constructor

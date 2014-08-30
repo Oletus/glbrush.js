@@ -2,6 +2,8 @@
  * Copyright Olli Etuaho 2013.
  */
 
+'use strict';
+
 describe('SWMipmap', function() {
     var canvas = document.createElement('canvas');
     canvas.width = 128;

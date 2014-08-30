@@ -1,3 +1,5 @@
+'use strict';
+
 /*
  * Copyright Olli Etuaho 2013.
  */

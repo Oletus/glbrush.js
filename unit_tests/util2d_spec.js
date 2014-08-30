@@ -2,6 +2,8 @@
  * Copyright Olli Etuaho 2013.
  */
 
+'use strict';
+
 beforeEach(function() {
   this.addMatchers({
     toBeNear: function(expected, tolerance) {

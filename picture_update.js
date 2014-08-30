@@ -1,3 +1,9 @@
+/*
+ * Copyright Olli Etuaho 2014.
+ */
+
+'use strict';
+
 /**
  * A change to the picture state. Can either add or undo a PictureEvent.
  * @constructor

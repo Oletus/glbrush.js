@@ -2,6 +2,8 @@
  * Copyright Olli Etuaho 2013.
  */
 
+'use strict';
+
 var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
     var pic = null;
     beforeEach(function() {

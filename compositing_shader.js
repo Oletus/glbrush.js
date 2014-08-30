@@ -2,6 +2,8 @@
  * Copyright Olli Etuaho 2013.
  */
 
+'use strict';
+
 /**
  * Generate shaders for compositing a linear stack of layers.
  */
