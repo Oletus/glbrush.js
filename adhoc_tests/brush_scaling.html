@@ -13,6 +13,7 @@
 <script type="text/javascript" src="../compositor.js"></script>
 <script type="text/javascript" src="../picture_event.js"></script>
 <script type="text/javascript" src="../rasterize.js"></script>
+<script type="text/javascript" src="../picture_update.js"></script>
 <script type="text/javascript" src="../picture_buffer.js"></script>
 <script type="text/javascript" src="../undo_state.js"></script>
 <script type="text/javascript" src="../picture.js"></script>
@@ -26,8 +27,13 @@ var runTest = function() {
     var bitmapScale = 1.0;
     var t = 0;
     var testPics = [];
-    var testPic = Picture.create(0, null, w, w, bitmapScale, [pictureMode]);
+    var testPic = Picture.create(0, null, new Rect(0, w, 0, w), bitmapScale, [pictureMode]);
     testPic.addBuffer(0, [255, 255, 255, 255], false);
+    var pushEvent = function(event) {
+        var update = new PictureUpdate('add_picture_event');
+        update.setPictureEvent(0, event);
+        testPic.pushUpdate(update);
+    };
     var color = [0, 0, 0];
     var flow = 0.8;
     var opacity = 1.0;
@@ -42,7 +48,7 @@ var runTest = function() {
         var y = ySteps * w - Math.sin(x / w * Math.PI * 4) * 0.03 * w;
         event.pushCoordTriplet(x, y, (x * 1.2) / w);
     }
-    testPic.pushEvent(0, event);
+    pushEvent(event);
     ySteps += yStep;
     event = testPic.createBrushEvent(color, flow, opacity, radius, 0, softness, mode);
     for (var j = 0; j < 2; ++j) {
@@ -50,7 +56,7 @@ var runTest = function() {
         var y = (ySteps - 0.02) * w;
         event.pushCoordTriplet(x, y, (x * 1.2) / w);
     }
-    testPic.pushEvent(0, event);
+    pushEvent(event);
     ySteps += yStep;
     softness = 0.0;
     event = testPic.createBrushEvent(color, flow, opacity, radius, 0, softness, mode);
@@ -59,7 +65,7 @@ var runTest = function() {
         var y = ySteps * w - Math.sin(x / w * Math.PI * 4) * 0.03 * w;
         event.pushCoordTriplet(x, y, (x * 1.2) / w);
     }
-    testPic.pushEvent(0, event);
+    pushEvent(event);
     ySteps += yStep;
     event = testPic.createBrushEvent(color, flow, opacity, radius, 0, softness, mode);
     for (var j = 0; j < 2; ++j) {
@@ -67,7 +73,7 @@ var runTest = function() {
         var y = (ySteps - 0.01) * w;
         event.pushCoordTriplet(x, y, (x * 1.2) / w);
     }
-    testPic.pushEvent(0, event);
+    pushEvent(event);
     ySteps += yStep;
     softness = 0.0;
     flow = 0.999;
@@ -77,7 +83,7 @@ var runTest = function() {
         var y = ySteps * w;
         event.pushCoordTriplet(x, y, 0.5 * j + 0.5);
     }
-    testPic.pushEvent(0, event);
+    pushEvent(event);
     flow = 0.95;
     event = testPic.createBrushEvent(color, flow, opacity, radius, 0, softness, mode);
     for (var j = 0; j < 25; ++j) {
@@ -93,29 +99,29 @@ var runTest = function() {
         }
         event.pushCoordTriplet(x, y, 0.5 + j / 100);
     }
-    testPic.pushEvent(0, event);
+    pushEvent(event);
     event = testPic.createBrushEvent(color, flow, opacity, radius, 0, softness, mode);
     for (var j = 0; j < 20; ++j) {
         var x = j % 2 + 0.7 * w;
         var y = ySteps * w;
         event.pushCoordTriplet(x, y, j / 20);
     }
-    testPic.pushEvent(0, event);
+    pushEvent(event);
     
     event = testPic.createGradientEvent(color, opacity, mode);
     event.coords0.y = 50;
     event.coords0.x = 50;
     event.coords1.y = 10;
     event.coords1.x = 22;
-    testPic.pushEvent(0, event);
+    pushEvent(event);
 
     var drawFrame = function() {
         if (testPics.length <= t) {
             var generatePic = function(k) {
                 bitmapScale = 0.5 + k * 0.5;
-                Picture.resize(testPic, bitmapScale, function(pic) {
+                Picture.copy(testPic, function(pic) {
                     testPics[k] = pic;
-                });
+                }, bitmapScale);
             };
             generatePic(t);
             setTimeout(drawFrame, 50);

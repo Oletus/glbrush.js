@@ -14,6 +14,7 @@
 <script type="text/javascript" src="../picture_event.js"></script>
 <script type="text/javascript" src="../rasterize.js"></script>
 <script type="text/javascript" src="../picture_buffer.js"></script>
+<script type="text/javascript" src="../picture_update.js"></script>
 <script type="text/javascript" src="../undo_state.js"></script>
 <script type="text/javascript" src="../picture.js"></script>
 <script type="text/javascript">
@@ -44,7 +45,7 @@ var runTest = function() {
     var bitmapScale = 1.0;
     var t = 0;
     var brushTextureData = [testTextureCanvas()];
-    var testPic = Picture.create(0, null, w, w, bitmapScale, [pictureMode], brushTextureData);
+    var testPic = Picture.create(0, null, new Rect(0, w, 0, w), bitmapScale, [pictureMode], brushTextureData);
     testPic.addBuffer(0, [255, 255, 255, 255], false);
     testPic.setCurrentEventAttachment(0);
 
