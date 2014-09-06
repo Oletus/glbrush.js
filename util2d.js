@@ -477,23 +477,35 @@ mathUtil.fmod = function(a, b) {
 };
 
 /**
- * Linear interpolation of angles a and b in radians by weight f
- * @param {number} a Angle a, if f == 0.0, a + n * PI * 2 is returned
- * @param {number} b Angle b, if f == 1.0, b + n * PI * 2 is returned
- * @param {number} f Interpolation weight
- * @return {number} Interpolated value between a and b
+ * Mix numbers by weight a and b, wrapping back to 0 at w.
+ * @param {number} a Number a, if f == 0.0, a + n * w is returned.
+ * @param {number} b Number b, if f == 1.0, b + n * w is returned.
+ * @param {number} f Interpolation weight.
+ * @param {number} w Number to wrap around at.
+ * @return {number} Interpolated value between a and b.
  */
-mathUtil.mixAngles = function(a, b, f) {
-    a = mathUtil.fmod(a, Math.PI * 2);
-    b = mathUtil.fmod(b, Math.PI * 2);
-    if (Math.abs(a - b) > Math.PI) {
+mathUtil.mixWithWrap = function(a, b, f, w) {
+    a = mathUtil.fmod(a, w);
+    b = mathUtil.fmod(b, w);
+    if (Math.abs(a - b) > w * 0.5) {
         if (a > b) {
-            b += Math.PI * 2;
+            b += w;
         } else {
-            a += Math.PI * 2;
+            a += w;
         }
     }
-    return mathUtil.mix(a, b, f);
+    return mathUtil.fmod(mathUtil.mix(a, b, f), w);
+};
+
+/**
+ * Linear interpolation of angles a and b in radians by weight f
+ * @param {number} a Angle a, if f == 0.0, a + n * PI * 2 is returned.
+ * @param {number} b Angle b, if f == 1.0, b + n * PI * 2 is returned.
+ * @param {number} f Interpolation weight.
+ * @return {number} Interpolated value between a and b.
+ */
+mathUtil.mixAngles = function(a, b, f) {
+    return mathUtil.mixWithWrap(a, b, f, 2 * Math.PI);
 };
 
 /**
@@ -1218,4 +1230,16 @@ canvasUtil.getCurrentTransform = function(ctx) {
         t = ctx.currentTransform.scale(1);
     }
     return t;
+};
+
+/**
+ * Set the canvas clip rectangle.
+ * @param {CanvasRenderingContext2D} ctx Context to set the rectangle to.
+ * @param {Rect} rect Rectangle to set as canvas clip rectangle.
+ */
+canvasUtil.clipRect = function(ctx, rect) {
+    var xywh = rect.getXYWH();
+    ctx.beginPath();
+    ctx.rect(xywh.x, xywh.y, xywh.w, xywh.h);
+    ctx.clip();
 };
