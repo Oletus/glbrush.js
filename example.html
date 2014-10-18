@@ -118,6 +118,7 @@ loadApp = function() {
             picture.crop(picture.boundsRect, scale);
             drawArea.style.width = picture.bitmapWidth();
             drawArea.style.height = picture.bitmapHeight();
+            picture.display();
         }
     };
     createButton('0.5x', function() {
