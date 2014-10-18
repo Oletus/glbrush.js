@@ -96,7 +96,7 @@ describe('Rasterizing system', function() {
             canvas.width = width;
             canvas.height = height;
         }
-        return Picture.initWebGL(canvas);
+        return Picture.initWebGL(canvas, debugGLSettingFromURL());
     }
 
     function testBaseRasterizerProperties(testRasterizer, w, h) {

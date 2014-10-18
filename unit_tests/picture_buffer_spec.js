@@ -993,7 +993,7 @@ describe('GLBuffer', function() {
         canvas = document.createElement('canvas');
         canvas.width = params.width;
         canvas.height = params.height;
-        gl = Picture.initWebGL(canvas);
+        gl = Picture.initWebGL(canvas, debugGLSettingFromURL());
         glManager = glStateManager(gl);
         compositor = new GLCompositor(glManager, gl, 8);
         texBlitProgram = glManager.shaderProgram(blitShader.blitSrc, blitShader.blitVertSrc, {'uSrcTex': 'tex2d'});

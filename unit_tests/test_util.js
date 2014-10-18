@@ -320,3 +320,7 @@ function countColoredPixelsInImage(img, color, tolerance) {
     }
     return pixels;
 }
+
+function debugGLSettingFromURL() {
+    return window.location.search.indexOf('debugGL=1') > 0;
+}

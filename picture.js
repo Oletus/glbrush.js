@@ -870,9 +870,13 @@ Picture.prototype.createEventHideEvent = function(hiddenSid,
 
 /**
  * @param {HTMLCanvasElement} canvas Canvas to use for rasterization.
+ * @param {boolean=} debugGL True to log every WebGL call made on the context. Defaults to false.
  * @return {WebGLRenderingContext} Context to use or null if unsuccessful.
  */
-Picture.initWebGL = function(canvas) {
+Picture.initWebGL = function(canvas, debugGL) {
+    if (debugGL === undefined) {
+        debugGL = false;
+    }
     var contextAttribs = {
         antialias: false,
         stencil: false,
@@ -882,6 +886,12 @@ Picture.initWebGL = function(canvas) {
     var gl = glUtils.initGl(canvas, contextAttribs, 4);
     if (!gl) {
         return null;
+    }
+    if (debugGL) {
+        var logGLCall = function(functionName, args) {
+            console.log('gl.' + functionName + '(' + WebGLDebugUtils.glFunctionArgsToString(functionName, args) + ')');
+        };
+        gl = WebGLDebugUtils.makeDebugContext(gl, undefined, logGLCall);
     }
     gl.getExtension('OES_texture_float');
 
