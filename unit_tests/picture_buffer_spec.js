@@ -36,12 +36,10 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         initTestCanvas();
 
         var buffer = createBuffer(params);
-        var rasterizer = createRasterizer(params);
-        expectBufferCorrect(buffer, rasterizer, 0);
+        expectBufferCorrect(buffer, null, 0);
         buffer.clear(buffer.events[0].clearColor);
-        expectBufferCorrect(buffer, rasterizer, 0);
+        expectBufferCorrect(buffer, null, 0);
 
-        rasterizer.free();
         buffer.free();
     });
 
