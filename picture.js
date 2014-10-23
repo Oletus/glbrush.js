@@ -895,13 +895,9 @@ Picture.initWebGL = function(canvas, debugGL) {
     }
     gl.getExtension('OES_texture_float');
 
-    gl.clearColor(0.0, 0.0, 0.0, 0.0);
-    gl.disable(gl.DEPTH_TEST);
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
     gl.enable(gl.BLEND);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    gl.enable(gl.SCISSOR_TEST);
-    gl.scissor(0, 0, canvas.width, canvas.height);
+    gl.enable(gl.SCISSOR_TEST); // scissor rect is initially set to canvas size.
     gl.hint(gl.GENERATE_MIPMAP_HINT, gl.NICEST);
     return gl;
 };
