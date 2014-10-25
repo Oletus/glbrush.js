@@ -1,0 +1,106 @@
+<html>
+<head>
+<title>Simplified test case based on a failure seen on Chrome</title>
+<script>
+var log = function(msg) {
+    console.log(msg);
+    var p = document.createElement('p');
+    p.textContent = msg;
+    document.body.appendChild(p);
+};
+
+var test = function() {
+    var canvas = document.getElementById('canvas');
+    var w = 64;
+    var h = 64;
+    canvas.width = w;
+    canvas.height = h;
+    var gl = canvas.getContext('webgl');
+    var fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+      
+    var vert = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(vert,
+      "attribute vec2 aVertexPosition;" +
+      "varying vec2 vTexCoord;" +
+      "void main(void) {" +
+        "vTexCoord = vec2((aVertexPosition.x + 1.0) * 0.5, (aVertexPosition.y + 1.0) * 0.5);" +
+        "gl_Position = vec4(aVertexPosition, 0.0, 1.0);" +
+      "}");
+    gl.compileShader(vert);
+    var frag = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(frag, "precision highp float;" +
+      "uniform sampler2D uSrcTex;" +
+      "varying vec2 vTexCoord;" +
+      "void main(void) {" +
+        "gl_FragColor = texture2D(uSrcTex, vTexCoord);" +
+      "}");
+    gl.compileShader(frag);
+    var prog = gl.createProgram();
+    gl.attachShader(prog, vert);
+    gl.attachShader(prog, frag);
+    gl.linkProgram(prog);
+    gl.useProgram(prog);
+    var texLoc = gl.getUniformLocation(prog, "uSrcTex");
+    gl.uniform1i(texLoc, 0);
+
+    var vertLoc = gl.getAttribLocation(prog, "aVertexPosition");
+
+    var bb = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, bb);
+    var vertices = [
+        1.0, 1.0,
+        -1.0, 1.0,
+        1.0, -1.0,
+        -1.0, -1.0
+    ];
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);   
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(vertLoc, 2, gl.FLOAT, false, 0, 0);
+
+    var tex2 = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex2);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, w, h, 0, gl.RGB, gl.UNSIGNED_BYTE, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+
+    var tex1 = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex1);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, w, h, 0, gl.RGB, gl.UNSIGNED_BYTE, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+
+    gl.clearColor(1.0, 1.0, 1.0, 1.0);
+
+    // Clear tex1 to white
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex1, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // Copy tex1 to tex2
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex2, 0);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    // Clear tex1 to white
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex1, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // Copy tex1 to tex2
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex2, 0);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    // Read what is in tex2
+    var data = new Uint8Array(w * h * 4);
+    gl.readPixels(0, 0, 64, 64, gl.RGBA, gl.UNSIGNED_BYTE, data);
+    
+    if (data[0] < 255 - 5) {
+        log('fail');
+    } else {
+        log('success');
+    }
+};
+</script>
+</head>
+<body onload="test()">
+<canvas id="canvas"></canvas>
+</body>
+</html>
