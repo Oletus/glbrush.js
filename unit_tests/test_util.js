@@ -279,10 +279,16 @@ function expectBufferCorrect(buffer, rasterizer, tolerance) {
     expect(stateData.length).toBe(correctData.length);
     var incorrectPixels = expectArrayCorrect(stateData, correctData, tolerance);
     if (incorrectPixels > 0) {
-        var displayData = function(data, w, h) {
+        var displayData = function(data, w, h, isRef, caption) {
             var canvas = document.createElement('canvas');
             canvas.width = w;
             canvas.height = h;
+            canvas.textContent = caption;
+            if (isRef) {
+                canvas.style.border = '1px solid #0f0';
+            } else {
+                canvas.style.border = '1px solid #f00';
+            }
             var ctx = canvas.getContext('2d');
             var imgData = ctx.createImageData(w, h);
             for (i = 0; i < data.length; ++i) {
@@ -291,8 +297,8 @@ function expectBufferCorrect(buffer, rasterizer, tolerance) {
             ctx.putImageData(imgData, 0, 0);
             document.body.appendChild(canvas);
         };
-        displayData(stateData, buffer.width(), buffer.height());
-        displayData(correctData, buffer.width(), buffer.height());
+        displayData(stateData, buffer.width(), buffer.height(), false, 'being tested');
+        displayData(correctData, buffer.width(), buffer.height(), true, 'after total replay');
     }
 }
 
