@@ -889,7 +889,7 @@ Picture.initWebGL = function(canvas, debugGL) {
     }
     if (debugGL) {
         var logGLCall = function(functionName, args) {
-            console.log('gl.' + functionName + '(' + WebGLDebugUtils.glFunctionArgsToString(functionName, args) + ')');
+            console.log('gl.' + functionName + '(' + WebGLDebugUtils.glFunctionArgsToString(functionName, args) + ');');
         };
         gl = WebGLDebugUtils.makeDebugContext(gl, undefined, logGLCall);
     }
