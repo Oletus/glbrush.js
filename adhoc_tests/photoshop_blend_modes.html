@@ -13,11 +13,13 @@
             }
             inputs.push(255);
 
-            // Compare blendFunction with reference data from Photoshop CS5, the reference data was generated with
-            // input1.png as base layer and input2.png on top with 100% opacity and given blend mode selected.
-            // Note that blending works differently for tools in Photoshop than it does for layers. We don't emulate
-            // the tool blending behavior at least for now, only the simpler layer blending behavior.
-            function testBlendFunction(name, blendFunction, callback) {
+            /** Compare blendFunction with reference data from Photoshop CS5, the reference data was generated with
+             * input1.png as base layer and input2.png on top with 100% opacity and given blend mode selected.
+             * Note that blending works differently for tools in Photoshop than it does for layers. We don't emulate
+             * the tool blending behavior at least for now, only the simpler layer blending behavior.
+             * @param {number} bottomAlpha Bottom layer alpha in percent, from 0 to 100.
+             */
+            function testBlendFunction(name, blendFunction, bottomAlpha, callback) {
                 var img = new Image();
                 img.onload = function() {
                     var canvas = document.createElement("canvas");
@@ -29,7 +31,7 @@
                     var errorTotal = 0.;
                     var errorMax = 0.;
                     var resultData = ctx.createImageData(27, 27); // For displaying the blending code results
-                    for (var x = 0; x < 27; x++)
+                    for (var x = 0; x < 27; x++) {
                         for (var y = 0; y < 27; y++) {
                             var result = Math.round(blendFunction(inputs[x], inputs[y]));
                             for (var i = 0; i < 3; ++i) {
@@ -43,6 +45,7 @@
                                 console.log(name + ":" + inputs[x] + ", " + inputs[y] + " func " + result + " vs. ps " +
                                         data[(x + y * 27) * 4]);
                         }
+                    }
 
                     var averageError = errorTotal / (27 * 27) * (100 / 255);
                     var maximumError = errorMax;
@@ -63,7 +66,11 @@
                     displayOnCanvas(resultData);
                     window.setTimeout(callback, 0);
                 };
-                img.src = "img/photoshop_cs5_" + name + ".png";
+                if (bottomAlpha === 100) {
+                    img.src = "img/photoshop_cs5_" + name + ".png";
+                } else {
+                    img.src = "img_input1_alpha-" + bottomAlpha + "percent/photoshop_cs5_" + name + ".png";
+                }
             }
 
             var tests = [
@@ -77,9 +84,13 @@
                 // Since image loading is asynchronous, run the next test as a callback from there to ensure tests are
                 // run in the same order.
                 if (testIndex < tests.length) {
-                    testBlendFunction(tests[testIndex].toLowerCase(), colorUtil['blend' + tests[testIndex]], runTest);
-                    ++testIndex;
+                    testBlendFunction(tests[testIndex].toLowerCase(), colorUtil['blend' + tests[testIndex]], 100, runTest);
+                } else if (testIndex < tests.length + 3) {
+                    var test = tests[testIndex % tests.length];
+                    // TODO:
+                    // testBlendFunction(test.toLowerCase(), colorUtil['blend' + test], 50, runTest);
                 }
+                ++testIndex;
             }
 
         </script>
