@@ -57,7 +57,7 @@ compositingShader.getFragmentSource = function(layers) {
         src.push('  ' + bufferColor + ' = vec4(' + eq + ' * blendedAlpha' + i + ', blendedAlpha' + i + ');');
     };
     // Some blending operations require per component logic.
-    // TODO: Some of these could probably be vectorized, using functions such as lessThan
+    // TODO: Some of these could probably be vectorized, using functions such as lessThan (see lighten for example)
     var blendEqPerComponent = function(eq) {
         src.push('  float blendedAlpha' + i + ' = layer' + i + 'Color.w + ' +
                 bufferColor + '.w * (1.0 - layer' + i + 'Color.w);');
@@ -129,9 +129,9 @@ compositingShader.getFragmentSource = function(layers) {
                             'dstColor + (2. * srcColor - 1.) * dstColor * ((16. * dstColor - 12.) * dstColor + 3.) :' +
                             'dstColor + (2. * srcColor - 1.) * (sqrt(dstColor) - dstColor))');
                 } else if (layers[i].mode === PictureEvent.Mode.darken) {
-                    blendEqPerComponent('dstColor < srcColor ? dstColor : srcColor');
+                    blendEq('vec3(lessThan(dstColor, srcColor)) * (dstColor - srcColor) + srcColor');
                 } else if (layers[i].mode === PictureEvent.Mode.lighten) {
-                    blendEqPerComponent('dstColor > srcColor ? dstColor : srcColor');
+                    blendEq('vec3(greaterThan(dstColor, srcColor)) * (dstColor - srcColor) + srcColor');
                 } else if (layers[i].mode === PictureEvent.Mode.difference) {
                     blendEq('abs(srcColor - dstColor)');
                 } else if (layers[i].mode === PictureEvent.Mode.exclusion) {
