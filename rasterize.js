@@ -332,7 +332,7 @@ Rasterizer.prototype.blendPerChannel = function(targetData, color, opacity, x, y
             var alphaS = this.data[sind] * opacity;
             var alpha = alphaS + alphaT * (1.0 - alphaS);
             for (var c = 0; c < 3; c++) {
-                tData[ind + c] = mathUtil.mix(tData[ind + c], blendFunction(tData[ind + c], color[c]), alphaS);
+                tData[ind + c] = colorUtil.blendWithFunction(blendFunction, tData[ind + c], color[c], alphaT, alphaS);
             }
             tData[ind + 3] = 255 * alpha;
             ind += 4;

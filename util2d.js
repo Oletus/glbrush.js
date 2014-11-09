@@ -40,6 +40,7 @@ var colorUtil = {
     approximateAlphaForNBlends: null,
     alphaForNBlends: null,
     differentColor: null,
+    blendWithFunction: null,
     blendMultiply: null,
     blendScreen: null,
     blendDarken: null,
@@ -248,6 +249,24 @@ colorUtil.differentColor = function(color) {
         hsl[2] = (hsl[2] + 0.4) % 1;
     }
     return hslToRgb(hsl[0], hsl[1], hsl[2]);
+};
+
+/**
+ * Blend the two single-channel values to each other, taking into account bottom and top layer alpha.
+ * @param {function} blendFunction The blend function to use, one of colorUtil.blend*
+ * @param {number} target Single-channel color value of the bottom layer, 0 to 255.
+ * @param {number} source Single-channel color value of the top layer, 0 to 255.
+ * @param {number} targetAlpha Alpha value of the bottom layer, 0.0 to 1.0.
+ * @param {number} sourceAlpha Alpha value of the top layer, 0.0 to 1.0.
+ * @return {number} Blend result as an integer from 0 to 255.
+ */
+colorUtil.blendWithFunction = function(blendFunction, target, source, targetAlpha, sourceAlpha) {
+    // First calculate the blending result without taking the transparency of the target into account.
+    var rawResult = blendFunction(target, source);
+    // Normal blending result should be mixed in relative to the transparency of the blend target.
+    var blendResult = mathUtil.mix(source, rawResult, targetAlpha);
+    // The final mix depends on the alpha of the blend source.
+    return Math.round(mathUtil.mix(target, blendResult, sourceAlpha));
 };
 
 /**

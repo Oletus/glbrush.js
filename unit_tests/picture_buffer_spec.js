@@ -150,73 +150,23 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         buffer.free();
     });
 
-    it('blends an event to the bitmap with the multiply mode', function() {
-        initTestCanvas();
-
-        var buffer = createBuffer(params);
-        var rasterizer = createRasterizer(params);
-        var opacity = 0.5;
-        var brushEvent = fillingBrushEvent(params.width, params.height,
-                                           [0.2 * 255, 0.4 * 255, 0.8 * 255],
-                                           opacity, PictureEvent.Mode.multiply);
-        buffer.pushEvent(brushEvent, rasterizer);
-        var samplePixel = buffer.getPixelRGBA(new Vec2(0, 0));
-        expect(samplePixel[0]).toBeNear(params.clearColor[0] *
-                                        (0.2 + (1.0 - 0.2) * opacity), 10);
-        expect(samplePixel[1]).toBeNear(params.clearColor[1] *
-                                        (0.4 + (1.0 - 0.4) * opacity), 10);
-        expect(samplePixel[2]).toBeNear(params.clearColor[2] *
-                                        (0.8 + (1.0 - 0.8) * opacity), 10);
-        var targetAlpha = params.clearColor[3] / 255;
-        var alpha = (targetAlpha + opacity - targetAlpha * opacity) * 255;
-        expect(samplePixel[3]).toBeNear(alpha, 15);
-
-        rasterizer.free();
-        buffer.free();
-    });
-
-    it('blends an event to the bitmap with the screen mode', function() {
-        initTestCanvas();
-
-        var buffer = createBuffer(params);
-        var rasterizer = createRasterizer(params);
-        var opacity = 0.5;
-        var brushEvent = fillingBrushEvent(params.width, params.height,
-                                           [0.2 * 255, 0.4 * 255, 0.8 * 255],
-                                           opacity, PictureEvent.Mode.screen);
-        buffer.pushEvent(brushEvent, rasterizer);
-        var samplePixel = buffer.getPixelRGBA(new Vec2(0, 0));
-        var cc = params.clearColor;
-        expect(samplePixel[0]).toBeNear((255 - (255 - cc[0]) * (1.0 - 0.2)) *
-                                        opacity + (1.0 - opacity) * cc[0], 10);
-        expect(samplePixel[1]).toBeNear((255 - (255 - cc[1]) * (1.0 - 0.4)) *
-                                        opacity + (1.0 - opacity) * cc[1], 10);
-        expect(samplePixel[2]).toBeNear((255 - (255 - cc[2]) * (1.0 - 0.8)) *
-                                        opacity + (1.0 - opacity) * cc[2], 10);
-        var targetAlpha = params.clearColor[3] / 255;
-        var alpha = (targetAlpha + opacity - targetAlpha * opacity) * 255;
-        expect(samplePixel[3]).toBeNear(alpha, 10);
-
-        rasterizer.free();
-        buffer.free();
-    });
-
     var generalizedBlendModeTest = function(testName, blendMode, testAgainst) {
-        it('blends an event to the bitmap with the ' + testName, function() {
+        it('blends an event to the bitmap with the ' + testName + ' blend mode', function() {
             initTestCanvas();
 
             var buffer = createBuffer(params);
             var rasterizer = createRasterizer(params);
-            var opacity = 0.5;
+            var opacity = 0.6;
             var brushColor = [0.2 * 255, 0.4 * 255, 0.8 * 255];
             var brushEvent = fillingBrushEvent(params.width, params.height, brushColor, opacity, blendMode);
             buffer.pushEvent(brushEvent, rasterizer);
             var samplePixel = buffer.getPixelRGBA(new Vec2(0, 0));
-            for (var chan = 0; chan < 3; chan++) {
-                expect(samplePixel[chan]).toBeNear(mathUtil.mix(params.clearColor[chan],
-                        testAgainst(params.clearColor[chan], brushColor[chan]), opacity), 3.0);
-            }
             var targetAlpha = params.clearColor[3] / 255;
+            for (var chan = 0; chan < 3; chan++) {
+                var channelShouldBe = colorUtil.blendWithFunction(
+                    testAgainst, params.clearColor[chan], brushColor[chan], targetAlpha, opacity);
+                expect(samplePixel[chan]).toBeNear(channelShouldBe, 3.0);
+            }
             var alpha = (targetAlpha + opacity - targetAlpha * opacity) * 255;
             expect(samplePixel[3]).toBeNear(alpha, 10);
             rasterizer.free();
