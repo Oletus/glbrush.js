@@ -266,7 +266,11 @@ colorUtil.blendWithFunction = function(blendFunction, target, source, targetAlph
     // Normal blending result should be mixed in relative to the transparency of the blend target.
     var blendResult = mathUtil.mix(source, rawResult, targetAlpha);
     // The final mix depends on the alpha of the blend source.
-    return Math.round(mathUtil.mix(target, blendResult, sourceAlpha));
+    if (targetAlpha > 0) {
+        return Math.round(mathUtil.mix(target, blendResult, sourceAlpha));
+    } else {
+        return Math.round(blendResult);
+    }
 };
 
 /**

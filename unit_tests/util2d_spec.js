@@ -106,6 +106,12 @@ describe('util2d', function() {
             return uints;
         }
 
+        var blendModeNames = [
+            'Multiply', 'Screen', 'Overlay', 'HardLight', 'SoftLight', 'Darken', 'Lighten', 'Difference',
+            'Exclusion', 'ColorBurn', 'LinearBurn', 'VividLight', 'LinearLight', 'PinLight', 'ColorDodge',
+            'LinearDodge'
+        ];
+
         it('unpremultiplies if alpha is 255', function() {
             var testColor = toUint8Array([128, 128, 128, 255]);
             expect(colorUtil.unpremultiply(testColor)).toEqual(testColor);
@@ -184,6 +190,29 @@ describe('util2d', function() {
             expect(differentRGB[0]).toBeNear(230, 25);
             expect(differentRGB[1]).toBeNear(230, 25);
             expect(differentRGB[2]).toBeNear(230, 25);
+        });
+        it('modulates blending behavior using source and target alpha values', function() {
+            var targetColor = 78;
+            var srcColor = 183;
+            var expected;
+            for (var i = 0; i < blendModeNames.length; ++i) {
+                var blendFunction = colorUtil['blend' + blendModeNames[i]];
+                // Test that blending with both alpha values at 1 results in pure blend function result:
+                expect(colorUtil.blendWithFunction(blendFunction, targetColor, srcColor, 1, 1)).toBeNear(
+                    blendFunction(targetColor, srcColor), 1);
+                // Test that blending to a target with alpha 0 results in pure source color:
+                expect(colorUtil.blendWithFunction(blendFunction, targetColor, srcColor, 0, 0.3)).toBe(srcColor);
+                // Test that blending to a target with alpha 0.001 results in a color close to the source color
+                expect(colorUtil.blendWithFunction(blendFunction, targetColor, srcColor, 0.001, 1)).toBeNear(
+                    srcColor, 2);
+                // Test that blending to a target with alpha 0.4 results in blend function result mixed with source
+                // color:
+                expected = (blendFunction(targetColor, srcColor) * 0.4) + srcColor * 0.6;
+                expect(colorUtil.blendWithFunction(blendFunction, targetColor, srcColor, 0.4, 1)).toBeNear(expected, 1);
+                // Test that blending a source with alpha 0.4 results in blend function result mixed with target color:
+                expected = (blendFunction(targetColor, srcColor) * 0.4) + targetColor * 0.6;
+                expect(colorUtil.blendWithFunction(blendFunction, targetColor, srcColor, 1, 0.4)).toBeNear(expected, 1);
+            }
         });
     });
 
