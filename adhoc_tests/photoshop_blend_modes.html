@@ -20,6 +20,7 @@
              * @param {number} bottomAlpha Bottom layer alpha in percent, from 0 to 100.
              */
             function testBlendFunction(name, blendFunction, bottomAlpha, callback) {
+                var mixNormal = 1.0 - bottomAlpha * 0.01;
                 var img = new Image();
                 img.onload = function() {
                     var canvas = document.createElement("canvas");
@@ -33,25 +34,32 @@
                     var resultData = ctx.createImageData(27, 27); // For displaying the blending code results
                     for (var x = 0; x < 27; x++) {
                         for (var y = 0; y < 27; y++) {
-                            var result = Math.round(blendFunction(inputs[x], inputs[y]));
+                            // First calculate the blending result without taking the transparency of the bottom layer
+                            // into account.
+                            var blendResult = blendFunction(inputs[x], inputs[y]);
+                            // Normal blending result should be mixed in relative to the transparency of the blend
+                            // target.
+                            var result = Math.round(mathUtil.mix(blendResult, inputs[y], mixNormal));
+                            var pixelIndex = (x + y * 27);
                             for (var i = 0; i < 3; ++i) {
-                                resultData.data[(x + y * 27) * 4 + i] = result;
+                                resultData.data[pixelIndex * 4 + i] = result;
                             }
-                            resultData.data[(x + y * 27) * 4 + 3] = 255;
-                            var error = Math.abs(data[(x + y * 27) * 4] - result);
+                            resultData.data[pixelIndex * 4 + 3] = 255;
+                            var error = Math.abs(data[pixelIndex * 4] - result);
                             errorTotal += error;
                             errorMax = errorMax < error ? error : errorMax;
                             if (error > 2)
                                 console.log(name + ":" + inputs[x] + ", " + inputs[y] + " func " + result + " vs. ps " +
-                                        data[(x + y * 27) * 4]);
+                                        data[pixelIndex * 4]);
                         }
                     }
 
                     var averageError = errorTotal / (27 * 27) * (100 / 255);
                     var maximumError = errorMax;
                     var report = document.createElement('div');
-                    report.innerHTML = "Testing function <b>" + name + "</b>, average error is <b>" +
-                            averageError + " %</b>, maximum error is <b>" + maximumError + " / 255</b>";
+                    report.innerHTML = "Testing function <b>" + name + "</b>, with bottom layer alpha " + bottomAlpha +
+                            "%, average error is <b>" + averageError.toPrecision(2) + " %</b>, maximum error is <b>" +
+                            maximumError + " / 255</b>";
                     document.body.appendChild(report);
 
                     document.body.appendChild(img);
@@ -83,12 +91,11 @@
             function runTest() {
                 // Since image loading is asynchronous, run the next test as a callback from there to ensure tests are
                 // run in the same order.
+                var test = tests[testIndex % tests.length];
                 if (testIndex < tests.length) {
-                    testBlendFunction(tests[testIndex].toLowerCase(), colorUtil['blend' + tests[testIndex]], 100, runTest);
-                } else if (testIndex < tests.length + 3) {
-                    var test = tests[testIndex % tests.length];
-                    // TODO:
-                    // testBlendFunction(test.toLowerCase(), colorUtil['blend' + test], 50, runTest);
+                    testBlendFunction(test.toLowerCase(), colorUtil['blend' + test], 100, runTest);
+                } else if (testIndex < tests.length + 7) {
+                    testBlendFunction(test.toLowerCase(), colorUtil['blend' + test], 50, runTest);
                 }
                 ++testIndex;
             }
