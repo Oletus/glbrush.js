@@ -382,9 +382,7 @@ colorUtil.blendColorBurn = function(a, b) {
         return 255;
     if (b === 0)
         return 0;
-    a /= 255;
-    b /= 255;
-    return mathUtil.clamp(0, 255, 255. * (1. - (1. - a) / b));
+    return mathUtil.clamp(0, 255, 255 - (255 - a) / b * 255);
 };
 
 /**
@@ -411,7 +409,7 @@ colorUtil.blendVividLight = function(a, b) {
     a /= 255;
     b /= 255;
     return mathUtil.clamp(0, 255, 255 * (b <= .5 ?
-            1 - (1 - a) / (2 * (b)) :
+            1 - (1 - a) / (2 * b) :
             a / (2 * (1 - b))));
 };
 
