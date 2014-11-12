@@ -15,6 +15,7 @@
 <script type="text/javascript" src="../rasterize.js"></script>
 <script type="text/javascript" src="../picture_buffer.js"></script>
 <script type="text/javascript" src="../undo_state.js"></script>
+<script type="text/javascript" src="../picture_update.js"></script>
 <script type="text/javascript" src="../picture.js"></script>
 <script type="text/javascript">
 
@@ -38,7 +39,8 @@ var testTextureCanvas = function() {
 /**
  * @return {number} time spent in milliseconds.
  */
-var measureBrushStrokeTime = function(testPic, eventCount, radius, textureId, softness, mode, report) {
+var measureBrushStrokeTime = function(testPic, eventCount, radius, textureId, softness, blendId, report) {
+    var bMode = PictureEvent.Mode[blendId];
     var w = testPic.bitmapWidth();
     var color = [39, 95, 188];
     var flow = 0.5;
@@ -46,7 +48,7 @@ var measureBrushStrokeTime = function(testPic, eventCount, radius, textureId, so
     var angle = 0;
     var startTime = new Date().getTime();
     for (var i = 0; i < eventCount; ++i) {
-        var event = testPic.createBrushEvent(color, flow, opacity, radius, textureId, softness, mode);
+        var event = testPic.createBrushEvent(color, flow, opacity, radius, textureId, softness, bMode);
         angle += 0.2;
         for (var j = 0; j < 20; ++j) {
             var xa = Math.cos(angle + j * 0.02) / 20;
@@ -60,34 +62,38 @@ var measureBrushStrokeTime = function(testPic, eventCount, radius, textureId, so
     testPic.display();
     var totalTime = new Date().getTime() - startTime;
     if (report) {
+        var logTime = function(mode, testTextureId, mode, time) {
+            timeMessage = 'Mode: ' + mode + ', blend mode: ' + mode + ', texture id: ' + testTextureId + ', brush events per second: ' +
+                          (eventCount / time * 1000).toFixed(2);
+            console.log(timeMessage);
+            timeDisplay = document.createElement('div');
+            timeDisplay.textContent = timeMessage;
+            document.body.appendChild(timeDisplay);
+        };
+    
         var picElement = testPic.pictureElement();
         picElement.style.width = '500px';
         picElement.style.height = '500px';
         picContainer.appendChild(picElement);
-        timeMessage = 'Mode: ' + testPic.mode + ', texture id: ' + testTextureId + ', brush events per second: ' +
-                      (eventCount / totalTime * 1000).toFixed(2);
-        console.log(timeMessage);
-        timeDisplay = document.createElement('div');
-        timeDisplay.textContent = timeMessage;
-        document.body.appendChild(timeDisplay);
+        logTime(testPic.mode, testTextureId, blendId, totalTime);
     }
     return totalTime;
 }
 
 var picContainer;
 var pictureMode = 'webgl';
+var blendMode = 'normal';
 var testTextureId = 0;
 
 var runTest = function() {
     var eventCount = pictureMode === 'canvas' ? 200 : pictureMode === 'webgl' ? 1000 : 500;
-    var mode = PictureEvent.Mode.normal;
     var bufferHasAlpha = true;
     var radius = 20;
     var softness = 1.0;
 
     var w = 1024;
     var brushTextureData = [testTextureCanvas()];
-    var testPic = Picture.create(0, null, w, w, 1.0, [pictureMode], brushTextureData);
+    var testPic = Picture.create(0, null, new Rect(0, w, 0, w), 1.0, [pictureMode], brushTextureData);
     if (testPic === null) {
         console.log('Could not test mode ' + pictureMode);
         return undefined;
@@ -96,7 +102,7 @@ var runTest = function() {
     for (var report = 0; report <= 1; ++report) {
         var doReport = report === 1;
         var totalTime = measureBrushStrokeTime(testPic, doReport ? eventCount : 200,
-                                               radius, testTextureId, softness, mode, doReport);
+                                               radius, testTextureId, softness, blendMode, doReport);
     }
     return totalTime;
 }
@@ -131,12 +137,20 @@ var init = function() {
     p.textContent = ' texId ';
     document.body.appendChild(p);
     selection('texId', textureIds);
+    var blendModes = [];
+    for (var m in PictureEvent.Mode) {
+        if (PictureEvent.Mode.hasOwnProperty(m)) {
+            blendModes.push(m);
+        }
+    }
+    selection('blendMode', blendModes);
 
     var run = document.createElement('input');
     run.type = 'button';
     run.value = 'Run test';
     run.onclick = function() {
         pictureMode = getSelection('mode');
+        blendMode = getSelection('blendMode');
         picContainer.innerHTML = '';
         testTextureId = parseInt(getSelection('texId'));
         setTimeout(runTest, 100);
