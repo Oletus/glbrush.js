@@ -52,4 +52,4 @@ def compile_glbrush(output_path):
     return True
 
 if __name__ == '__main__':
-    compile_glbrush(os.path.join(glbrush_root_path(), 'compile', 'glbrush_min.js'))
+    compile_glbrush(os.path.join(glbrush_root_path(), 'benchmark', 'glbrush_min.js'))
