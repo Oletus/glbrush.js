@@ -62,8 +62,8 @@ var measureBrushStrokeTime = function(testPic, eventCount, radius, textureId, so
     testPic.display();
     var totalTime = new Date().getTime() - startTime;
     if (report) {
-        var logTime = function(mode, testTextureId, mode, time) {
-            timeMessage = 'Mode: ' + mode + ', blend mode: ' + mode + ', texture id: ' + testTextureId + ', brush events per second: ' +
+        var logTime = function(mode, testTextureId, blendMode, time) {
+            timeMessage = 'Mode: ' + mode + ', blend mode: ' + blendMode + ', texture id: ' + testTextureId + ', brush events per second: ' +
                           (eventCount / time * 1000).toFixed(2);
             console.log(timeMessage);
             timeDisplay = document.createElement('div');
