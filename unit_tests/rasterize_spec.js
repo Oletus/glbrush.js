@@ -472,6 +472,7 @@ describe('Rasterizing system', function() {
             }
             var gl = initTestGl(width, height);
             var glManager = glStateManager(gl);
+            glManager.useQuadVertexBuffer();
             if (brushTextureData === undefined) {
                 return new GLDoubleBufferedRasterizer(gl, glManager, width, height, null);
             } else {
@@ -496,6 +497,7 @@ describe('Rasterizing system', function() {
             }
             var gl = initTestGl(width, height);
             var glManager = glStateManager(gl);
+            glManager.useQuadVertexBuffer();
             if (brushTextureData === undefined) {
                 return new GLFloatRasterizer(gl, glManager, width, height, null);
             } else {
@@ -520,6 +522,7 @@ describe('Rasterizing system', function() {
             }
             var gl = initTestGl(width, height);
             var glManager = glStateManager(gl);
+            glManager.useQuadVertexBuffer();
             if (brushTextureData === undefined) {
                 return new GLFloatTexDataRasterizer(gl, glManager, width, height, null);
             } else {

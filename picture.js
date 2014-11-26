@@ -211,6 +211,7 @@ Picture.prototype.setupGLState = function() {
         return false;
     }
     this.glManager = glStateManager(this.gl);
+    this.glManager.useQuadVertexBuffer(); // All drawing is done using the same vertex array
     this.loseContext = this.gl.getExtension('WEBGL_lose_context');
 
     this.brushTextures = new GLBrushTextures(this.gl, this.glManager);

@@ -105,6 +105,7 @@ describe('GLUndoState', function() {
         canvas.height = 128;
         gl = Picture.initWebGL(canvas);
         glManager = glStateManager(gl);
+        glManager.useQuadVertexBuffer();
         compositor = new GLCompositor(glManager, gl, 8);
         texBlitProgram = glManager.shaderProgram(blitShader.blitSrc, blitShader.blitVertSrc, {'uSrcTex': 'tex2d'});
         texBlitUniforms = {

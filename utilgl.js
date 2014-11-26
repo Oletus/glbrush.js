@@ -119,6 +119,7 @@ glUtils.initGl = function(canvas, contextAttribs, minTextureUnits) {
     } catch (e) {
         gl = null;
     }
+    gl.enableVertexAttribArray(0);
     return gl;
 };
 
@@ -188,6 +189,7 @@ var ShaderProgram = function(gl, fragmentShaderSource, vertexShaderSource,
     this.shaderProgram = this.gl.createProgram();
     this.gl.attachShader(this.shaderProgram, vertexShader);
     this.gl.attachShader(this.shaderProgram, fragmentShader);
+    this.gl.bindAttribLocation(this.shaderProgram, 0, 'aVertexPosition');
     this.gl.linkProgram(this.shaderProgram);
 
     if (!this.gl.getProgramParameter(this.shaderProgram, this.gl.LINK_STATUS)) {
@@ -209,9 +211,10 @@ var ShaderProgram = function(gl, fragmentShaderSource, vertexShaderSource,
         }
     }
 
-    this.vertexPositionAttribute = this.gl.getAttribLocation(this.shaderProgram,
-                                                             'aVertexPosition');
-    this.gl.enableVertexAttribArray(this.vertexPositionAttribute);
+    var vertexPositionAttribLoc = this.gl.getAttribLocation(this.shaderProgram, 'aVertexPosition');
+    if (vertexPositionAttribLoc !== 0) {
+        console.log('Vertex position attribute location unexpected, ' + vertexPositionAttribLoc);
+    }
 };
 
 /**
@@ -233,7 +236,6 @@ ShaderProgram.prototype.uniformParameters = function() {
  * @param {Object.<string,*>} uniforms Map from uniform names to uniform values.
  * Single uniforms must not be passed in an array, vector uniforms must be
  * passed in an array. Texture uniforms must be passed as WebGLTexture.
- * @return {GLint} Attribute location for the vertex position.
  */
 ShaderProgram.prototype.use = function(uniforms) {
     this.gl.useProgram(this.shaderProgram);
@@ -283,7 +285,7 @@ ShaderProgram.prototype.use = function(uniforms) {
                         ' ' + uniforms[key]);
         }
     }
-    return this.vertexPositionAttribute;
+    return;
 };
 
 /**
@@ -322,8 +324,8 @@ var glStateManager = function(gl) {
     var fboInUse = null;
     var sharedFboTex = null;
 
-    var squareVertexBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexBuffer);
+    var unitQuadVertexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, unitQuadVertexBuffer);
     var vertices = [
         1.0, 1.0,
         -1.0, 1.0,
@@ -332,10 +334,14 @@ var glStateManager = function(gl) {
     ];
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
 
+    var useQuadVertexBufferInternal = function() {
+        gl.bindBuffer(gl.ARRAY_BUFFER, unitQuadVertexBuffer);
+        var positionAttribLocation = 0;
+        gl.vertexAttribPointer(positionAttribLocation, 2, gl.FLOAT, false, 0, 0);
+    };
+
     var drawFullscreenQuadInternal = function(program, uniforms) {
-        var vertexPositionAttribute = program.use(uniforms);
-        gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexBuffer);
-        gl.vertexAttribPointer(vertexPositionAttribute, 2, gl.FLOAT, false, 0, 0);
+        program.use(uniforms);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     };
 
@@ -349,9 +355,7 @@ var glStateManager = function(gl) {
             rectCenter.y = (1 - rectCenter.y / gl.drawingBufferHeight) * 2 - 1;
             uniforms['uTranslate'] = [rectCenter.x, rectCenter.y];
         }
-        var vertexPositionAttribute = program.use(uniforms);
-        gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexBuffer);
-        gl.vertexAttribPointer(vertexPositionAttribute, 2, gl.FLOAT, false, 0, 0);
+        program.use(uniforms);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     };
 
@@ -371,6 +375,7 @@ var glStateManager = function(gl) {
 
     return {
         shaderProgram: shaderProgramCache(gl),
+        useQuadVertexBuffer: useQuadVertexBufferInternal,
         drawFullscreenQuad: drawFullscreenQuadInternal,
         drawRect: drawRectInternal,
         useFbo: useFboInternal,
