@@ -315,14 +315,15 @@ RasterizeShader.prototype.fragmentAlphaSource = function(assignTo, indent) {
 RasterizeShader.prototype.fragmentInnerLoopSource = function(index,
                                                              arrayIndex) {
     var src = [];
-    if (this.dynamicCircles && !this.texturized) {
+    // The conditional controlling blending the circle is non-uniform flow control.
+    // See GLSL ES 1.0.17 spec Appendix A.6.
+    // TODO: See if moving the texture2D call outside the if would help
+    // performance or compatibility. It would be required by the spec if it
+    // was mipmapped.
+    // For the texturized brush, the if must be deferred since the texture is mipmapped.
+    var evaluateCircleInsideIf = !this.texturized;
+    if (evaluateCircleInsideIf && this.dynamicCircles) {
         src.push('    if (' + index + ' < uCircleCount) {');
-        // Note that this probably qualifies as non-uniform flow control. See
-        // GLSL ES 1.0.17 spec Appendix A.6.
-        // TODO: See if moving the texture2D call outside the if would help
-        // performance or compatibility. It would be required by the spec if it
-        // was mipmapped.
-        // For the texturized brush, the if must be deferred since the texture is mipmapped.
     } else {
         src.push('    {');
     }
@@ -354,14 +355,14 @@ RasterizeShader.prototype.fragmentInnerLoopSource = function(index,
         src.push('      float centerDist = length(center - vPixelCoords);');
     }
     src.push.apply(src, this.fragmentAlphaSource('float circleAlpha', '      '));
-    if (this.texturized && this.dynamicCircles) {
+    if (!evaluateCircleInsideIf && this.dynamicCircles) {
         // The mipmapped brush texture can't be accessed inside non-uniform flow control,
         // so the if is here instead of before doing the operations.
         src.push('      if (' + index + ' < uCircleCount) {');
     }
     src.push('      destAlpha = clamp(circleAlpha + (1.0 - circleAlpha) ' +
              '* destAlpha, 0.0, 1.0);');
-    if (this.texturized && this.dynamicCircles) {
+    if (!evaluateCircleInsideIf && this.dynamicCircles) {
         src.push('      }'); // if
     }
     src.push('    }'); // if
