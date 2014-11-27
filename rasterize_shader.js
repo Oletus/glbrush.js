@@ -372,7 +372,7 @@ RasterizeShader.prototype.fragmentInnerLoopSource = function(index,
  * @return {string} Fragment shader source.
  */
 RasterizeShader.prototype.fragmentSource = function() {
-    var src = ['precision highp float;'];
+    var src = ['precision highp float;', 'precision highp sampler2D;', 'precision highp int;'];
     src.push.apply(src, this.varyingSource());
     src.push.apply(src, this.fragmentUniformSource());
     src.push('void main(void) {');
