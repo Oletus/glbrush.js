@@ -1,3 +1,6 @@
+/*
+ * Copyright Olli Etuaho 2014.
+ */
 
 var testTextureCanvas = function() {
     var image = document.createElement('canvas');
@@ -14,6 +17,16 @@ var testTextureCanvas = function() {
     ctx.fillRect(20, 84, 20, 20);
     ctx.fillRect(84, 20, 30, 30);
     return image;
+};
+
+/**
+ * @param {string} message Message to log.
+ */
+var testLog = function(message) {
+    console.log(message);
+    var displayLog = document.createElement('div');
+    displayLog.textContent = timeMessage;
+    document.body.appendChild(displayLog);
 };
 
 /**
@@ -45,10 +58,7 @@ var measureBrushStrokeTime = function(testPic, eventCount, radius, textureId, so
         var logTime = function(mode, testTextureId, blendMode, time) {
             timeMessage = 'Mode: ' + mode + ', blend mode: ' + blendMode + ', texture id: ' + testTextureId + ', brush events per second: ' +
                           (eventCount / time * 1000).toFixed(2);
-            console.log(timeMessage);
-            timeDisplay = document.createElement('div');
-            timeDisplay.textContent = timeMessage;
-            document.body.appendChild(timeDisplay);
+            testLog(timeMessage);
         };
     
         var picElement = testPic.pictureElement();
@@ -75,7 +85,7 @@ var runTest = function() {
     var brushTextureData = [testTextureCanvas()];
     var testPic = Picture.create(0, null, new Rect(0, w, 0, w), 1.0, [pictureMode], brushTextureData);
     if (testPic === null) {
-        console.log('Could not test mode ' + pictureMode);
+        testLog('Could not test mode ' + pictureMode);
         return undefined;
     }
     testPic.addBuffer(0, [255, 255, 255, 128], bufferHasAlpha);
