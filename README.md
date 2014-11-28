@@ -3,6 +3,8 @@ glbrush.js
 
 Rendering library for web-based painting applications. Includes WebGL and software (2D canvas) backends.
 
+See a simple example in action: http://oletus.github.io/glbrush.js/example.html
+
 Supported features so far include:
 
 * Hard-edged, soft and texturized circular airbrush with opacity, flow and dynamic size control.
