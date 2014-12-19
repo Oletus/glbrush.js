@@ -31,15 +31,17 @@ compositingShader.getFragmentSource = function(layers) {
     }
     src.push('varying vec2 vTexCoord;');
     src.push('void main(void) {');
-    src.push('  // already premultiplied:');
+    src.push('  float tmpAlpha;');
     src.push('  vec4 color = vec4(0, 0, 0, 0);');
     var blendingSource = function(dstColor, srcColor) {
-        src.push('  ' + dstColor + ' = ' + srcColor +
-                 ' + ' + dstColor + ' * (1.0 - ' + srcColor + '.w);');
+        src.push('  tmpAlpha = ' + srcColor + '.w + ' + dstColor + '.w * (1.0 - ' + srcColor + '.w);');
+        src.push('  ' + dstColor + '.xyz = (' + srcColor + '.xyz * ' + srcColor + '.w' +
+                 ' + ' + dstColor + '.xyz * ' + dstColor + '.w * (1.0 - ' + srcColor + '.w)) / tmpAlpha;');
+        src.push('  ' + dstColor + '.w = tmpAlpha;');
     };
     // Add rasterizer layer blending operation to src. The given blending
     // equation eq must use unpremultiplied vec3 srcColor, unpremultiplied vec3
-    // dstColor and srcAlpha to produce a vec3 value.
+    // dstColor and srcAlpha to produce an unpremultiplied vec3 color value.
     var blendEq = function(eq) {
         src.push('  float blendedAlpha' + i + ' = layer' + i + 'Color.w + ' +
                  bufferColor + '.w * (1.0 - layer' + i + 'Color.w);');
@@ -49,12 +51,11 @@ compositingShader.getFragmentSource = function(layers) {
         eq = '(dstAlpha > 0.0 ? mix(dstColor, ' + eq + ', srcAlpha) : srcColor)';
         // Fill in unpremultiplied colors:
         eq = eq.replace(/srcColor/g, 'layer' + i + 'Color.xyz');
-        eq = eq.replace(/dstColor/g, '(' + bufferColor + '.xyz / ' +
-                        bufferColor + '.w)');
-        eq = eq.replace(/dstAlpha/g, bufferColor + '.w');
         eq = eq.replace(/srcAlpha/g, 'layer' + i + 'Color.w');
-        // Premultiply and store:
-        src.push('  ' + bufferColor + ' = vec4(' + eq + ' * blendedAlpha' + i + ', blendedAlpha' + i + ');');
+        eq = eq.replace(/dstColor/g, bufferColor + '.xyz');
+        eq = eq.replace(/dstAlpha/g, bufferColor + '.w');
+        // Store:
+        src.push('  ' + bufferColor + ' = vec4(' + eq + ', blendedAlpha' + i + ');');
     };
     // Some blending operations require per component logic.
     // TODO: Some of these could probably be vectorized, using functions such as lessThan (see lighten for example)
@@ -70,13 +71,12 @@ compositingShader.getFragmentSource = function(layers) {
         var eqc;
         for (var channel = 0; channel < 3; channel++) {
             eqc = eq.replace(/srcColor/g, 'layer' + i + 'Color[' + channel + ']');
-            eqc = eqc.replace(/dstColor/g, '(' + bufferColor + '[' + channel +
-                    '] / ' + bufferColor + '.w)');
-            eqc = eqc.replace(/dstAlpha/g, bufferColor + '.w');
             eqc = eqc.replace(/srcAlpha/g, 'layer' + i + 'Color.w');
+            eqc = eqc.replace(/dstColor/g, bufferColor + '[' + channel + ']');
+            eqc = eqc.replace(/dstAlpha/g, bufferColor + '.w');
             src.push('   ' + eqc + (channel !== 2 ? ',' : ''));
         }
-        src.push(') * blendedAlpha' + i + ', blendedAlpha' + i + ');');
+        src.push('), blendedAlpha' + i + ');');
     };
     i = 0;
     while (i < layers.length) {
@@ -90,27 +90,18 @@ compositingShader.getFragmentSource = function(layers) {
         while (i < layers.length &&
                 layers[i].type === CanvasCompositor.Element.rasterizer) {
             if (layers[i].rasterizer.format === GLRasterizerFormat.alpha) {
-                src.push('  float layer' + i + 'Alpha' +
-                        ' = texture2D(uLayer' + i + ', vTexCoord).w;');
+                src.push('  float layer' + i + 'Alpha = texture2D(uLayer' + i + ', vTexCoord).w;');
             } else {
-                src.push('  vec4 layer' + i +
-                        ' = texture2D(uLayer' + i + ', vTexCoord);');
-                src.push('  float layer' + i + 'Alpha = ' +
-                        'layer' + i + '.x + ' +
-                        'layer' + i + '.y / 256.0;');
+                src.push('  vec4 layer' + i + ' = texture2D(uLayer' + i + ', vTexCoord);');
+                src.push('  float layer' + i + 'Alpha = layer' + i + '.x + ' + 'layer' + i + '.y / 256.0;');
             }
             // Unpremultiplied color
             src.push('  vec4 layer' + i + 'Color = vec4(uColor' + i + '.xyz,' +
                     'layer' + i + 'Alpha * uColor' + i + '.w);');
             if (layers[i].mode === PictureEvent.Mode.normal) {
-                // premultiply
-                src.push('  layer' + i + 'Color = vec4(layer' + i +
-                        'Color.xyz * layer' + i + 'Color.w, layer' + i +
-                        'Color.w);');
                 blendingSource(bufferColor, 'layer' + i + 'Color');
             } else if (layers[i].mode === PictureEvent.Mode.erase) {
-                src.push('  ' + bufferColor + ' = ' + bufferColor +
-                        ' * (1.0 - layer' + i + 'Color.w);');
+                src.push('  ' + bufferColor + '.w = ' + bufferColor + '.w * (1.0 - layer' + i + 'Color.w);');
             } else {
                 if (layers[i].mode === PictureEvent.Mode.multiply) {
                     blendEq('dstColor * srcColor');
@@ -163,7 +154,7 @@ compositingShader.getFragmentSource = function(layers) {
             }
             ++i;
         }
-        src.push('  ' + bufferColor + ' *= ' + bufferOpacity + ';');
+        src.push('  ' + bufferColor + '.w *= ' + bufferOpacity + ';');
         blendingSource('color', bufferColor);
     }
     src.push('  gl_FragColor = color;');

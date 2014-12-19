@@ -882,7 +882,7 @@ Picture.initWebGL = function(canvas, debugGL) {
         antialias: false,
         stencil: false,
         depth: false,
-        premultipliedAlpha: true
+        premultipliedAlpha: false
     };
     var gl = glUtils.initGl(canvas, contextAttribs, 4);
     if (!gl) {
@@ -1698,7 +1698,6 @@ Picture.prototype.getPixelRGBA = function(coords) {
         var glY = Math.max(0, this.bitmapHeight() - 1 - Math.floor(coords.y));
         this.gl.readPixels(glX, glY, 1, 1, this.gl.RGBA, this.gl.UNSIGNED_BYTE,
                            pixelData);
-        pixelData = colorUtil.unpremultiply(pixelData);
         return pixelData;
     } else {
         return this.ctx.getImageData(Math.floor(coords.x),

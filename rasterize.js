@@ -888,18 +888,14 @@ GLDoubleBufferedRasterizer.prototype.getTex = function() {
 };
 
 /**
- * Draw the rasterizer's contents to the current framebuffer.
+ * Draw the rasterizer's contents to the current framebuffer. To be used for testing only.
  * @param {Uint8Array|Array.<number>} color Color to use for drawing. Channel
  * values should be 0-255.
  * @param {number} opacity Opacity to use when drawing the rasterization result.
  * Opacity for each individual pixel is its rasterized opacity times this
  * opacity value.
- * @param {PictureEvent.Mode} mode Blending mode to use for drawing.
  */
-GLDoubleBufferedRasterizer.prototype.drawWithColor = function(color, opacity, mode) {
-    if (mode === PictureEvent.Mode.erase) {
-        this.gl.blendFunc(this.gl.ZERO, this.gl.ONE_MINUS_SRC_ALPHA);
-    }
+GLDoubleBufferedRasterizer.prototype.drawWithColor = function(color, opacity) {
     this.convUniformParameters['uSrcTex'] = this.getTex();
     for (var i = 0; i < 3; ++i) {
         this.convUniformParameters['uColor'][i] = color[i] / 255.0;
@@ -907,9 +903,6 @@ GLDoubleBufferedRasterizer.prototype.drawWithColor = function(color, opacity, mo
     this.convUniformParameters['uColor'][3] = opacity;
     this.glManager.drawFullscreenQuad(this.conversionProgram,
                                       this.convUniformParameters);
-    if (mode === PictureEvent.Mode.erase) {
-        this.gl.blendFunc(this.gl.ONE, this.gl.ONE_MINUS_SRC_ALPHA);
-    }
 };
 
 /**
@@ -974,6 +967,7 @@ GLDoubleBufferedRasterizer.prototype.getDrawRect = function(invalRect) {
  */
 GLDoubleBufferedRasterizer.prototype.preDraw = function(uniformParameters) {
     this.glManager.useFboTex(this.getTargetTex());
+    this.gl.blendFunc(this.gl.ONE, this.gl.ONE_MINUS_SRC_ALPHA);
     if (uniformParameters !== null) {
         uniformParameters['uSrcTex'] = this.getTex();
         if (this.texturized) {
@@ -1105,7 +1099,7 @@ GLDoubleBufferedRasterizer.prototype.getPixel = function(coords) {
     glUtils.updateClip(this.gl, new Rect(left, left + 1, top, top + 1),
                        this.height);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
-    this.drawWithColor([255, 255, 255], 1.0, PictureEvent.Mode.normal);
+    this.drawWithColor([255, 255, 255], 1.0);
     var pixel = new Uint8Array([0, 0, 0, 0]);
     this.gl.readPixels(left, this.height - 1 - top, 1, 1, this.gl.RGBA,
                        this.gl.UNSIGNED_BYTE, pixel);

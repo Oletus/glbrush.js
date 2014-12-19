@@ -1215,9 +1215,10 @@ GLBuffer.prototype.clear = function(unPremulClearColor) {
                            unPremulClearColor[2] / 255.0,
                            1.0);
     } else {
-        var clearColor = colorUtil.premultiply(unPremulClearColor);
-        this.gl.clearColor(clearColor[0] / 255.0, clearColor[1] / 255.0,
-                           clearColor[2] / 255.0, clearColor[3] / 255.0);
+        this.gl.clearColor(unPremulClearColor[0] / 255.0,
+                           unPremulClearColor[1] / 255.0,
+                           unPremulClearColor[2] / 255.0,
+                           unPremulClearColor[3] / 255.0);
     }
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 };
@@ -1246,28 +1247,23 @@ GLBuffer.prototype.updateClip = function() {
 GLBuffer.prototype.drawRasterizerWithColor = function(raster, color, opacity,
                                                       mode) {
     this.updateClip();
-    if (mode === PictureEvent.Mode.normal || mode === PictureEvent.Mode.erase) {
-        this.glManager.useFboTex(this.tex);
-        if (!this.hasAlpha && mode === PictureEvent.Mode.erase) {
-            mode = PictureEvent.Mode.normal;
-            color = this.events[0].clearColor;
-        }
-        raster.drawWithColor(color, opacity, mode);
-    } else {
-        // Copy into helper texture from this.tex, then use compositor to render
-        // that blended with the contents of the rasterizer back to this.tex.
-        var helper = glUtils.createTexture(this.gl, this.width(),
-                                           this.height());
-        this.glManager.useFboTex(helper);
-        this.texBlitUniforms['uSrcTex'] = this.tex;
-        this.glManager.drawFullscreenQuad(this.texBlitProgram, this.texBlitUniforms);
-
-        this.glManager.useFboTex(this.tex);
-        this.compositor.pushBufferTex(helper, 1.0, false);
-        this.compositor.pushRasterizer(raster, color, opacity, mode, null);
-        this.compositor.flush();
-        this.gl.deleteTexture(helper);
+    if (!this.hasAlpha && mode === PictureEvent.Mode.erase) {
+        mode = PictureEvent.Mode.normal;
+        color = this.events[0].clearColor;
     }
+    // Copy into helper texture from this.tex, then use compositor to render
+    // that blended with the contents of the rasterizer back to this.tex.
+    var helper = glUtils.createTexture(this.gl, this.width(),
+                                       this.height());
+    this.glManager.useFboTex(helper);
+    this.texBlitUniforms['uSrcTex'] = this.tex;
+    this.glManager.drawFullscreenQuad(this.texBlitProgram, this.texBlitUniforms);
+
+    this.glManager.useFboTex(this.tex);
+    this.compositor.pushBufferTex(helper, 1.0, false);
+    this.compositor.pushRasterizer(raster, color, opacity, mode, null);
+    this.compositor.flush();
+    this.gl.deleteTexture(helper);
 };
 
 /**
@@ -1357,6 +1353,5 @@ GLBuffer.prototype.getPixelRGBA = function(coords) {
     var glY = Math.max(0, this.height() - 1 - Math.floor(coords.y));
     this.gl.readPixels(glX, glY, 1, 1, this.gl.RGBA, this.gl.UNSIGNED_BYTE,
                        pixelData);
-    pixelData = colorUtil.unpremultiply(pixelData);
     return pixelData;
 };

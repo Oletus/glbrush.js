@@ -255,9 +255,10 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         var scatterEvent = testScatterEvent();
         // Assumptions this test makes:
         expect(scatterEvent.radius).toBeLessThan(params.width / 2);
+        expect(scatterEvent.mode).toBe(PictureEvent.Mode.normal);
 
-        scatterEvent.fillCircle(0, 0, 25, scatterEvent.flow, 0);
-        scatterEvent.fillCircle(params.width, params.height, 25, scatterEvent.flow, 0);
+        scatterEvent.fillCircle(0, 0, scatterEvent.radius, scatterEvent.flow, 0);
+        scatterEvent.fillCircle(params.width, params.height, scatterEvent.radius, scatterEvent.flow, 0);
         buffer.pushEvent(scatterEvent, rasterizer);
         var scatterEventColor = [scatterEvent.color[0], scatterEvent.color[1],
                                  scatterEvent.color[2], scatterEvent.flow *
