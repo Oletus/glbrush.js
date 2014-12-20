@@ -17,7 +17,13 @@ def fetch_compiler(target_path):
     import urllib
     import zipfile
     zippath = 'compiler.zip'
-    urllib.urlretrieve(zip_url, zippath)
+    if hasattr(urllib, 'urlretrieve'):
+        # Python 2
+        urllib.urlretrieve(zip_url, zippath)
+    else:
+        # Python 3
+        import urllib.request
+        urllib.request.urlretrieve(zip_url, zippath)
     if sha1_of_file(zippath) != zip_sha:
         if os.path.exists(zippath):
             os.remove(zippath)
