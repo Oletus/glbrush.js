@@ -226,6 +226,7 @@ GLCompositor.prototype.flushUntilLastBuffer = function() {
  */
 GLCompositor.prototype.flushInternal = function(flushed) {
     // TODO: assert(flushed[0].type === CanvasCompositor.Element.buffer);
+    var restoreBlendFunc = false;
     if (this.needsClear) {
         this.gl.clearColor(0, 0, 0, 0);
         this.gl.clear(this.gl.COLOR_BUFFER_BIT);
@@ -234,6 +235,7 @@ GLCompositor.prototype.flushInternal = function(flushed) {
         // To correctly blend unpremultiplied buffers together with GL
         this.gl.blendFuncSeparate(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA,
                                   this.gl.ONE, this.gl.ONE_MINUS_SRC_ALPHA);
+        restoreBlendFunc = true;
     }
 
     var compositingProgram = compositingShader.getShaderProgram(
@@ -254,7 +256,7 @@ GLCompositor.prototype.flushInternal = function(flushed) {
     }
     this.glManager.drawFullscreenQuad(compositingProgram, compositingUniforms);
     this.gl.flush();
-    if (!this.needsClear) {
+    if (restoreBlendFunc) {
         this.gl.blendFunc(this.gl.ONE, this.gl.ONE_MINUS_SRC_ALPHA);
     }
 };

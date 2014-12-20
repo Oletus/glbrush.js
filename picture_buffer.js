@@ -1351,7 +1351,6 @@ GLBuffer.prototype.getPixelRGBA = function(coords) {
     var pixelData = new Uint8Array(buffer);
     var glX = Math.min(Math.floor(coords.x), this.width() - 1);
     var glY = Math.max(0, this.height() - 1 - Math.floor(coords.y));
-    this.gl.readPixels(glX, glY, 1, 1, this.gl.RGBA, this.gl.UNSIGNED_BYTE,
-                       pixelData);
+    this.gl.readPixels(glX, glY, 1, 1, this.gl.RGBA, this.gl.UNSIGNED_BYTE, pixelData);
     return pixelData;
 };

@@ -967,7 +967,6 @@ GLDoubleBufferedRasterizer.prototype.getDrawRect = function(invalRect) {
  */
 GLDoubleBufferedRasterizer.prototype.preDraw = function(uniformParameters) {
     this.glManager.useFboTex(this.getTargetTex());
-    this.gl.blendFunc(this.gl.ONE, this.gl.ONE_MINUS_SRC_ALPHA);
     if (uniformParameters !== null) {
         uniformParameters['uSrcTex'] = this.getTex();
         if (this.texturized) {

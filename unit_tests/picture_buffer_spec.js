@@ -13,7 +13,7 @@ var testBufferParams = {
     hasAlpha: true
 };
 
-var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, createRasterizer, params) {
+var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, createRasterizer, params, premultiplied) {
     it('initializes', function() {
         // This is a hacky way of doing global setup for this group of tests.
         // But just running global setup before any tests are run doesn't work
@@ -893,6 +893,7 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         expect(samplePixel[1]).toBeNear(30, 4);
         expect(samplePixel[2]).toBeNear(60, 4);
 
+        resizeTestCanvas(params.width, params.height);
         rasterizer.free();
         buffer.free();
     });
@@ -902,9 +903,7 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
         fillBuffer(buffer, rasterizer, buffer.undoStateInterval + 1); // We want to hit an undo state in this test.
-        var brushEvent = fillingBrushEvent(params.width, params.height,
-                                       [90, 30, 60], 1.0,
-                                       PictureEvent.Mode.normal);
+        var brushEvent = fillingBrushEvent(params.width, params.height, [90, 30, 60], 1.0, PictureEvent.Mode.normal);
         brushEvent.translate(new Vec2(-params.width * 3, -params.height * 3));
         buffer.pushEvent(brushEvent, rasterizer);
 
@@ -928,9 +927,53 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         expect(samplePixel[1]).toBeNear(params.clearColor[1], 4);
         expect(samplePixel[2]).toBeNear(params.clearColor[2], 4);
 
+        resizeTestCanvas(params.width, params.height);
         rasterizer.free();
         buffer.free();
     });
+
+    if (!premultiplied) {
+        it('blends an event with very low alpha accurately', function() {
+            initTestCanvas();
+            var oldClearColor = params.clearColor;
+            params.clearColor = [0, 0, 0, 0];
+            var buffer = createBuffer(params);
+            var rasterizer = createRasterizer(params);
+            var brushEvent = fillingBrushEvent(params.width, params.height, [90, 30, 60], 0.02,
+                                               PictureEvent.Mode.normal);
+            buffer.pushEvent(brushEvent, rasterizer);
+            var samplePixel = buffer.getPixelRGBA(new Vec2(0, 0));
+            expect(samplePixel[0]).toBeNear(90, 4);
+            expect(samplePixel[1]).toBeNear(30, 4);
+            expect(samplePixel[2]).toBeNear(60, 4);
+            params.clearColor = oldClearColor;
+
+            rasterizer.free();
+            buffer.free();
+        });
+
+        it('blends several events with very low alpha accurately', function() {
+            initTestCanvas();
+            var oldClearColor = params.clearColor;
+            params.clearColor = [0, 0, 0, 0];
+            var buffer = createBuffer(params);
+            var rasterizer = createRasterizer(params);
+            for (var i = 0; i < 50; ++i) {
+                var brushEvent = fillingBrushEvent(params.width, params.height, [90, 30, 60], 0.02,
+                                                   PictureEvent.Mode.normal);
+                brushEvent.sessionEventId = i + 1;
+                buffer.pushEvent(brushEvent, rasterizer);
+            }
+            var samplePixel = buffer.getPixelRGBA(new Vec2(0, 0));
+            expect(samplePixel[0]).toBeNear(90, 4);
+            expect(samplePixel[1]).toBeNear(30, 4);
+            expect(samplePixel[2]).toBeNear(60, 4);
+            params.clearColor = oldClearColor;
+
+            rasterizer.free();
+            buffer.free();
+        });
+    }
 };
 
 describe('CanvasBuffer', function() {
@@ -944,7 +987,7 @@ describe('CanvasBuffer', function() {
     var createRasterizer = function(params) {
         return new Rasterizer(params.width, params.height, null);
     };
-    testBuffer(function() {}, function() {}, createBuffer, createRasterizer, testBufferParams);
+    testBuffer(function() {}, function() {}, createBuffer, createRasterizer, testBufferParams, true);
 });
 
 describe('GLBuffer', function() {
@@ -991,5 +1034,5 @@ describe('GLBuffer', function() {
         return new GLDoubleBufferedRasterizer(gl, glManager, params.width, params.height, null);
     };
 
-    testBuffer(initTestCanvas, resizeTestCanvas, createBuffer, createRasterizer, params);
+    testBuffer(initTestCanvas, resizeTestCanvas, createBuffer, createRasterizer, params, false);
 });
