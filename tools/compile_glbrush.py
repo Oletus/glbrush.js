@@ -39,9 +39,12 @@ def compile_glbrush(output_path):
     os.chdir(compiler_path)
 
     if not os.path.exists('compiler.jar'):
-        print('compiler.jar missing - download Closure compiler and place it to directory "compile"')
-        os.chdir(restore_dir)
-        return False
+        print('Automatically downloading Closure compiler toolchain')
+        from fetch_compiler import fetch_compiler
+        if not fetch_compiler('compiler.jar'):
+            print('Place compiler.jar to directory "compile"')
+            os.chdir(restore_dir)
+            return False
 
     # Compile a package that's usable within another app, so WHITESPACE_ONLY
     command = ['java', '-jar', 'compiler.jar', '--compilation_level', 'WHITESPACE_ONLY', '--js']
