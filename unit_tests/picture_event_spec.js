@@ -304,7 +304,7 @@ describe('PictureEvent', function() {
             var tipMover = new BrushTipMover(false);
             tipMover.reset(testEvent, new AffineTransform(), 1, 2, 0.3, testEvent.radius, testEvent.flow, 0, 1, false,
                            BrushTipMover.Rotation.random);
-            tipMover.move(100, 2, 0.3);
+            tipMover.move(200, 2, 0.3);
             var count = 0;
             var sum = 0;
             var deviation = 0;
