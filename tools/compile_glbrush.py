@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import subprocess
 import os
 
@@ -37,7 +39,7 @@ def compile_glbrush(output_path):
     os.chdir(compiler_path)
 
     if not os.path.exists('compiler.jar'):
-        print 'compiler.jar missing - download Closure compiler and place it to directory "compile"'
+        print('compiler.jar missing - download Closure compiler and place it to directory "compile"')
         os.chdir(restore_dir)
         return False
 
@@ -45,7 +47,7 @@ def compile_glbrush(output_path):
     command = ['java', '-jar', 'compiler.jar', '--compilation_level', 'WHITESPACE_ONLY', '--js']
     command += lib_js_list
     command += ['--js_output_file', output_path]
-    print ' '.join(command)
+    print(' '.join(command))
     subprocess.call(command)
 
     os.chdir(restore_dir)

@@ -1,6 +1,7 @@
 #!/usr/bin/python
+from __future__ import print_function
 
-print 'Running pre-commit checks'
+print('Running pre-commit checks')
 
 import subprocess
 import os
@@ -22,8 +23,8 @@ stdout, stderr = p.communicate()
 succeeded_checks = stdout.count('files checked, no errors found')
 
 if succeeded_checks == 2:
-    print 'PASS: No code style issues found'
+    print('PASS: No code style issues found')
 else:
-    print 'FAIL: Code style issues found'
-    print stdout
+    print('FAIL: Code style issues found')
+    print(stdout)
     sys.exit(1)
