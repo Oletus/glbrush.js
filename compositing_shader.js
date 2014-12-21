@@ -32,7 +32,7 @@ compositingShader.getFragmentSource = function(layers) {
     src.push('varying vec2 vTexCoord;');
     src.push('void main(void) {');
     src.push('  float tmpAlpha;');
-    src.push('  vec4 color = vec4(0, 0, 0, 0);');
+    var colorInitialized = false; // Will be set to true once first buffer is blended to "color"
     var blendingSource = function(dstColor, srcColor) {
         src.push('  tmpAlpha = ' + srcColor + '.w + ' + dstColor + '.w * (1.0 - ' + srcColor + '.w);');
         src.push('  ' + dstColor + '.xyz = (' + srcColor + '.xyz * ' + srcColor + '.w' +
@@ -93,10 +93,10 @@ compositingShader.getFragmentSource = function(layers) {
                 src.push('  float layer' + i + 'Alpha = texture2D(uLayer' + i + ', vTexCoord).w;');
             } else {
                 src.push('  vec4 layer' + i + ' = texture2D(uLayer' + i + ', vTexCoord);');
-                src.push('  float layer' + i + 'Alpha = layer' + i + '.x + ' + 'layer' + i + '.y / 256.0;');
+                src.push('  float layer' + i + 'Alpha = layer' + i + '.x + layer' + i + '.y / 256.0;');
             }
             // Unpremultiplied color
-            src.push('  vec4 layer' + i + 'Color = vec4(uColor' + i + '.xyz,' +
+            src.push('  vec4 layer' + i + 'Color = vec4(uColor' + i + '.xyz, ' +
                     'layer' + i + 'Alpha * uColor' + i + '.w);');
             if (layers[i].mode === PictureEvent.Mode.normal) {
                 blendingSource(bufferColor, 'layer' + i + 'Color');
@@ -155,9 +155,18 @@ compositingShader.getFragmentSource = function(layers) {
             ++i;
         }
         src.push('  ' + bufferColor + '.w *= ' + bufferOpacity + ';');
-        blendingSource('color', bufferColor);
+        if (colorInitialized) {
+            blendingSource('color', bufferColor);
+        } else {
+            src.push('vec4 color = ' + bufferColor + ';');
+            colorInitialized = true;
+        }
     }
-    src.push('  gl_FragColor = color;');
+    if (colorInitialized) {
+        src.push('  gl_FragColor = color;');
+    } else {
+        src.push('  gl_FragColor = vec4(0.0);');
+    }
     src.push('}');
     return src.join('\n');
 };

@@ -112,9 +112,6 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
                                            PictureEvent.Mode.erase);
         buffer.pushEvent(brushEvent, rasterizer);
         var samplePixel = buffer.getPixelRGBA(new Vec2(0, 0));
-        expect(samplePixel[0]).toBe(0);
-        expect(samplePixel[1]).toBe(0);
-        expect(samplePixel[2]).toBe(0);
         expect(samplePixel[3]).toBe(0);
 
         rasterizer.free();
