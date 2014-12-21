@@ -893,7 +893,6 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         expect(samplePixel[1]).toBeNear(30, 4);
         expect(samplePixel[2]).toBeNear(60, 4);
 
-        resizeTestCanvas(params.width, params.height);
         rasterizer.free();
         buffer.free();
     });
@@ -927,7 +926,6 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         expect(samplePixel[1]).toBeNear(params.clearColor[1], 4);
         expect(samplePixel[2]).toBeNear(params.clearColor[2], 4);
 
-        resizeTestCanvas(params.width, params.height);
         rasterizer.free();
         buffer.free();
     });
@@ -1002,6 +1000,7 @@ describe('GLBuffer', function() {
     var rectBlitProgram;
     var initTestCanvas = function() {
         if (testsInitialized) {
+            resizeTestCanvas(params.width, params.height);
             return;
         }
         testsInitialized = true;
