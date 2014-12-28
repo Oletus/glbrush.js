@@ -1562,6 +1562,22 @@ Picture.prototype.regenerate = function() {
 };
 
 /**
+ * @constructor
+ * Container for animation related data.
+ * @param {Picture} picture The picture that is used for replaying the animation.
+ * @param {number} speed The animation playback speed.
+ * @param {number} updateCount The number of updates that are shown in the animation.
+ * @param {function()} pushUpdate Push a single update to the picture used for the animation.
+ */
+Picture.AnimationData = function(picture, speed, updateCount, pushUpdate) {
+    this.picture = picture;
+    this.speed = speed;
+    this.updateCount = updateCount;
+    this.updateIndex = 0;
+    this.pushUpdate = pushUpdate;
+};
+
+/**
  * Play back an animation displaying the progress of this picture from start to
  * finish.
  * @param {number} speed Speed at which to animate the individual events. Must
@@ -1592,27 +1608,45 @@ Picture.prototype.animate = function(speed, animationFinishedCallBack) {
     if (speed === undefined) {
         speed = 0.05;
     }
-    this.animationSpeed = speed;
+    var animationSpeed = speed;
 
-    var totalUpdates = this.updates.length;
-    this.animationPicture = new Picture(-1, 'animationPic', this.boundsRect, this.pictureTransform.scale, this.mode,
-                                        this.brushTextureData, this.canvas);
-    var updateIndex = 0;
+    var animationPicture = new Picture(-1, 'animationPic', this.boundsRect, this.pictureTransform.scale, this.mode,
+                                       this.brushTextureData, this.canvas);
+
     var updateT = 0;
     var update = null;
     var picEvent = null;
 
-    var animationFrame = function() {
-        if (updateIndex < totalUpdates) {
+    var pushAnimationUpdate = function() {
+        if (that.animationData.updateIndex < that.animationData.updateCount) {
             if (updateT === 0) {
-                var updateStr = that.updates[updateIndex].serialize();
+                var updateStr = that.updates[that.animationData.updateIndex].serialize();
+                update = PictureUpdate.parse(updateStr);
+            }
+            // TODO: assert(update !== null)
+            that.animationData.picture.pushUpdate(update);
+            that.animationData.picture.setCurrentAnimationEvent(null);
+            ++that.animationData.updateIndex;
+            updateT = 0;
+        } else {
+            finishAnimating();
+        }
+    };
+
+    this.animationData = new Picture.AnimationData(
+        animationPicture, animationSpeed, this.updates.length, pushAnimationUpdate);
+
+    var animationFrame = function() {
+        if (that.animationData.updateIndex < that.animationData.updateCount) {
+            if (updateT === 0) {
+                var updateStr = that.updates[that.animationData.updateIndex].serialize();
                 update = PictureUpdate.parse(updateStr);
                 if (update.updateType === 'add_picture_event') {
                     picEvent = update.pictureEvent;
                     picEvent.undone = false;
                     if (picEvent.eventType === 'brush') {
-                        that.animationPicture.setCurrentEventAttachment(update.targetLayerId);
-                        that.animationPicture.setCurrentAnimationEvent(picEvent, 0);
+                        that.animationData.picture.setCurrentEventAttachment(update.targetLayerId);
+                        that.animationData.picture.setCurrentAnimationEvent(picEvent, 0);
                     } else {
                         updateT = 1;
                     }
@@ -1621,23 +1655,20 @@ Picture.prototype.animate = function(speed, animationFinishedCallBack) {
                 }
             }
             if (updateT < 1) {
-                updateT += that.animationSpeed;
+                updateT += that.animationData.speed;
                 if (updateT > 1) {
                     updateT = 1;
                 }
                 var untilCoord = picEvent.coords.length * updateT;
                 untilCoord = Math.ceil(untilCoord / 3) * 3;
-                picEvent.drawTo(that.animationPicture.currentEventRasterizer, that.pictureTransform, untilCoord);
+                picEvent.drawTo(that.animationData.picture.currentEventRasterizer, that.pictureTransform, untilCoord);
 
-                that.animationPicture.display();
+                that.animationData.picture.display();
                 window.requestAnimationFrame(animationFrame);
             } else {
-                that.animationPicture.pushUpdate(update);
-                that.animationPicture.setCurrentAnimationEvent(null);
-                ++updateIndex;
-                updateT = 0;
+                pushAnimationUpdate();
 
-                that.animationPicture.display();
+                that.animationData.picture.display();
                 window.setTimeout(animationFrame, 50);
             }
         } else {
@@ -1650,14 +1681,48 @@ Picture.prototype.animate = function(speed, animationFinishedCallBack) {
 };
 
 /**
+ * Scrub the animation to the given time if animation is in progress.
+ * Can currently be used only to scrub forward.
+ * @param {number} t Animation time from 0.0 to 1.0, inclusive.
+ */
+Picture.prototype.scrubAnimation = function(t) {
+    while (this.animating && this.animationData.updateIndex < t * this.animationData.updateCount) {
+        this.animationData.pushUpdate();
+    }
+};
+
+/**
  * Stop animating if animation is in progress.
  */
 Picture.prototype.stopAnimating = function() {
     if (this.animating) {
         this.animating = false;
-        // TODO: this.animationPicture.free();
-        this.animationPicture = null;
+        // TODO: this.animationData.picture.free();
+        this.animationData.picture = null;
+        this.animationData.pushUpdate = null;
         this.display();
+    }
+};
+
+/**
+ * @return {number} The current animation position from 0 to 1.
+ */
+Picture.prototype.getAnimationT = function() {
+    if (this.animating && this.animationData.updateCount > 0) {
+        return this.animationData.updateIndex / this.animationData.updateCount;
+    } else {
+        return 0;
+    }
+};
+
+/**
+ * @return {number} The current animation speed.
+ */
+Picture.prototype.getAnimationSpeed = function() {
+    if (this.animating) {
+        return this.animationData.speed;
+    } else {
+        return 0;
     }
 };
 
