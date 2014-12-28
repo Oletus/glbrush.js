@@ -1665,6 +1665,7 @@ Picture.prototype.stopAnimating = function() {
  * Return objects that contain events touching the given pixel. The objects
  * have two keys: event, and alpha which determines that event's alpha value
  * affecting this pixel. The objects are sorted from newest to oldest.
+ * The results are according to which buffers are currently being composited.
  * @param {Vec2} coords Position of the pixel in bitmap coordinates.
  * @return {Array.<Object>} Objects that contain events touching this pixel.
  */
@@ -1673,7 +1674,7 @@ Picture.prototype.blamePixel = function(coords) {
     var j = this.buffers.length;
     while (j >= 1) {
         --j;
-        if (this.buffers[j].events.length > 1 && !this.buffers[j].isRemoved()) {
+        if (this.buffers[j].events.length > 1 && this.buffers[j].isComposited()) {
             var bufferBlame = this.buffers[j].blamePixel(coords);
             if (bufferBlame.length > 0) {
                 blame = blame.concat(bufferBlame);

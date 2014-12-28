@@ -79,6 +79,7 @@ PictureBuffer.prototype.crop = function(width, height, rasterizer) {
     this.clipStack = [];
     this.currentClipRect = new Rect(0, width, 0, height);
     this.regenerate(true, rasterizer);
+    this.blameRasterizer = new Rasterizer(width, height, null);
 };
 
 /**
