@@ -1689,6 +1689,9 @@ Picture.prototype.scrubAnimation = function(t) {
     while (this.animating && this.animationData.updateIndex < t * this.animationData.updateCount) {
         this.animationData.pushUpdate();
     }
+    if (this.animating) {
+        this.animationData.picture.display();
+    }
 };
 
 /**
