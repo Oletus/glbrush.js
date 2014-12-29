@@ -894,6 +894,31 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         buffer.free();
     });
 
+    it('blames an event after being cropped to a larger size', function() {
+        initTestCanvas();
+        var buffer = createBuffer(params);
+        var rasterizer = createRasterizer(params);
+        var brushEvent = fillingBrushEvent(params.width, params.height,
+                                       [90, 30, 60], 1.0,
+                                       PictureEvent.Mode.normal);
+        brushEvent.translate(new Vec2(params.width, params.height));
+        buffer.pushEvent(brushEvent, rasterizer);
+
+        var newWidth = Math.ceil(params.width + 1);
+        var newHeight = Math.ceil(params.height + 1);
+        resizeTestCanvas(newWidth, newHeight);
+        rasterizer = createRasterizer({width: newWidth, height: newHeight});
+        buffer.crop(newWidth, newHeight, rasterizer);
+
+        var blame = buffer.blamePixel(new Vec2(params.width, params.height));
+        expect(blame.length).toBe(1);
+        expect(blame[0].event).toBe(brushEvent);
+        expect(blame[0].alpha).toBe(1.0);
+
+        rasterizer.free();
+        buffer.free();
+    });
+
     it('undoes an event after being cropped', function() {
         initTestCanvas();
         var buffer = createBuffer(params);
