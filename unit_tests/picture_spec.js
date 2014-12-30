@@ -153,6 +153,26 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         expect(samplePixel[3]).toBe(255);
     });
 
+    it('composits a transparent event into a transparent buffer', function() {
+        // Bottom buffer is opaque. Two buffers are needed since otherwise potentially inf/NaN rgb color values
+        // from the top buffer's blending result could not affect a subsequent blending operation.
+        var clearColor = [255, 255, 255];
+        pic.addBuffer(1336, clearColor, false);
+        // Top buffer is transparent.
+        clearColor = [0, 0, 0, 0];
+        pic.addBuffer(1337, clearColor, true);
+        var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 0.0, 10, 0, 0,
+                                              PictureEvent.Mode.normal);
+        brushEvent.pushCoordTriplet(0, 0, 1.0);
+        brushEvent.pushCoordTriplet(width, height, 1.0);
+        pic.setCurrentEventAttachment(1337);
+        pic.setCurrentEvent(brushEvent);
+        var samplePixel = pic.getPixelRGBA(new Vec2(0, 0));
+        expect(samplePixel[0]).toBe(255);
+        expect(samplePixel[1]).toBe(255);
+        expect(samplePixel[2]).toBe(255);
+    });
+
     it('composits two buffers together', function() {
         var clearColor = [12, 23, 34, 45];
         pic.addBuffer(1337, clearColor, true);

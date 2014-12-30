@@ -35,8 +35,8 @@ compositingShader.getFragmentSource = function(layers) {
     var colorInitialized = false; // Will be set to true once first buffer is blended to "color"
     var blendingSource = function(dstColor, srcColor) {
         src.push('  tmpAlpha = ' + srcColor + '.w + ' + dstColor + '.w * (1.0 - ' + srcColor + '.w);');
-        src.push('  ' + dstColor + '.xyz = (' + srcColor + '.xyz * ' + srcColor + '.w' +
-                 ' + ' + dstColor + '.xyz * ' + dstColor + '.w * (1.0 - ' + srcColor + '.w)) / tmpAlpha;');
+        src.push('  ' + dstColor + '.xyz = tmpAlpha > 0.0 ? (' + srcColor + '.xyz * ' + srcColor + '.w' +
+                 ' + ' + dstColor + '.xyz * ' + dstColor + '.w * (1.0 - ' + srcColor + '.w)) / tmpAlpha : vec3(0.0);');
         src.push('  ' + dstColor + '.w = tmpAlpha;');
     };
     // Add rasterizer layer blending operation to src. The given blending
@@ -158,7 +158,7 @@ compositingShader.getFragmentSource = function(layers) {
         if (colorInitialized) {
             blendingSource('color', bufferColor);
         } else {
-            src.push('vec4 color = ' + bufferColor + ';');
+            src.push('  vec4 color = ' + bufferColor + ';');
             colorInitialized = true;
         }
     }
