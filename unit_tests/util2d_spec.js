@@ -203,7 +203,7 @@ describe('util2d', function() {
                 // Test that blending to a target with alpha 0 results in pure source color:
                 expect(colorUtil.blendWithFunction(blendFunction, targetColor, srcColor, 0, 0.3)).toBe(srcColor);
                 // Test that blending to a target with alpha 0.001 results in a color close to the source color
-                expect(colorUtil.blendWithFunction(blendFunction, targetColor, srcColor, 0.001, 1)).toBeNear(
+                expect(colorUtil.blendWithFunction(blendFunction, targetColor, srcColor, 0.001, 0.5)).toBeNear(
                     srcColor, 2);
                 // Test that blending to a target with alpha 0.4 results in blend function result mixed with source
                 // color:

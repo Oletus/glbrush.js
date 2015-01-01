@@ -184,7 +184,30 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
             var samplePixel = buffer.getPixelRGBA(new Vec2(0, 0));
             var targetAlpha = params.clearColor[3] / 255;
             for (var chan = 0; chan < 3; chan++) {
-                expect(samplePixel[chan]).toBeNear(brushColor[chan], 3.0);
+                expect(samplePixel[chan]).toBeNear(brushColor[chan], 2.0);
+            }
+            var alpha = (targetAlpha + opacity - targetAlpha * opacity) * 255;
+            expect(samplePixel[3]).toBeNear(alpha, 10);
+            rasterizer.free();
+            buffer.free();
+            params.clearColor = oldClearColor;
+        });
+
+        it('blends an event to a nearly transparent bitmap with the ' + testName + ' blend mode', function() {
+            initTestCanvas();
+
+            var oldClearColor = params.clearColor;
+            params.clearColor = [0, 0, 0, 1];
+            var buffer = createBuffer(params);
+            var rasterizer = createRasterizer(params);
+            var opacity = 0.6;
+            var brushColor = [0.2 * 255, 0.4 * 255, 0.8 * 255];
+            var brushEvent = fillingBrushEvent(params.width, params.height, brushColor, opacity, blendMode);
+            buffer.pushEvent(brushEvent, rasterizer);
+            var samplePixel = buffer.getPixelRGBA(new Vec2(0, 0));
+            var targetAlpha = params.clearColor[3] / 255;
+            for (var chan = 0; chan < 3; chan++) {
+                expect(samplePixel[chan]).toBeNear(brushColor[chan], 4.0);
             }
             var alpha = (targetAlpha + opacity - targetAlpha * opacity) * 255;
             expect(samplePixel[3]).toBeNear(alpha, 10);

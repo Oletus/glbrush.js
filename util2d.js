@@ -261,15 +261,17 @@ colorUtil.differentColor = function(color) {
  * @return {number} Blend result as an integer from 0 to 255.
  */
 colorUtil.blendWithFunction = function(blendFunction, target, source, targetAlpha, sourceAlpha) {
-    // First calculate the blending result without taking the transparency of the target into account.
-    var rawResult = blendFunction(target, source);
-    // Normal blending result should be mixed in relative to the transparency of the blend target.
-    var blendResult = mathUtil.mix(source, rawResult, targetAlpha);
-    // The final mix depends on the alpha of the blend source.
-    if (targetAlpha > 0) {
-        return Math.round(mathUtil.mix(target, blendResult, sourceAlpha));
+    var alpha = targetAlpha + sourceAlpha * (1.0 - targetAlpha);
+    if (alpha > 0.0) {
+        // First calculate the blending result without taking the transparency of the target into account.
+        var rawResult = blendFunction(target, source);
+        // Then mix according to weights.
+        // See KHR_blend_equation_advanced specification for reference.
+        return Math.round((rawResult * targetAlpha * sourceAlpha +
+                           source * sourceAlpha * (1.0 - targetAlpha) +
+                           target * targetAlpha * (1.0 - sourceAlpha)) / alpha);
     } else {
-        return Math.round(blendResult);
+        return 0.0;
     }
 };
 

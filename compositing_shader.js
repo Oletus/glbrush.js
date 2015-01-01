@@ -45,10 +45,13 @@ compositingShader.getFragmentSource = function(layers) {
     var blendEq = function(eq) {
         src.push('  float blendedAlpha' + i + ' = layer' + i + 'Color.w + ' +
                  bufferColor + '.w * (1.0 - layer' + i + 'Color.w);');
-        // Normal blending result should be mixed in relative to the transparency of the blend target.
-        eq = 'mix(srcColor, ' + eq + ', dstAlpha)';
-        // The final mix depends on the alpha of the blend source.
-        eq = '(dstAlpha > 0.0 ? mix(dstColor, ' + eq + ', srcAlpha) : srcColor)';
+        src.push('  if (blendedAlpha' + i + ' > 0.0) {');
+        // Blending according to KHR_blend_equation_advanced
+        eq = '(' + eq + ') * srcAlpha * dstAlpha';
+        eq = eq + ' + srcColor * srcAlpha * (1.0 - dstAlpha)';
+        eq = eq + ' + dstColor * dstAlpha * (1.0 - srcAlpha)';
+        // The spec produces premultiplied color values, so unpremultiply:
+        eq = '(' + eq + ') / blendedAlpha' + i;
         // Fill in unpremultiplied colors:
         eq = eq.replace(/srcColor/g, 'layer' + i + 'Color.xyz');
         eq = eq.replace(/srcAlpha/g, 'layer' + i + 'Color.w');
@@ -56,18 +59,22 @@ compositingShader.getFragmentSource = function(layers) {
         eq = eq.replace(/dstAlpha/g, bufferColor + '.w');
         // Store:
         src.push('  ' + bufferColor + ' = vec4(' + eq + ', blendedAlpha' + i + ');');
+        src.push('  } else {');
+        src.push('  ' + bufferColor + ' = vec4(0.0);');
+        src.push('  }');
     };
     // Some blending operations require per component logic.
     // TODO: Some of these could probably be vectorized, using functions such as lessThan (see lighten for example)
     var blendEqPerComponent = function(eq) {
         src.push('  float blendedAlpha' + i + ' = layer' + i + 'Color.w + ' +
                 bufferColor + '.w * (1.0 - layer' + i + 'Color.w);');
+        src.push('  if (blendedAlpha' + i + ' > 0.0) {');
         src.push('  ' + bufferColor + ' = vec4(vec3(');
-        // Normal blending result should be mixed in relative to the transparency of the blend target.
-        eq = 'mix(srcColor, ' + eq + ', dstAlpha)';
-        // The final mix depends on the alpha of the blend source.
-        eq = '(dstAlpha > 0.0 ? mix(dstColor, ' + eq + ', srcAlpha) : srcColor)';
-        // Fill in unpremultiplied colors, once for each channel:
+        // Blending according to KHR_blend_equation_advanced
+        eq = '(' + eq + ') * dstAlpha * srcAlpha';
+        eq = eq + ' + srcColor * srcAlpha * (1.0 - dstAlpha)';
+        eq = eq + ' + dstColor * dstAlpha * (1.0 - srcAlpha)';
+        // Fill in colors, once for each channel:
         var eqc;
         for (var channel = 0; channel < 3; channel++) {
             eqc = eq.replace(/srcColor/g, 'layer' + i + 'Color[' + channel + ']');
@@ -76,7 +83,11 @@ compositingShader.getFragmentSource = function(layers) {
             eqc = eqc.replace(/dstAlpha/g, bufferColor + '.w');
             src.push('   ' + eqc + (channel !== 2 ? ',' : ''));
         }
-        src.push('), blendedAlpha' + i + ');');
+        // The blending spec produces premultiplied color values, so unpremultiply:
+        src.push(') / blendedAlpha' + i + ', blendedAlpha' + i + ');');
+        src.push('  } else {');
+        src.push('  ' + bufferColor + ' = vec4(0.0);');
+        src.push('  }');
     };
     i = 0;
     while (i < layers.length) {
