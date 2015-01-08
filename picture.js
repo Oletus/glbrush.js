@@ -476,16 +476,20 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry, brushTextur
             width = parseInt(pictureParams[3]);
             height = parseInt(pictureParams[4]);
         } else {
-            left = parseInt(pictureParams[3]);
-            top = parseInt(pictureParams[4]);
-            width = parseInt(pictureParams[5]);
-            height = parseInt(pictureParams[6]);
+            left = parseFloat(pictureParams[3]);
+            top = parseFloat(pictureParams[4]);
+            width = parseFloat(pictureParams[5]);
+            height = parseFloat(pictureParams[6]);
         }
     }
     if (version > 2) {
-        var hasName = pictureParams[5];
+        var nameIndex = 5;
+        if (version > 5) {
+            nameIndex = 7;
+        }
+        var hasName = pictureParams[nameIndex];
         if (hasName === 'named') {
-            name = window.atob(pictureParams[6]);
+            name = window.atob(pictureParams[nameIndex + 1]);
         }
     }
     var pic = Picture.create(id, name, new Rect(left, left + width, top, top + height),

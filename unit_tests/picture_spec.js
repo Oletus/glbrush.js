@@ -802,31 +802,6 @@ var doPictureTest = function(mode) {
         });
     }
 
-    it('parses a picture without a version number', function() {
-        var parsed;
-        Picture.parse(-1, 'picture 122 234', 2.0, [mode], undefined, function(p) {
-            parsed = p;
-        });
-        waitsFor(function() {
-            return parsed !== undefined;
-        });
-        runs(function() {
-            var pic = parsed.picture;
-            expect(pic.parsedVersion).toBe(0);
-            expect(pic.id).toBe(-1);
-            expect(pic.name).toBe(null);
-            expect(pic.pictureTransform.scale).toBe(2.0);
-            expect(pic.mode).toEqual(mode);
-            expect(pic.width()).toBe(122);
-            expect(pic.height()).toBe(234);
-            expect(pic.bitmapWidth()).toBe(width * 2.0);
-            expect(pic.bitmapHeight()).toBe(height * 2.0);
-            expect(pic.buffers.length).toBe(0);
-
-            pic.destroy();
-        });
-    });
-
     it('converts to a dataURL', function() {
         var clearColor = [12, 23, 34];
         var img = null;
@@ -913,10 +888,108 @@ var doPictureTest = function(mode) {
 };
 
 describe('Picture', function() {
-    var modes = ['canvas', 'webgl', 'no-texdata-webgl', 'no-float-webgl'];
+    var modes = ['webgl', 'canvas', 'no-texdata-webgl', 'no-float-webgl'];
     for (var i = 0; i < modes.length; ++i) {
         describe('in mode ' + modes[i], function() {
             doPictureTest(modes[i]);
         });
     }
+
+    var mode = modes[0]; // Do these remaining tests with only one mode, since they don't test rendering
+
+    it('parses a serialization without a version number', function() {
+        var parsed;
+        Picture.parse(-1, 'picture 122 234', 2.0, [mode], undefined, function(p) {
+            parsed = p;
+        });
+        waitsFor(function() {
+            return parsed !== undefined;
+        });
+        runs(function() {
+            var pic = parsed.picture;
+            expect(pic.parsedVersion).toBe(0);
+            expect(pic.id).toBe(-1);
+            expect(pic.name).toBe(null);
+            expect(pic.pictureTransform.scale).toBe(2.0);
+            expect(pic.mode).toEqual(mode);
+            expect(pic.width()).toBe(122);
+            expect(pic.height()).toBe(234);
+            expect(pic.bitmapWidth()).toBe(pic.width() * 2.0);
+            expect(pic.bitmapHeight()).toBe(pic.height() * 2.0);
+            expect(pic.buffers.length).toBe(0);
+
+            pic.destroy();
+        });
+    });
+
+    it('parses a serialization of version 4', function() {
+        var picSerialization = [
+        'picture version 4 840 970 named YmxhY2tkcmFnb24=',
+        'bufferAdd 1 0 0 0 0 255 255 255 1 4383',
+        'brush 1 1 1 27 27 27 0.42 1 1.93 0 0.0 1 482.66 322.37 0.20626 482.62 322.37 0.20626 ' +
+            '479.12 322.37 0.23656 473.12 322.37 0.26197 464.74 325.99 0.39687'
+        ].join('\n');
+        var parsed;
+        Picture.parse(-1, picSerialization, 1.0, [mode], undefined, function(p) {
+            parsed = p;
+        });
+        waitsFor(function() {
+            return parsed !== undefined;
+        });
+        runs(function() {
+            var pic = parsed.picture;
+            expect(pic.parsedVersion).toBe(4);
+            expect(pic.id).toBe(-1);
+            expect(pic.buffers.length).toBe(1);
+            expect(pic.buffers[0].events.length).toBe(2);
+            expect(pic.buffers[0].events[1].eventType).toBe('brush');
+            expect(pic.buffers[0].events[1].undone).toBe(true);
+            expect(pic.buffers[0].events[1].coords.length).toBe(5 * 3);
+            expect(pic.name).toBe('blackdragon');
+            expect(pic.width()).toBe(840);
+            expect(pic.height()).toBe(970);
+            expect(pic.boundsRect.left).toBe(0);
+            expect(pic.boundsRect.top).toBe(0);
+            expect(pic.bitmapWidth()).toBe(840);
+            expect(pic.bitmapHeight()).toBe(970);
+
+            pic.destroy();
+        });
+    });
+
+    it('parses a serialization of version 6', function() {
+        var picSerialization = [
+        'picture version 6 277.46 46.48 347.75 526.31 named bWljcm9mbG93ZXJz',
+        'add_picture_event 0 bufferAdd 1 0 0 0 0 255 255 255 1 2932',
+        'add_picture_event 0 brush 1 1 1 0 0 0 1 1 10 0 0.0 1 554 294 0.08504 548 294 0.09775 544 292 0.12708 ' +
+            '541 290 0.16325 541 286 0.1955 542 281 0.23167',
+        'undo 1 1'
+        ].join('\n');
+        var parsed;
+        Picture.parse(-1, picSerialization, 1.0, [mode], undefined, function(p) {
+            parsed = p;
+        });
+        waitsFor(function() {
+            return parsed !== undefined;
+        });
+        runs(function() {
+            var pic = parsed.picture;
+            expect(pic.parsedVersion).toBe(6);
+            expect(pic.id).toBe(-1);
+            expect(pic.buffers.length).toBe(1);
+            expect(pic.buffers[0].events.length).toBe(2);
+            expect(pic.buffers[0].events[1].eventType).toBe('brush');
+            expect(pic.buffers[0].events[1].undone).toBe(true);
+            expect(pic.buffers[0].events[1].coords.length).toBe(6 * 3);
+            expect(pic.name).toBe('microflowers');
+            expect(pic.width()).toBeNear(347.75, 0.01);
+            expect(pic.height()).toBeNear(526.31, 0.01);
+            expect(pic.boundsRect.left).toBeNear(277.46, 0.01);
+            expect(pic.boundsRect.top).toBeNear(46.48, 0.01);
+            expect(pic.bitmapWidth()).toBe(347);
+            expect(pic.bitmapHeight()).toBe(526);
+
+            pic.destroy();
+        });
+    });
 });
