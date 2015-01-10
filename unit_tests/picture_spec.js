@@ -926,7 +926,7 @@ describe('Picture', function() {
         var picSerialization = [
         'picture version 4 840 970 named YmxhY2tkcmFnb24=',
         'bufferAdd 1 0 0 0 0 255 255 255 1 4383',
-        'brush 1 1 1 27 27 27 0.42 1 1.93 0 0.0 1 482.66 322.37 0.20626 482.62 322.37 0.20626 ' +
+        'brush 1 1 1 27 28 29 0.42 0.9 1.93 0 0.0 2 482.66 322.37 0.20626 482.62 322.37 0.20626 ' +
             '479.12 322.37 0.23656 473.12 322.37 0.26197 464.74 325.99 0.39687'
         ].join('\n');
         var parsed;
@@ -942,9 +942,6 @@ describe('Picture', function() {
             expect(pic.id).toBe(-1);
             expect(pic.buffers.length).toBe(1);
             expect(pic.buffers[0].events.length).toBe(2);
-            expect(pic.buffers[0].events[1].eventType).toBe('brush');
-            expect(pic.buffers[0].events[1].undone).toBe(true);
-            expect(pic.buffers[0].events[1].coords.length).toBe(5 * 3);
             expect(pic.name).toBe('blackdragon');
             expect(pic.width()).toBe(840);
             expect(pic.height()).toBe(970);
@@ -952,6 +949,19 @@ describe('Picture', function() {
             expect(pic.boundsRect.top).toBe(0);
             expect(pic.bitmapWidth()).toBe(840);
             expect(pic.bitmapHeight()).toBe(970);
+
+            var event = pic.buffers[0].events[1];
+            expect(event.eventType).toBe('brush');
+            expect(event.undone).toBe(true);
+            expect(event.color[0]).toBe(27);
+            expect(event.color[1]).toBe(28);
+            expect(event.color[2]).toBe(29);
+            expect(event.flow).toBe(0.42);
+            expect(event.opacity).toBe(0.9);
+            expect(event.radius).toBe(1.93);
+            expect(event.textureId).toBe(0);
+            expect(event.mode).toBe(PictureEvent.Mode.multiply);
+            expect(event.coords.length).toBe(5 * 3);
 
             pic.destroy();
         });
@@ -961,8 +971,8 @@ describe('Picture', function() {
         var picSerialization = [
         'picture version 6 277.46 46.48 347.75 526.31 named bWljcm9mbG93ZXJz',
         'add_picture_event 0 bufferAdd 1 0 0 0 0 255 255 255 1 2932',
-        'add_picture_event 0 brush 1 1 1 0 0 0 1 1 10 0 0.0 1 554 294 0.08504 548 294 0.09775 544 292 0.12708 ' +
-            '541 290 0.16325 541 286 0.1955 542 281 0.23167',
+        'add_picture_event 0 brush 1 1 1 27 28 29 0.42 0.9 1.93 0 0.0 2 554 294 0.08504 548 294 0.09775 ' +
+            '544 292 0.12708 541 290 0.16325 541 286 0.1955 542 281 0.23167',
         'undo 1 1'
         ].join('\n');
         var parsed;
@@ -978,9 +988,6 @@ describe('Picture', function() {
             expect(pic.id).toBe(-1);
             expect(pic.buffers.length).toBe(1);
             expect(pic.buffers[0].events.length).toBe(2);
-            expect(pic.buffers[0].events[1].eventType).toBe('brush');
-            expect(pic.buffers[0].events[1].undone).toBe(true);
-            expect(pic.buffers[0].events[1].coords.length).toBe(6 * 3);
             expect(pic.name).toBe('microflowers');
             expect(pic.width()).toBeNear(347.75, 0.01);
             expect(pic.height()).toBeNear(526.31, 0.01);
@@ -988,6 +995,19 @@ describe('Picture', function() {
             expect(pic.boundsRect.top).toBeNear(46.48, 0.01);
             expect(pic.bitmapWidth()).toBe(347);
             expect(pic.bitmapHeight()).toBe(526);
+
+            var event = pic.buffers[0].events[1];
+            expect(event.eventType).toBe('brush');
+            expect(event.undone).toBe(true);
+            expect(event.color[0]).toBe(27);
+            expect(event.color[1]).toBe(28);
+            expect(event.color[2]).toBe(29);
+            expect(event.flow).toBe(0.42);
+            expect(event.opacity).toBe(0.9);
+            expect(event.radius).toBe(1.93);
+            expect(event.textureId).toBe(0);
+            expect(event.mode).toBe(PictureEvent.Mode.multiply);
+            expect(event.coords.length).toBe(6 * 3);
 
             pic.destroy();
         });
