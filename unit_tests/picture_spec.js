@@ -927,7 +927,8 @@ describe('Picture', function() {
         'picture version 4 840 970 named YmxhY2tkcmFnb24=',
         'bufferAdd 1 0 0 0 0 255 255 255 1 4383',
         'brush 1 1 1 27 28 29 0.42 0.9 1.93 0 0.0 2 482.66 322.37 0.20626 482.62 322.37 0.20626 ' +
-            '479.12 322.37 0.23656 473.12 322.37 0.26197 464.74 325.99 0.39687'
+            '479.12 322.37 0.23656 473.12 322.37 0.26197 464.74 325.99 0.39687',
+        'gradient 1 2 0 101 198 255 0.875 1 523 986 575 34'
         ].join('\n');
         var parsed;
         Picture.parse(-1, picSerialization, 1.0, [mode], undefined, function(p) {
@@ -941,7 +942,7 @@ describe('Picture', function() {
             expect(pic.parsedVersion).toBe(4);
             expect(pic.id).toBe(-1);
             expect(pic.buffers.length).toBe(1);
-            expect(pic.buffers[0].events.length).toBe(2);
+            expect(pic.buffers[0].events.length).toBe(3);
             expect(pic.name).toBe('blackdragon');
             expect(pic.width()).toBe(840);
             expect(pic.height()).toBe(970);
@@ -952,6 +953,8 @@ describe('Picture', function() {
 
             var event = pic.buffers[0].events[1];
             expect(event.eventType).toBe('brush');
+            expect(event.sid).toBe(1);
+            expect(event.sessionEventId).toBe(1);
             expect(event.undone).toBe(true);
             expect(event.color[0]).toBe(27);
             expect(event.color[1]).toBe(28);
@@ -963,6 +966,21 @@ describe('Picture', function() {
             expect(event.mode).toBe(PictureEvent.Mode.multiply);
             expect(event.coords.length).toBe(5 * 3);
 
+            event = pic.buffers[0].events[2];
+            expect(event.eventType).toBe('gradient');
+            expect(event.sid).toBe(1);
+            expect(event.sessionEventId).toBe(2);
+            expect(event.undone).toBe(false);
+            expect(event.color[0]).toBe(101);
+            expect(event.color[1]).toBe(198);
+            expect(event.color[2]).toBe(255);
+            expect(event.opacity).toBe(0.875);
+            expect(event.mode).toBe(PictureEvent.Mode.normal);
+            expect(event.coords0.x).toBe(523);
+            expect(event.coords0.y).toBe(986);
+            expect(event.coords1.x).toBe(575);
+            expect(event.coords1.y).toBe(34);
+
             pic.destroy();
         });
     });
@@ -973,7 +991,8 @@ describe('Picture', function() {
         'add_picture_event 0 bufferAdd 1 0 0 0 0 255 255 255 1 2932',
         'add_picture_event 0 brush 1 1 1 27 28 29 0.42 0.9 1.93 0 0.0 2 554 294 0.08504 548 294 0.09775 ' +
             '544 292 0.12708 541 290 0.16325 541 286 0.1955 542 281 0.23167',
-        'undo 1 1'
+        'undo 1 1',
+        'add_picture_event 0 gradient 1 2 0 23 68 34 0.75 1 406 695 405 668'
         ].join('\n');
         var parsed;
         Picture.parse(-1, picSerialization, 1.0, [mode], undefined, function(p) {
@@ -987,7 +1006,7 @@ describe('Picture', function() {
             expect(pic.parsedVersion).toBe(6);
             expect(pic.id).toBe(-1);
             expect(pic.buffers.length).toBe(1);
-            expect(pic.buffers[0].events.length).toBe(2);
+            expect(pic.buffers[0].events.length).toBe(3);
             expect(pic.name).toBe('microflowers');
             expect(pic.width()).toBeNear(347.75, 0.01);
             expect(pic.height()).toBeNear(526.31, 0.01);
@@ -998,6 +1017,8 @@ describe('Picture', function() {
 
             var event = pic.buffers[0].events[1];
             expect(event.eventType).toBe('brush');
+            expect(event.sid).toBe(1);
+            expect(event.sessionEventId).toBe(1);
             expect(event.undone).toBe(true);
             expect(event.color[0]).toBe(27);
             expect(event.color[1]).toBe(28);
@@ -1008,6 +1029,21 @@ describe('Picture', function() {
             expect(event.textureId).toBe(0);
             expect(event.mode).toBe(PictureEvent.Mode.multiply);
             expect(event.coords.length).toBe(6 * 3);
+
+            event = pic.buffers[0].events[2];
+            expect(event.eventType).toBe('gradient');
+            expect(event.sid).toBe(1);
+            expect(event.sessionEventId).toBe(2);
+            expect(event.undone).toBe(false);
+            expect(event.color[0]).toBe(23);
+            expect(event.color[1]).toBe(68);
+            expect(event.color[2]).toBe(34);
+            expect(event.opacity).toBe(0.75);
+            expect(event.mode).toBe(PictureEvent.Mode.normal);
+            expect(event.coords0.x).toBe(406);
+            expect(event.coords0.y).toBe(695);
+            expect(event.coords1.x).toBe(405);
+            expect(event.coords1.y).toBe(668);
 
             pic.destroy();
         });
