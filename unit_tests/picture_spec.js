@@ -992,7 +992,9 @@ describe('Picture', function() {
         'add_picture_event 0 brush 1 1 1 27 28 29 0.42 0.9 1.93 0 0.0 2 554 294 0.08504 548 294 0.09775 ' +
             '544 292 0.12708 541 290 0.16325 541 286 0.1955 542 281 0.23167',
         'undo 1 1',
-        'add_picture_event 0 gradient 1 2 0 23 68 34 0.75 1 406 695 405 668'
+        'add_picture_event 0 gradient 1 2 0 23 68 34 0.75 1 406 695 405 668',
+        'add_picture_event 0 scatter 1 3 0 27 28 29 0.42 0.9 0 0 1.0 3 253 22 571 0.1439999999999999 0',
+        'add_picture_event 0 eventHide 1 4 0 1 3'
         ].join('\n');
         var parsed;
         Picture.parse(-1, picSerialization, 1.0, [mode], undefined, function(p) {
@@ -1006,7 +1008,7 @@ describe('Picture', function() {
             expect(pic.parsedVersion).toBe(6);
             expect(pic.id).toBe(-1);
             expect(pic.buffers.length).toBe(1);
-            expect(pic.buffers[0].events.length).toBe(3);
+            expect(pic.buffers[0].events.length).toBe(5);
             expect(pic.name).toBe('microflowers');
             expect(pic.width()).toBeNear(347.75, 0.01);
             expect(pic.height()).toBeNear(526.31, 0.01);
@@ -1027,6 +1029,7 @@ describe('Picture', function() {
             expect(event.opacity).toBe(0.9);
             expect(event.radius).toBe(1.93);
             expect(event.textureId).toBe(0);
+            expect(event.soft).toBe(false);
             expect(event.mode).toBe(PictureEvent.Mode.multiply);
             expect(event.coords.length).toBe(6 * 3);
 
@@ -1044,6 +1047,30 @@ describe('Picture', function() {
             expect(event.coords0.y).toBe(695);
             expect(event.coords1.x).toBe(405);
             expect(event.coords1.y).toBe(668);
+
+            event = pic.buffers[0].events[3];
+            expect(event.eventType).toBe('scatter');
+            expect(event.sid).toBe(1);
+            expect(event.sessionEventId).toBe(3);
+            expect(event.undone).toBe(false);
+            expect(event.color[0]).toBe(27);
+            expect(event.color[1]).toBe(28);
+            expect(event.color[2]).toBe(29);
+            expect(event.flow).toBe(0.42);
+            expect(event.opacity).toBe(0.9);
+            expect(event.radius).toBe(0);
+            expect(event.textureId).toBe(0);
+            expect(event.soft).toBe(true);
+            expect(event.mode).toBe(PictureEvent.Mode.screen);
+            expect(event.coords.length).toBe(5);
+
+            event = pic.buffers[0].events[4];
+            expect(event.eventType).toBe('eventHide');
+            expect(event.sid).toBe(1);
+            expect(event.sessionEventId).toBe(4);
+            expect(event.undone).toBe(false);
+            expect(event.hiddenSid).toBe(1);
+            expect(event.hiddenSessionEventId).toBe(3);
 
             pic.destroy();
         });
