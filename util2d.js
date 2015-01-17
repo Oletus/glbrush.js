@@ -139,7 +139,7 @@ colorUtil.blend = function(dstRGBA, srcRGBA) {
  * @return {string} Serialized representation of the value.
  */
 colorUtil.serializeRGB = function(RGB) {
-    return RGB[0] + ' ' + RGB[1] + ' ' + RGB[2];
+    return [RGB[0], RGB[1], RGB[2]];
 };
 
 /**

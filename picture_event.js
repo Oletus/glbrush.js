@@ -38,48 +38,105 @@ var PictureEvent = function(eventType) {
 };
 
 /**
- * @return {string} A serialization of the event.
+ * @param {Object} json Json object to add event information to.
  */
-PictureEvent.prototype.serializePictureEvent = function() {
-    return this.eventType + ' ' + this.sid + ' ' + this.sessionEventId + ' ' +
-           (this.undone ? '1' : '0');
+PictureEvent.prototype.serializePictureEvent = function(json) {
+    json['eventType'] = this.eventType;
+    json['sid'] = this.sid;
+    json['sessionEventId'] = this.sessionEventId;
+    json['undone'] = this.undone;
 };
 
 /**
- * Parse a PictureEvent from a tokenized serialization.
+ * Parse values shared between different picture event classes from a JS object.
+ * @param {Object} json JS object to parse values from.
+ */
+PictureEvent.prototype.pictureEventFromJS = function(json) {
+    this.sid = json['sid'];
+    this.sessionEventId = json['sessionEventId'];
+    this.undone = json['undone'];
+};
+
+/**
+ * Parse a json representation of a PictureEvent from a tokenized serialization.
+ * @param {Object} json JS object corresponding to the event to add parsed information to.
  * @param {Array.<string>} arr Array containing the tokens, split at spaces from
  * the original serialization.
  * @param {number} i Index of the first token to deserialize.
  * @param {number} version Version number of the serialization format.
- * @return {PictureEvent} The parsed event or null.
+ * @return {boolean} True if parsing succeeded.
  */
-PictureEvent.parse = function(arr, i, version) {
-    var eventType = arr[i++];
-    var sid = parseInt(arr[i++]);
-    var sessionEventId = parseInt(arr[i++]);
-    var undone = (parseInt(arr[i++]) !== 0);
+PictureEvent.parseLegacy = function(json, arr, i, version) {
+    json['eventType'] = arr[i++];
+    json['sid'] = parseInt(arr[i++]);
+    json['sessionEventId'] = parseInt(arr[i++]);
+    json['undone'] = (parseInt(arr[i++]) !== 0);
+
+    var eventType = json['eventType'];
     if (eventType === 'brush') {
-        return BrushEvent.parse(arr, i, version, sid, sessionEventId, undone);
+        BrushEvent.parseLegacy(json, arr, i, version);
+        return true;
     } else if (eventType === 'scatter') {
-        return ScatterEvent.parse(arr, i, version, sid, sessionEventId, undone);
+        ScatterEvent.parseLegacy(json, arr, i, version);
+        return true;
     } else if (eventType === 'gradient') {
-        return GradientEvent.parse(arr, i, version, sid, sessionEventId, undone);
+        GradientEvent.parseLegacy(json, arr, i, version);
+        return true;
     } else if (eventType === 'rasterImport') {
-        return RasterImportEvent.parse(arr, i, version, sid, sessionEventId, undone);
+        RasterImportEvent.parseLegacy(json, arr, i, version);
+        return true;
     } else if (eventType === 'bufferMerge') {
-        return BufferMergeEvent.parse(arr, i, version, sid, sessionEventId, undone);
+        BufferMergeEvent.parseLegacy(json, arr, i, version);
+        return true;
     } else if (eventType === 'bufferAdd') {
-        return BufferAddEvent.parse(arr, i, version, sid, sessionEventId, undone);
+        BufferAddEvent.parseLegacy(json, arr, i, version);
+        return true;
     } else if (eventType === 'bufferRemove') {
-        return BufferRemoveEvent.parse(arr, i, version, sid, sessionEventId, undone);
+        BufferRemoveEvent.parseLegacy(json, arr, i, version);
+        return true;
     } else if (eventType === 'bufferMove') {
-        return BufferMoveEvent.parse(arr, i, version, sid, sessionEventId, undone);
+        BufferMoveEvent.parseLegacy(json, arr, i, version);
+        return true;
     } else if (eventType === 'eventHide') {
-        return EventHideEvent.parse(arr, i, version, sid, sessionEventId, undone);
+        EventHideEvent.parseLegacy(json, arr, i, version);
+        return true;
+    } else {
+        console.log('Unexpected picture event type ' + eventType);
+        return false;
+    }
+};
+
+/**
+ * @param {Object} json JS object to parse values from.
+ * @return {PictureEvent} The parsed event or null if the event was not recognized.
+ */
+PictureEvent.fromJS = function(json) {
+    var eventType = json['eventType'];
+    if (eventType === 'brush') {
+        var event = new BrushEvent();
+    } else if (eventType === 'scatter') {
+        var event = new ScatterEvent();
+    } else if (eventType === 'gradient') {
+        var event = new GradientEvent();
+    } else if (eventType === 'rasterImport') {
+        var event = new RasterImportEvent();
+    } else if (eventType === 'bufferMerge') {
+        var event = new BufferMergeEvent();
+    } else if (eventType === 'bufferAdd') {
+        var event = new BufferAddEvent();
+    } else if (eventType === 'bufferRemove') {
+        var event = new BufferRemoveEvent();
+    } else if (eventType === 'bufferMove') {
+        var event = new BufferMoveEvent();
+    } else if (eventType === 'eventHide') {
+        var event = new EventHideEvent();
     } else {
         console.log('Unexpected picture event type ' + eventType);
         return null;
     }
+    event.pictureEventFromJS(json);
+    event.fromJS(json);
+    return event;
 };
 
 /**
@@ -88,8 +145,10 @@ PictureEvent.parse = function(arr, i, version) {
  * @return {PictureEvent} A copy of the event.
  */
 PictureEvent.copy = function(event) {
-    return PictureEvent.parse(event.serialize(1.0).split(' '), 0,
-                              Picture.formatVersion);
+    var json = {};
+    event.serialize(json);
+    var serialization = JSON.stringify(json);
+    return PictureEvent.fromJS(JSON.parse(serialization));
 };
 
 /**
@@ -148,21 +207,22 @@ PictureEvent.Mode = {
  * number, number, number, number, PictureEvent.Mode)} Constructor for the event.
  */
 var brushEventConstructor = function(needsTipMovers) {
-    return function(sid, sessionEventId, undone, color, flow, opacity, radius, textureId,
-                    softness, mode) {
-        // TODO: assert(color.length == 3);
-        this.undone = undone;
-        this.sid = sid;
-        this.sessionEventId = sessionEventId;
-        this.color = color;
-        this.flow = flow;
-        this.opacity = opacity;
-        this.radius = radius;
+    return function(sid, sessionEventId, undone, color, flow, opacity, radius, textureId, softness, mode) {
+        if (sid !== undefined) {
+            // TODO: assert(color.length == 3);
+            this.sid = sid;
+            this.sessionEventId = sessionEventId;
+            this.undone = undone;
+            this.color = color;
+            this.flow = flow;
+            this.opacity = opacity;
+            this.radius = radius;
+            this.textureId = textureId; // Id 0 is a circle, others are bitmap textures.
+            this.soft = softness > 0.5;
+            this.mode = mode;
+        }
         this.coords = []; // holding x,y,pressure triplets
         this.boundingBoxRasterizer = new BrushEvent.BBRasterizer();
-        this.textureId = textureId; // Id 0 is a circle, others are bitmap textures.
-        this.soft = softness > 0.5;
-        this.mode = mode;
         this.hideCount = 0;
         this.generation = 0;
         if (needsTipMovers) {
@@ -198,42 +258,46 @@ var BrushEvent = brushEventConstructor(true);
 BrushEvent.prototype = new PictureEvent('brush');
 
 /**
+ * @param {Object} json JS object to parse values from.
+ */
+BrushEvent.prototype.fromJS = function(json) {
+    this.color = json['color'];
+    this.flow = json['flow'];
+    this.opacity = json['opacity'];
+    this.radius = json['radius'];
+    this.textureId = json['textureId']; // Id 0 is a circle, others are bitmap textures.
+    this.soft = json['softness'] > 0.5;
+    this.mode = json['mode'];
+    var coords = json['coordinates'];
+    for (var i = 0; i < coords.length; ++i) {
+        this.coords.push(coords[i]);
+    }
+};
+
+/**
  * @const
  * @protected
  */
 BrushEvent.coordsStride = 3; // x, y and pressure coordinates belong together
 
 /**
- * @return {string} A serialization of the event.
+ * @param {Object} json JS object to serialize the event data to, that can then be stringified.
  */
-BrushEvent.prototype.serialize = function() {
-    var eventMessage = this.serializePictureEvent();
-    eventMessage += ' ' + colorUtil.serializeRGB(this.color);
-    eventMessage += ' ' + this.flow + ' ' + this.opacity;
-    eventMessage += ' ' + this.radius;
-    eventMessage += ' ' + this.textureId;
-    if (this.soft) {
-        eventMessage += ' 1.0';
-    } else {
-        eventMessage += ' 0.0';
-    }
-    eventMessage += ' ' + this.mode;
-    eventMessage += this.serializeCoords();
-    return eventMessage;
-};
-
-/**
- * @return {string} A serialization of the coordinates.
- */
-BrushEvent.prototype.serializeCoords = function() {
-    var eventCoordsMessage = '';
+BrushEvent.prototype.serialize = function(json) {
+    this.serializePictureEvent(json);
+    json['color'] = colorUtil.serializeRGB(this.color);
+    json['flow'] = this.flow;
+    json['opacity'] = this.opacity;
+    json['radius'] = this.radius;
+    json['textureId'] = this.textureId;
+    json['softness'] = this.soft ? 1.0 : 0.0;
+    json['mode'] = this.mode;
+    var coords = [];
     var i = 0;
     while (i < this.coords.length) {
-        eventCoordsMessage += ' ' + this.coords[i++];
-        eventCoordsMessage += ' ' + this.coords[i++];
-        eventCoordsMessage += ' ' + this.coords[i++];
+        coords[i] += this.coords[i++];
     }
-    return eventCoordsMessage;
+    json['coordinates'] = coords;
 };
 
 /**
@@ -244,58 +308,52 @@ BrushEvent.prototype.serializeCoords = function() {
  * @return {function(Array.<string>, number, number, number, number, boolean)}
  * Parse function.
  */
-var brushEventParser = function(constructor) {
-    return function(arr, i, version, sid, sessionEventId, undone) {
+var brushEventLegacyParser = function(constructor) {
+    return function(json, arr, i, version) {
         var color = [];
         color[0] = parseInt(arr[i++]);
         color[1] = parseInt(arr[i++]);
         color[2] = parseInt(arr[i++]);
-        var flow = parseFloat(arr[i++]);
-        var opacity = parseFloat(arr[i++]);
-        var radius = parseFloat(arr[i++]);
-        var textureId = 0;
+        json['color'] = color;
+        json['flow'] = parseFloat(arr[i++]);
+        json['opacity'] = parseFloat(arr[i++]);
+        json['radius'] = parseFloat(arr[i++]);
+        json['textureId'] = 0;
         if (version > 1) {
-            textureId = parseInt(arr[i++]);
+            json['textureId'] = parseInt(arr[i++]);
         }
-        var softness = parseFloat(arr[i++]);
-        var mode = parseInt(arr[i++]);
-        var pictureEvent = new constructor(sid, sessionEventId, undone, color,
-                                           flow, opacity, radius, textureId, softness,
-                                           mode);
-        pictureEvent.parseCoords(arr, i, version);
-        return pictureEvent;
+        json['softness'] = parseFloat(arr[i++]);
+        json['mode'] = parseInt(arr[i++]);
+        constructor.parseLegacyCoords(json, arr, i, version);
     };
 };
 
 /**
  * Parse a BrushEvent from a tokenized serialization.
+ * @param {Object} json JS object corresponding to the event to add parsed information to.
  * @param {Array.<string>} arr Array containing the tokens, split at spaces from
  * the original serialization.
  * @param {number} i Index of the first token to deserialize.
  * @param {number} version Version number of the serialization format.
- * @param {number} sid Session identifier. Must be an integer.
- * @param {number} sessionEventId An event/session specific identifier. The idea
- * is that the sid/sessionEventId pair is unique for this event. Must be an
- * integer.
- * @param {boolean} undone Whether this event is undone.
- * @return {BrushEvent} The parsed event or null.
  */
-BrushEvent.parse = brushEventParser(BrushEvent);
+BrushEvent.parseLegacy = brushEventLegacyParser(BrushEvent);
 
 /**
  * Parse BrushEvent coordinates from a tokenized serialization.
+ * @param {Object} json JS object corresponding to the event to add parsed information to.
  * @param {Array.<string>} arr Array containing the tokens, split at spaces from
  * the original serialization.
  * @param {number} i Index of the first token to deserialize.
  * @param {number} version Version number of the serialization format.
  */
-BrushEvent.prototype.parseCoords = function(arr, i, version) {
+BrushEvent.parseLegacyCoords = function(json, arr, i, version) {
+    var coords = [];
     while (i <= arr.length - BrushEvent.coordsStride) {
-        var x = parseFloat(arr[i++]);
-        var y = parseFloat(arr[i++]);
-        var pressure = parseFloat(arr[i++]);
-        this.pushCoordTriplet(x, y, pressure);
+        coords.push(parseFloat(arr[i++]));
+        coords.push(parseFloat(arr[i++]));
+        coords.push(parseFloat(arr[i++]));
     }
+    json['coordinates'] = coords;
 };
 
 /**
@@ -544,60 +602,49 @@ ScatterEvent.coordsStride = 5; // x, y, radius, flow and rotation coordinates be
 ScatterEvent.prototype = new PictureEvent('scatter');
 
 /** @inheritDoc */
+ScatterEvent.prototype.fromJS = BrushEvent.prototype.fromJS;
+
+/** @inheritDoc */
 ScatterEvent.prototype.serialize = BrushEvent.prototype.serialize;
 
-/**
- * @return {string} A serialization of the coordinates.
- */
-ScatterEvent.prototype.serializeCoords = function() {
-    var eventCoordsMessage = '';
-    var i = 0;
-    while (i < this.coords.length) {
-        eventCoordsMessage += ' ' + this.coords[i++];
-        eventCoordsMessage += ' ' + this.coords[i++];
-        eventCoordsMessage += ' ' + this.coords[i++]; // radius
-        eventCoordsMessage += ' ' + this.coords[i++]; // flow
-        eventCoordsMessage += ' ' + this.coords[i++]; // rotation
-    }
-    return eventCoordsMessage;
-};
 
 /**
  * Parse a ScatterEvent from a tokenized serialization.
+ * @param {Object} json JS object corresponding to the event to add parsed information to.
  * @param {Array.<string>} arr Array containing the tokens, split at spaces from
  * the original serialization.
  * @param {number} i Index of the first token to deserialize.
  * @param {number} version Version number of the serialization format.
- * @param {number} sid Session identifier. Must be an integer.
- * @param {number} sessionEventId An event/session specific identifier. The idea
- * is that the sid/sessionEventId pair is unique for this event. Must be an
- * integer.
- * @param {boolean} undone Whether this event is undone.
- * @return {ScatterEvent} The parsed event or null.
  */
-ScatterEvent.parse = brushEventParser(ScatterEvent);
+ScatterEvent.parseLegacy = brushEventLegacyParser(ScatterEvent);
 
 /**
  * Parse ScatterEvent coordinates from a tokenized serialization.
+ * @param {Object} json JS object corresponding to the event to add parsed information to.
  * @param {Array.<string>} arr Array containing the tokens, split at spaces from
  * the original serialization.
  * @param {number} i Index of the first token to deserialize.
  * @param {number} version Version number of the serialization format.
  */
-ScatterEvent.prototype.parseCoords = function(arr, i, version) {
-    while (i <= arr.length - ScatterEvent.coordsStride) {
-        var x = parseFloat(arr[i++]);
-        var y = parseFloat(arr[i++]);
+ScatterEvent.parseLegacyCoords = function(json, arr, i, version) {
+    var coords = [];
+    var eventRadius = json['radius'];
+    var eventFlow = json['flow'];
+    while (i < arr.length) {
+        coords.push(parseFloat(arr[i++]));
+        coords.push(parseFloat(arr[i++]));
         var pressure = parseFloat(arr[i++]);
         if (version >= 4) {
-            var flow = parseFloat(arr[i++]);
-            var rotation = parseFloat(arr[i++]);
-            // pressure interpreted as radius
-            this.fillCircle(x, y, pressure, flow, rotation);
+            coords.push(pressure); // interpreted as radius
+            coords.push(parseFloat(arr[i++]));
+            coords.push(parseFloat(arr[i++]));
         } else {
-            this.fillCircle(x, y, pressure * this.radius, this.flow, 0);
+            coords.push(pressure * eventRadius);
+            coords.push(eventFlow);
+            coords.push(0);
         }
     }
+    json['coordinates'] = coords;
 };
 
 
@@ -710,14 +757,16 @@ ScatterEvent.prototype.fillCircle = function(x, y, radius, flow, rotation) {
 var GradientEvent = function(sid, sessionEventId, undone, color, opacity,
                              mode) {
     // TODO: assert(color.length == 3);
-    this.undone = undone;
-    this.sid = sid;
-    this.sessionEventId = sessionEventId;
-    this.color = color;
-    this.opacity = opacity;
-    this.coords0 = new Vec2(0, 0);
-    this.coords1 = new Vec2(1, 1);
-    this.mode = mode;
+    if (sid !== undefined) {
+        this.sid = sid;
+        this.sessionEventId = sessionEventId;
+        this.undone = undone;
+        this.color = color;
+        this.opacity = opacity;
+        this.coords0 = new Vec2(0, 0);
+        this.coords1 = new Vec2(1, 1);
+        this.mode = mode;
+    }
     this.hideCount = 0;
     this.generation = 0;
 };
@@ -725,48 +774,50 @@ var GradientEvent = function(sid, sessionEventId, undone, color, opacity,
 GradientEvent.prototype = new PictureEvent('gradient');
 
 /**
+ * @param {Object} json JS object to parse values from.
+ */
+GradientEvent.prototype.fromJS = function(json) {
+    this.color = json['color'];
+    this.opacity = json['opacity'];
+    this.coords0 = new Vec2(json['x0'], json['y0']);
+    this.coords1 = new Vec2(json['x1'], json['y1']);
+    this.mode = json['mode'];
+};
+
+/**
  * Parse a GradientEvent from a tokenized serialization.
+ * @param {Object} json JS object corresponding to the event to add parsed information to.
  * @param {Array.<string>} arr Array containing the tokens, split at spaces from
  * the original serialization.
  * @param {number} i Index of the first token to deserialize.
  * @param {number} version Version number of the serialization format.
- * @param {number} sid Session identifier. Must be an integer.
- * @param {number} sessionEventId An event/session specific identifier. The idea
- * is that the sid/sessionEventId pair is unique for this event. Must be an
- * integer.
- * @param {boolean} undone Whether this event is undone.
- * @return {GradientEvent} The parsed event or null.
  */
-GradientEvent.parse = function(arr, i, version, sid, sessionEventId, undone) {
+GradientEvent.parseLegacy = function(json, arr, i, version) {
     var color = [];
     color[0] = parseInt(arr[i++]);
     color[1] = parseInt(arr[i++]);
     color[2] = parseInt(arr[i++]);
-    var opacity = parseFloat(arr[i++]);
-    var mode = parseInt(arr[i++]);
-    var pictureEvent = new GradientEvent(sid, sessionEventId, undone, color,
-                                         opacity, mode);
-    pictureEvent.coords0.x = parseFloat(arr[i++]);
-    pictureEvent.coords0.y = parseFloat(arr[i++]);
-    pictureEvent.coords1.x = parseFloat(arr[i++]);
-    pictureEvent.coords1.y = parseFloat(arr[i++]);
-    return pictureEvent;
+    json['color'] = color;
+    json['opacity'] = parseFloat(arr[i++]);
+    json['mode'] = parseInt(arr[i++]);
+    json['x0'] = parseFloat(arr[i++]);
+    json['y0'] = parseFloat(arr[i++]);
+    json['x1'] = parseFloat(arr[i++]);
+    json['y1'] = parseFloat(arr[i++]);
 };
 
 /**
- * @return {string} A serialization of the event.
+ * @param {Object} json JS object to serialize the event data to, that can then be stringified.
  */
-GradientEvent.prototype.serialize = function() {
-    var eventMessage = this.serializePictureEvent();
-    eventMessage += ' ' + colorUtil.serializeRGB(this.color);
-    eventMessage += ' ' + this.opacity;
-    eventMessage += ' ' + this.mode;
-    var i = 0;
-    eventMessage += ' ' + this.coords0.x;
-    eventMessage += ' ' + this.coords0.y;
-    eventMessage += ' ' + this.coords1.x;
-    eventMessage += ' ' + this.coords1.y;
-    return eventMessage;
+GradientEvent.prototype.serialize = function(json) {
+    this.serializePictureEvent(json);
+    json['color'] = colorUtil.serializeRGB(this.color);
+    json['opacity'] = this.opacity;
+    json['mode'] = this.mode;
+    json['x0'] = this.coords0.x;
+    json['y0'] = this.coords0.y;
+    json['x1'] = this.coords1.x;
+    json['y1'] = this.coords1.y;
 };
 
 /**
@@ -904,10 +955,22 @@ GradientEvent.prototype.isRasterized = function() {
  * @param {Rect} rect Rectangle defining the position and scale of the imported image in the buffer.
  */
 var RasterImportEvent = function(sid, sessionEventId, undone, importedImage, rect) {
-    this.undone = undone;
-    this.sid = sid;
-    this.sessionEventId = sessionEventId;
+    if (sid !== undefined) {
+        this.sid = sid;
+        this.sessionEventId = sessionEventId;
+        this.undone = undone;
+        this.rect = rect;
+        this.loadImg(importedImage);
+    }
+};
 
+RasterImportEvent.prototype = new PictureEvent('rasterImport');
+
+/**
+ * Load an image element. this.loaded will be set to true once loading is complete.
+ * @param {HTMLImageElement} importedImage Image to load.
+ */
+RasterImportEvent.prototype.loadImg = function(importedImage) {
     this.importedImage = document.createElement('img');
     this.loaded = false;
     var that = this;
@@ -924,46 +987,49 @@ var RasterImportEvent = function(sid, sessionEventId, undone, importedImage, rec
         ctx.drawImage(importedImage, 0, 0);
         this.importedImage.src = c.toDataURL();
     }
-    this.rect = rect;
 };
 
-RasterImportEvent.prototype = new PictureEvent('rasterImport');
+/**
+ * @param {Object} json JS object to parse values from.
+ */
+RasterImportEvent.prototype.fromJS = function(json) {
+    this.rect = new Rect();
+    this.rect.left = json['left'];
+    this.rect.right = json['right'];
+    this.rect.top = json['top'];
+    this.rect.bottom = json['bottom'];
+    var img = document.createElement('img');
+    img.src = json['src'];
+    this.loadImg(img);
+};
 
 /**
  * Parse a RasterImportEvent from a tokenized serialization.
+ * @param {Object} json JS object corresponding to the event to add parsed information to.
  * @param {Array.<string>} arr Array containing the tokens, split at spaces from
  * the original serialization.
  * @param {number} i Index of the first token to deserialize.
  * @param {number} version Version number of the serialization format.
- * @param {number} sid Session identifier. Must be an integer.
- * @param {number} sessionEventId An event/session specific identifier. The idea
- * is that the sid/sessionEventId pair is unique for this event. Must be an
- * integer.
- * @param {boolean} undone Whether this event is undone.
- * @return {GradientEvent} The parsed event or null.
  */
-RasterImportEvent.parse = function(arr, i, version, sid, sessionEventId, undone) {
-    var importedImage = document.createElement('img');
-    importedImage.src = arr[i++]; // data URI
-    var left = parseFloat(arr[i++]);
-    var right = parseFloat(arr[i++]);
-    var top = parseFloat(arr[i++]);
-    var bottom = parseFloat(arr[i++]);
-    var rect = new Rect(left, right, top, bottom);
-    return new RasterImportEvent(sid, sessionEventId, undone, importedImage, rect);
+RasterImportEvent.parseLegacy = function(json, arr, i, version) {
+    json['src'] = arr[i++]; // data URI
+    json['left'] = parseFloat(arr[i++]);
+    json['right'] = parseFloat(arr[i++]);
+    json['top'] = parseFloat(arr[i++]);
+    json['bottom'] = parseFloat(arr[i++]);
 };
 
 /**
- * @return {string} A serialization of the event.
+ * @param {Object} json JS object to serialize the event data to, that can then be stringified.
  */
-RasterImportEvent.prototype.serialize = function() {
-    var eventMessage = this.serializePictureEvent();
-    eventMessage += ' ' + this.importedImage.src;
-    eventMessage += ' ' + this.rect.left;
-    eventMessage += ' ' + this.rect.right;
-    eventMessage += ' ' + this.rect.top;
-    eventMessage += ' ' + this.rect.bottom;
-    return eventMessage;
+RasterImportEvent.prototype.serialize = function(json) {
+    this.serializePictureEvent(json);
+    json['src'] = this.importedImage.src;
+    json['left'] = this.rect.left;
+    json['right'] = this.rect.right;
+    json['top'] = this.rect.top;
+    json['bottom'] = this.rect.bottom;
+
 };
 
 /**
@@ -1024,23 +1090,39 @@ RasterImportEvent.prototype.translate = function(offset) {
  */
 var BufferAddEvent = function(sid, sessionEventId, undone, bufferId, hasAlpha,
                               clearColor, opacity, insertionPoint) {
-    // TODO: assert(clearColor.length === (hasAlpha ? 4 : 3));
-    this.undone = undone;
-    this.sid = sid;
-    this.sessionEventId = sessionEventId;
-    this.bufferId = bufferId;
-    this.hasAlpha = hasAlpha;
-    this.clearColor = clearColor;
-    this.opacity = opacity;
+    if (sid !== undefined) {
+        // TODO: assert(clearColor.length === (hasAlpha ? 4 : 3));
+        this.sid = sid;
+        this.sessionEventId = sessionEventId;
+        this.undone = undone;
+        this.bufferId = bufferId;
+        this.hasAlpha = hasAlpha;
+        this.clearColor = clearColor;
+        this.opacity = opacity;
 
-    // TODO: storing this is necessary for restoring complete picture state,
-    // but might not really logically belong in the add event.
-    // Note that this is not used when the event is pushed to a picture the
-    // usual way, only when a whole picture is parsed / serialized!
-    this.insertionPoint = insertionPoint;
+        // TODO: storing this is necessary for restoring complete picture state,
+        // but might not really logically belong in the add event.
+        // Note that this is not used when the event is pushed to a picture the
+        // usual way, only when a whole picture is parsed / serialized!
+        this.insertionPoint = insertionPoint;
+    }
 };
 
 BufferAddEvent.prototype = new PictureEvent('bufferAdd');
+
+/**
+ * @param {Object} json JS object to parse values from.
+ */
+BufferAddEvent.prototype.fromJS = function(json) {
+    this.bufferId = json['bufferId'];
+    this.hasAlpha = json['hasAlpha'];
+    this.clearColor = json['backgroundColor'];
+    if (this.hasAlpha) {
+        this.clearColor[3] = json['backgroundAlpha'];
+    }
+    this.opacity = json['opacity'];
+    this.insertionPoint = json['insertionPoint'];
+};
 
 /**
  * @return {boolean} Is the event drawn using a rasterizer?
@@ -1058,50 +1140,41 @@ BufferAddEvent.prototype.isBufferStackChange = function() {
 
 /**
  * Parse a BufferAddEvent from a tokenized serialization.
+ * @param {Object} json JS object corresponding to the event to add parsed information to.
  * @param {Array.<string>} arr Array containing the tokens, split at spaces from
  * the original serialization.
  * @param {number} i Index of the first token to deserialize.
  * @param {number} version Version number of the serialization format.
- * @param {number} sid Session identifier. Must be an integer.
- * @param {number} sessionEventId An event/session specific identifier. The idea
- * is that the sid/sessionEventId pair is unique for this event. Must be an
- * integer.
- * @param {boolean} undone Whether this event is undone.
- * @return {BufferAddEvent} The parsed event or null.
  */
-BufferAddEvent.parse = function(arr, i, version, sid, sessionEventId, undone) {
-    var bufferId = parseInt(arr[i++]);
-    var hasAlpha = arr[i++] === '1';
+BufferAddEvent.parseLegacy = function(json, arr, i, version) {
+    json['bufferId'] = parseInt(arr[i++]);
+    json['hasAlpha'] = arr[i++] === '1';
     var clearColor = [];
     clearColor[0] = parseInt(arr[i++]);
     clearColor[1] = parseInt(arr[i++]);
     clearColor[2] = parseInt(arr[i++]);
+    json['backgroundColor'] = clearColor;
     if (hasAlpha) {
-        clearColor[3] = parseInt(arr[i++]);
+        json['backgroundAlpha'] = parseInt(arr[i++]);
     }
-    var opacity = parseFloat(arr[i++]);
-    var insertionPoint = parseInt(arr[i++]);
-    var pictureEvent = new BufferAddEvent(sid, sessionEventId, undone, bufferId,
-                                          hasAlpha, clearColor, opacity,
-                                          insertionPoint);
-    return pictureEvent;
+    json['opacity'] = parseFloat(arr[i++]);
+    json['insertionPoint'] = parseInt(arr[i++]);
 };
 
 /**
- * @return {string} A serialization of the event.
+ * @param {Object} json JS object to serialize the event data to, that can then be stringified.
  */
-BufferAddEvent.prototype.serialize = function() {
-    var eventMessage = this.serializePictureEvent();
-    eventMessage += ' ' + this.bufferId;
-    eventMessage += ' ' + (this.hasAlpha ? '1' : '0');
+BufferAddEvent.prototype.serialize = function(json) {
+    this.serializePictureEvent(json);
+    json['bufferId'] = this.bufferId;
+    json['hasAlpha'] = this.hasAlpha;
+    json['backgroundColor'] = colorUtil.serializeRGB(this.clearColor);
     if (this.hasAlpha) {
-        eventMessage += ' ' + colorUtil.serializeRGBA(this.clearColor);
-    } else {
-        eventMessage += ' ' + colorUtil.serializeRGB(this.clearColor);
+        json['backgroundAlpha'] = this.clearColor[3];
     }
-    eventMessage += ' ' + this.opacity;
-    eventMessage += ' ' + this.insertionPoint;
-    return eventMessage;
+    json['opacity'] = this.opacity;
+    json['insertionPoint'] = this.insertionPoint;
+
 };
 
 /**
@@ -1126,13 +1199,22 @@ BufferAddEvent.prototype.getBoundingBox = function(clipRect) {
  * @param {number} bufferId Id of the removed buffer.
  */
 var BufferRemoveEvent = function(sid, sessionEventId, undone, bufferId) {
-    this.undone = undone;
-    this.sid = sid;
-    this.sessionEventId = sessionEventId;
-    this.bufferId = bufferId;
+    if (sid !== undefined) {
+        this.sid = sid;
+        this.sessionEventId = sessionEventId;
+        this.undone = undone;
+        this.bufferId = bufferId;
+    }
 };
 
 BufferRemoveEvent.prototype = new PictureEvent('bufferRemove');
+
+/**
+ * @param {Object} json JS object to parse values from.
+ */
+BufferRemoveEvent.prototype.fromJS = function(json) {
+    this.bufferId = json['removedBufferId'];
+};
 
 /**
  * @return {boolean} Is the event drawn using a rasterizer?
@@ -1150,32 +1232,23 @@ BufferRemoveEvent.prototype.isBufferStackChange = function() {
 
 /**
  * Parse a BufferRemoveEvent from a tokenized serialization.
+ * @param {Object} json JS object corresponding to the event to add parsed information to.
  * @param {Array.<string>} arr Array containing the tokens, split at spaces from
  * the original serialization.
  * @param {number} i Index of the first token to deserialize.
  * @param {number} version Version number of the serialization format.
- * @param {number} sid Session identifier. Must be an integer.
- * @param {number} sessionEventId An event/session specific identifier. The idea
- * is that the sid/sessionEventId pair is unique for this event. Must be an
- * integer.
- * @param {boolean} undone Whether this event is undone.
- * @return {BufferRemoveEvent} The parsed event or null.
  */
-BufferRemoveEvent.parse = function(arr, i, version, sid, sessionEventId,
-                                   undone) {
-    var bufferId = parseInt(arr[i++]);
-    var pictureEvent = new BufferRemoveEvent(sid, sessionEventId, undone,
-                                             bufferId);
-    return pictureEvent;
+BufferRemoveEvent.parseLegacy = function(json, arr, i, version) {
+    json['removedBufferId'] = parseInt(arr[i++]);
 };
 
 /**
- * @return {string} A serialization of the event.
+ * @param {Object} json JS object to serialize the event data to, that can then be stringified.
  */
-BufferRemoveEvent.prototype.serialize = function() {
-    var eventMessage = this.serializePictureEvent();
-    eventMessage += ' ' + this.bufferId;
-    return eventMessage;
+BufferRemoveEvent.prototype.serialize = function(json) {
+    this.serializePictureEvent(json);
+    json['removedBufferId'] = this.bufferId;
+
 };
 
 /**
@@ -1203,17 +1276,27 @@ BufferRemoveEvent.prototype.getBoundingBox = function(clipRect) {
  * for undo.
  * @param {number} toIndex Index where the buffer is being moved to.
  */
-var BufferMoveEvent = function(sid, sessionEventId, undone, movedId, fromIndex,
-                               toIndex) {
-    this.undone = undone;
-    this.sid = sid;
-    this.sessionEventId = sessionEventId;
-    this.movedId = movedId;
-    this.fromIndex = fromIndex;
-    this.toIndex = toIndex;
+var BufferMoveEvent = function(sid, sessionEventId, undone, movedId, fromIndex, toIndex) {
+    if (sid !== undefined) {
+        this.sid = sid;
+        this.sessionEventId = sessionEventId;
+        this.undone = undone;
+        this.movedId = movedId;
+        this.fromIndex = fromIndex;
+        this.toIndex = toIndex;
+    }
 };
 
 BufferMoveEvent.prototype = new PictureEvent('bufferMove');
+
+/**
+ * @param {Object} json JS object to parse values from.
+ */
+BufferMoveEvent.prototype.fromJS = function(json) {
+    this.movedId = json['movedId'];
+    this.fromIndex = json['fromIndex'];
+    this.toIndex = json['toIndex'];
+};
 
 /**
  * @return {boolean} Is the event drawn using a rasterizer?
@@ -1231,35 +1314,27 @@ BufferMoveEvent.prototype.isBufferStackChange = function() {
 
 /**
  * Parse a BufferMoveEvent from a tokenized serialization.
+ * @param {Object} json JS object corresponding to the event to add parsed information to.
  * @param {Array.<string>} arr Array containing the tokens, split at spaces from
  * the original serialization.
  * @param {number} i Index of the first token to deserialize.
  * @param {number} version Version number of the serialization format.
- * @param {number} sid Session identifier. Must be an integer.
- * @param {number} sessionEventId An event/session specific identifier. The idea
- * is that the sid/sessionEventId pair is unique for this event. Must be an
- * integer.
- * @param {boolean} undone Whether this event is undone.
- * @return {BufferMoveEvent} The parsed event or null.
  */
-BufferMoveEvent.parse = function(arr, i, version, sid, sessionEventId, undone) {
-    var movedId = parseInt(arr[i++]);
-    var fromIndex = parseInt(arr[i++]);
-    var toIndex = parseInt(arr[i++]);
-    var pictureEvent = new BufferMoveEvent(sid, sessionEventId, undone,
-                                           movedId, fromIndex, toIndex);
-    return pictureEvent;
+BufferMoveEvent.parseLegacy = function(json, arr, i, version) {
+    json['movedId'] = parseInt(arr[i++]);
+    json['fromIndex'] = parseInt(arr[i++]);
+    json['toIndex'] = parseInt(arr[i++]);
 };
 
 /**
- * @return {string} A serialization of the event.
+ * @param {Object} json JS object to serialize the event data to, that can then be stringified.
  */
-BufferMoveEvent.prototype.serialize = function() {
-    var eventMessage = this.serializePictureEvent();
-    eventMessage += ' ' + this.movedId;
-    eventMessage += ' ' + this.fromIndex;
-    eventMessage += ' ' + this.toIndex;
-    return eventMessage;
+BufferMoveEvent.prototype.serialize = function(json) {
+    this.serializePictureEvent(json);
+    json['movedId'] = this.movedId;
+    json['fromIndex'] = this.fromIndex;
+    json['toIndex'] = this.toIndex;
+
 };
 
 /**
@@ -1291,14 +1366,27 @@ BufferMoveEvent.prototype.getBoundingBox = function(clipRect) {
  * @param {CanvasBuffer|GLBuffer} mergedBuffer The merged buffer.
  */
 var BufferMergeEvent = function(sid, sessionEventId, undone, opacity, mergedBuffer) {
-    this.undone = undone;
-    this.sid = sid;
-    this.sessionEventId = sessionEventId;
-    this.opacity = opacity;
-    this.mergedBuffer = mergedBuffer;
+    if (sid !== undefined) {
+        this.sid = sid;
+        this.sessionEventId = sessionEventId;
+        this.undone = undone;
+        this.opacity = opacity;
+        this.mergedBuffer = mergedBuffer;
+    }
 };
 
 BufferMergeEvent.prototype = new PictureEvent('bufferMerge');
+
+/**
+ * @param {Object} json JS object to parse values from.
+ */
+BufferMergeEvent.prototype.fromJS = function(json) {
+    this.opacity = json['opacity'];
+    this.mergedBuffer = {
+        id: json['mergedBufferId'],
+        isDummy: true
+    };
+};
 
 /**
  * @return {boolean} Is the event drawn using a rasterizer?
@@ -1316,35 +1404,24 @@ BufferMergeEvent.prototype.isBufferStackChange = function() {
 
 /**
  * Parse a BufferMergeEvent from a tokenized serialization.
+ * @param {Object} json JS object corresponding to the event to add parsed information to.
  * @param {Array.<string>} arr Array containing the tokens, split at spaces from
  * the original serialization.
  * @param {number} i Index of the first token to deserialize.
  * @param {number} version Version number of the serialization format.
- * @param {number} sid Session identifier. Must be an integer.
- * @param {number} sessionEventId An event/session specific identifier. The idea
- * is that the sid/sessionEventId pair is unique for this event. Must be an
- * integer.
- * @param {boolean} undone Whether this event is undone.
- * @return {BufferMergeEvent} The parsed event or null.
  */
-BufferMergeEvent.parse = function(arr, i, version, sid, sessionEventId,
-                                  undone) {
-    var opacity = parseFloat(arr[i++]);
-    var mergedBufferId = parseInt(arr[i++]);
-    var pictureEvent = new BufferMergeEvent(sid, sessionEventId, undone,
-                                            opacity,
-                                           {id: mergedBufferId, isDummy: true});
-    return pictureEvent;
+BufferMergeEvent.parseLegacy = function(json, arr, i, version) {
+    json['opacity'] = parseFloat(arr[i++]);
+    json['mergedBufferId'] = parseInt(arr[i++]);
 };
 
 /**
- * @return {string} A serialization of the event.
+ * @param {Object} json JS object to serialize the event data to, that can then be stringified.
  */
-BufferMergeEvent.prototype.serialize = function() {
-    var eventMessage = this.serializePictureEvent();
-    eventMessage += ' ' + this.opacity;
-    eventMessage += ' ' + this.mergedBuffer.id;
-    return eventMessage;
+BufferMergeEvent.prototype.serialize = function(json) {
+    this.serializePictureEvent(json);
+    json['opacity'] = this.opacity;
+    json['mergedBufferId'] = this.mergedBuffer.id;
 };
 
 /**
@@ -1371,16 +1448,25 @@ BufferMergeEvent.prototype.getBoundingBox = function(clipRect) {
  * @param {number} hiddenSessionEventId Event/session specific identifier of the
  * hidden event.
  */
-var EventHideEvent = function(sid, sessionEventId, undone, hiddenSid,
-                              hiddenSessionEventId) {
-    this.undone = undone;
-    this.sid = sid;
-    this.sessionEventId = sessionEventId;
-    this.hiddenSid = hiddenSid;
-    this.hiddenSessionEventId = hiddenSessionEventId;
+var EventHideEvent = function(sid, sessionEventId, undone, hiddenSid, hiddenSessionEventId) {
+    if (sid !== undefined) {
+        this.sid = sid;
+        this.sessionEventId = sessionEventId;
+        this.undone = undone;
+        this.hiddenSid = hiddenSid;
+        this.hiddenSessionEventId = hiddenSessionEventId;
+    }
 };
 
 EventHideEvent.prototype = new PictureEvent('eventHide');
+
+/**
+ * @param {Object} json JS object to parse values from.
+ */
+EventHideEvent.prototype.fromJS = function(json) {
+    this.hiddenSid = json['hiddenSid'];
+    this.hiddenSessionEventId = json['hiddenSessionEventId'];
+};
 
 /**
  * @return {boolean} Is the event drawn using a rasterizer?
@@ -1391,33 +1477,24 @@ EventHideEvent.prototype.isRasterized = function() {
 
 /**
  * Parse an EventHideEvent from a tokenized serialization.
+ * @param {Object} json JS object corresponding to the event to add parsed information to.
  * @param {Array.<string>} arr Array containing the tokens, split at spaces from
  * the original serialization.
  * @param {number} i Index of the first token to deserialize.
  * @param {number} version Version number of the serialization format.
- * @param {number} sid Session identifier. Must be an integer.
- * @param {number} sessionEventId An event/session specific identifier. The idea
- * is that the sid/sessionEventId pair is unique for this event. Must be an
- * integer.
- * @param {boolean} undone Whether this event is undone.
- * @return {EventHideEvent} The parsed event or null.
  */
-EventHideEvent.parse = function(arr, i, version, sid, sessionEventId, undone) {
-    var hiddenSid = parseInt(arr[i++]);
-    var hiddenSessionEventId = parseInt(arr[i++]);
-    var pictureEvent = new EventHideEvent(sid, sessionEventId, undone,
-                                          hiddenSid, hiddenSessionEventId);
-    return pictureEvent;
+EventHideEvent.parseLegacy = function(json, arr, i, version) {
+    json['hiddenSid'] = parseInt(arr[i++]);
+    json['hiddenSessionEventId'] = parseInt(arr[i++]);
 };
 
 /**
- * @return {string} A serialization of the event.
+ * @param {Object} json JS object to serialize the event data to, that can then be stringified.
  */
-EventHideEvent.prototype.serialize = function() {
-    var eventMessage = this.serializePictureEvent();
-    eventMessage += ' ' + this.hiddenSid;
-    eventMessage += ' ' + this.hiddenSessionEventId;
-    return eventMessage;
+EventHideEvent.prototype.serialize = function(json) {
+    this.serializePictureEvent(json);
+    json['hiddenSid'] = this.hiddenSid;
+    json['hiddenSessionEventId'] = this.hiddenSessionEventId;
 };
 
 /**
