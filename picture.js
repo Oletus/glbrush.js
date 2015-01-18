@@ -689,9 +689,7 @@ Picture.prototype.serialize = function() {
         buffer.events[0].insertionPoint = buffer.insertionPoint;
     }
     for (var i = 0; i < this.updates.length; ++i) {
-        var json = {};
-        this.updates[i].serialize(json);
-        serialization.push(JSON.stringify(json));
+        serialization.push(serializeToString(this.updates[i]));
     }
     return serialization.join('\n');
 };

@@ -445,9 +445,7 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         pic.addBuffer(9001, clearColor, false);
         var mergeEvent = pic.createMergeEvent(1, 0.7);
         var realMergedBuffer = mergeEvent.mergedBuffer;
-        var json = {};
-        var serialization = mergeEvent.serialize(json);
-        var jsonStr = JSON.stringify(json);
+        var jsonStr = serializeToString(mergeEvent);
         var parsedJson = JSON.parse(jsonStr);
         mergeEvent = PictureEvent.fromJS(parsedJson);
         expect(mergeEvent.mergedBuffer).not.toBe(realMergedBuffer);

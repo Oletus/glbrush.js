@@ -21,9 +21,7 @@ describe('PictureUpdate', function() {
     it('adds the same PictureEvent after a round of serialization and parsing', function() {
         var testUpdate = new PictureUpdate('add_picture_event');
         testUpdate.setPictureEvent(3, testBrushEvent());
-        var json = {};
-        var serialization = testUpdate.serialize(json);
-        var jsonStr = JSON.stringify(json);
+        var jsonStr = serializeToString(testUpdate);
         var parsedJson = JSON.parse(jsonStr);
         var parsedUpdate = PictureUpdate.fromJS(parsedJson);
         expect(parsedUpdate.updateType).toBe('add_picture_event');
@@ -42,9 +40,7 @@ describe('PictureUpdate', function() {
     it('contains the same undo data after a round of serialization and parsing', function() {
         var testUpdate = new PictureUpdate('undo');
         testUpdate.setUndoEvent(3, 4);
-        var json = {};
-        var serialization = testUpdate.serialize(json);
-        var jsonStr = JSON.stringify(json);
+        var jsonStr = serializeToString(testUpdate);
         var parsedJson = JSON.parse(jsonStr);
         var parsedUpdate = PictureUpdate.fromJS(parsedJson);
         expect(parsedUpdate.updateType).toBe('undo');

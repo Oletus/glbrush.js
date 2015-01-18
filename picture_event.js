@@ -145,9 +145,7 @@ PictureEvent.fromJS = function(json) {
  * @return {PictureEvent} A copy of the event.
  */
 PictureEvent.copy = function(event) {
-    var json = {};
-    event.serialize(json);
-    var serialization = JSON.stringify(json);
+    var serialization = serializeToString(event);
     return PictureEvent.fromJS(JSON.parse(serialization));
 };
 
@@ -1506,4 +1504,15 @@ EventHideEvent.prototype.serialize = function(json) {
 EventHideEvent.prototype.getBoundingBox = function(clipRect) {
     return new Rect(clipRect.left, clipRect.right,
                     clipRect.top, clipRect.bottom);
+};
+
+/**
+ * Convert object with serialize(json) support to a string.
+ * @param {Object} obj
+ * @return {string} String JSON representation of the object.
+ */
+var serializeToString = function(obj) {
+    var json = {};
+    obj.serialize(json);
+    return JSON.stringify(json);
 };

@@ -13,9 +13,7 @@ describe('PictureEvent', function() {
 
         it('is the same after serialization and parsing', function() {
             var event = creator();
-            var json = {};
-            event.serialize(json);
-            var serialization = JSON.stringify(json);
+            var serialization = serializeToString(event);
             console.log(serialization);
             var parsedEvent = PictureEvent.fromJS(JSON.parse(serialization));
             tester(parsedEvent);
