@@ -21,9 +21,11 @@ describe('PictureUpdate', function() {
     it('adds the same PictureEvent after a round of serialization and parsing', function() {
         var testUpdate = new PictureUpdate('add_picture_event');
         testUpdate.setPictureEvent(3, testBrushEvent());
-        var serialization = testUpdate.serialize();
-        console.log(serialization);
-        var parsedUpdate = PictureUpdate.parse(serialization);
+        var json = {};
+        var serialization = testUpdate.serialize(json);
+        var jsonStr = JSON.stringify(json);
+        var parsedJson = JSON.parse(jsonStr);
+        var parsedUpdate = PictureUpdate.fromJS(parsedJson);
         expect(parsedUpdate.updateType).toBe('add_picture_event');
         expect(parsedUpdate.targetLayerId).toBe(3);
         expectTestBrushEvent(parsedUpdate.pictureEvent);
@@ -40,9 +42,11 @@ describe('PictureUpdate', function() {
     it('contains the same undo data after a round of serialization and parsing', function() {
         var testUpdate = new PictureUpdate('undo');
         testUpdate.setUndoEvent(3, 4);
-        var serialization = testUpdate.serialize();
-        console.log(serialization);
-        var parsedUpdate = PictureUpdate.parse(serialization);
+        var json = {};
+        var serialization = testUpdate.serialize(json);
+        var jsonStr = JSON.stringify(json);
+        var parsedJson = JSON.parse(jsonStr);
+        var parsedUpdate = PictureUpdate.fromJS(parsedJson);
         expect(parsedUpdate.updateType).toBe('undo');
         expect(parsedUpdate.undoneSid).toBe(3);
         expect(parsedUpdate.undoneSessionEventId).toBe(4);
