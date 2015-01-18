@@ -97,11 +97,12 @@ PictureUpdate.fromJS = function(json) {
 };
 
 /**
- * Create an update from its serialization.
+ * Create JSON object corresponding to an update from its legacy serialization.
  * @param {string} string String to parse.
+ * @param {number} version Format version of the string to parse.
  * @return {?Object} The parsed update as a JS object or null if could not parse.
  */
-PictureUpdate.parseLegacy = function(string) {
+PictureUpdate.parseLegacy = function(string, version) {
     var arr = string.split(' ');
     if (arr.length < 1) {
         console.log('Malformed PictureUpdate read');
@@ -114,7 +115,7 @@ PictureUpdate.parseLegacy = function(string) {
     if (updateType === 'add_picture_event') {
         var eventJson = {};
         eventJson['targetLayerId'] = parseInt(arr[i++]);
-        if (!PictureEvent.parseLegacy(eventJson, arr, i, Picture.formatVersion)) {
+        if (!PictureEvent.parseLegacy(eventJson, arr, i, version)) {
             return null;
         }
         json['event'] = eventJson;

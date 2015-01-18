@@ -594,13 +594,18 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry, brushTextur
         }
 
         delete pic.moveBufferInternal; // switch back to prototype's move function
-    } else if (version < 7) {
+    } else {
         // Parse PictureUpdates and process them in the original order.
+        var json;
         while (i < eventStrings.length) {
             if (eventStrings[i] === 'metadata') {
                 break;
             } else {
-                var json = PictureUpdate.parseLegacy(eventStrings[i]);
+                if (version < 7) {
+                    json = PictureUpdate.parseLegacy(eventStrings[i], version);
+                } else {
+                    json = JSON.parse(eventStrings[i]);
+                }
                 var update = PictureUpdate.fromJS(json);
                 if (update.updateType === 'add_picture_event' &&
                     update.pictureEvent.eventType === 'rasterImport') {
@@ -665,7 +670,7 @@ Picture.prototype.minBitmapScale = function() {
 };
 
 /** @const */
-Picture.formatVersion = 6;
+Picture.formatVersion = 7;
 
 /**
  * @return {string} A serialization of this Picture. Can be parsed into a new
@@ -684,7 +689,9 @@ Picture.prototype.serialize = function() {
         buffer.events[0].insertionPoint = buffer.insertionPoint;
     }
     for (var i = 0; i < this.updates.length; ++i) {
-        serialization.push(this.updates[i].serialize());
+        var json = {};
+        this.updates[i].serialize(json);
+        serialization.push(JSON.stringify(json));
     }
     return serialization.join('\n');
 };

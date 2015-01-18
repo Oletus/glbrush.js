@@ -295,7 +295,7 @@ BrushEvent.prototype.serialize = function(json) {
     var coords = [];
     var i = 0;
     while (i < this.coords.length) {
-        coords[i] += this.coords[i++];
+        coords.push(this.coords[i++]);
     }
     json['coordinates'] = coords;
 };
