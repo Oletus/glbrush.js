@@ -109,7 +109,8 @@ PictureUpdate.parseLegacy = function(string) {
     }
     var json = {};
     var i = 0;
-    json['updateType'] = arr[i++];
+    var updateType = arr[i++];
+    json['updateType'] = updateType;
     if (updateType === 'add_picture_event') {
         var eventJson = {};
         eventJson['targetLayerId'] = parseInt(arr[i++]);
@@ -126,5 +127,5 @@ PictureUpdate.parseLegacy = function(string) {
         console.log('Unrecognized PictureUpdate type ' + updateType);
         return null;
     }
-    return update;
+    return json;
 };

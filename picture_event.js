@@ -1154,7 +1154,7 @@ BufferAddEvent.parseLegacy = function(json, arr, i, version) {
     clearColor[1] = parseInt(arr[i++]);
     clearColor[2] = parseInt(arr[i++]);
     json['backgroundColor'] = clearColor;
-    if (hasAlpha) {
+    if (json['hasAlpha']) {
         json['backgroundAlpha'] = parseInt(arr[i++]);
     }
     json['opacity'] = parseFloat(arr[i++]);

@@ -571,7 +571,9 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry, brushTextur
                 break;
             } else {
                 var arr = eventStrings[i].split(' ');
-                var pictureEvent = PictureEvent.parse(arr, 0, version);
+                var json = {};
+                PictureEvent.parseLegacy(json, arr, 0, version);
+                var pictureEvent = PictureEvent.fromJS(json);
                 if (pictureEvent.eventType === 'bufferMerge') {
                     mergeEvents.push(pictureEvent);
                 }
@@ -592,13 +594,14 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry, brushTextur
         }
 
         delete pic.moveBufferInternal; // switch back to prototype's move function
-    } else {
+    } else if (version < 7) {
         // Parse PictureUpdates and process them in the original order.
         while (i < eventStrings.length) {
             if (eventStrings[i] === 'metadata') {
                 break;
             } else {
-                var update = PictureUpdate.parse(eventStrings[i]);
+                var json = PictureUpdate.parseLegacy(eventStrings[i]);
+                var update = PictureUpdate.fromJS(json);
                 if (update.updateType === 'add_picture_event' &&
                     update.pictureEvent.eventType === 'rasterImport') {
                     rasterImportEvents.push(update.pictureEvent);
