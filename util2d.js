@@ -2,6 +2,14 @@
  * Copyright Olli Etuaho 2012-2014.
  */
 
+// This file contains following utilities:
+// cssUtil: Utilities for working with CSS
+// colorUtil: Utilities for working with RGB colors represented as arrays of numbers, including blending
+// Vec2: A class for storing a two-dimensional vector.
+// AffineTransform: A scale/translate transform.
+// Rect: A class for storing a two-dimensional rectangle.
+// canvasUtil: Utilities for drawing to a 2D canvas.
+
 'use strict';
 
 var cssUtil = {
@@ -136,19 +144,10 @@ colorUtil.blend = function(dstRGBA, srcRGBA) {
 /**
  * Serialize an RGB value.
  * @param {Array.<number>|Uint8Array} RGB RGB value.
- * @return {string} Serialized representation of the value.
+ * @return {Array} Copy of the value suitable for adding to JSON.
  */
 colorUtil.serializeRGB = function(RGB) {
     return [RGB[0], RGB[1], RGB[2]];
-};
-
-/**
- * Serialize an RGBA value.
- * @param {Array.<number>|Uint8Array} RGBA RGBA value.
- * @return {string} Serialized representation of the value.
- */
-colorUtil.serializeRGBA = function(RGBA) {
-    return RGBA[0] + ' ' + RGBA[1] + ' ' + RGBA[2] + ' ' + RGBA[3];
 };
 
 /**
