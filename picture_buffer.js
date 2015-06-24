@@ -920,7 +920,7 @@ CanvasBuffer.prototype.applyStateObject = function(undoState) {
  * @protected
  */
 CanvasBuffer.prototype.clear = function(clearColor) {
-    var br = this.getCurrentClipRect().getXYWH();
+    var br = this.getCurrentClipRect().getXYWHRoundedOut();
     if (clearColor.length === 4 && clearColor[3] < 255) {
         this.ctx.clearRect(br.x, br.y, br.w, br.h);
     }
@@ -990,7 +990,7 @@ CanvasBuffer.prototype.drawRasterizerWithColor = function(raster, color,
  */
 CanvasBuffer.drawRasterizer = function(dataCtx, targetCtx, raster, clipRect,
                                        opaque, color, opacity, mode) {
-    var br = clipRect.getXYWH();
+    var br = clipRect.getXYWHRoundedOut();
     if (br.w === 0 || br.h === 0) {
         return;
     }
@@ -1075,7 +1075,7 @@ CanvasBuffer.drawRasterizer = function(dataCtx, targetCtx, raster, clipRect,
  * @param {Rect} rect The extents of the image in this buffer's coordinates.
  */
 CanvasBuffer.prototype.drawImage = function(img, rect) {
-    var br = this.getCurrentClipRect().getXYWH();
+    var br = this.getCurrentClipRect().getXYWHRoundedOut();
     if (br.w === 0 || br.h === 0) {
         return;
     }
@@ -1096,7 +1096,7 @@ CanvasBuffer.prototype.drawImage = function(img, rect) {
 CanvasBuffer.prototype.drawBuffer = function(buffer, opacity) {
     // TODO: Should rather use the compositor for this, but it needs some API
     // changes.
-    var br = this.getCurrentClipRect().getXYWH();
+    var br = this.getCurrentClipRect().getXYWHRoundedOut();
     if (br.w === 0 || br.h === 0) {
         return;
     }

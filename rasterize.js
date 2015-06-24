@@ -381,7 +381,7 @@ Rasterizer.prototype.drawWithColorToOpaque = function(targetData, color,
  * Clear the rasterizer's bitmap to all 0's.
  */
 Rasterizer.prototype.clear = function() {
-    var br = this.clipRect.getXYWH();
+    var br = this.clipRect.getXYWHRoundedOut();
     for (var y = 0; y < br.h; ++y) {
         for (var x = 0; x < br.w; ++x) {
             this.data[br.x + x + (br.y + y) * this.width] = 0;
@@ -608,7 +608,7 @@ Rasterizer.prototype.fillSoftCircleBlending = function(boundsRect, centerX, cent
  * @param {Vec2} coords0 Coordinates for the 0.0 end of the gradient.
  */
 Rasterizer.prototype.linearGradient = function(coords1, coords0) {
-    var br = this.clipRect.getXYWH();
+    var br = this.clipRect.getXYWHRoundedOut();
     if (coords1.x === coords0.x) {
         if (coords1.y === coords0.y) {
             return;

@@ -61,7 +61,7 @@ CanvasUndoState.prototype.update = function(srcCanvas, clipRect) {
         return;
     }
     this.ensureCanvas();
-    var br = clipRect.getXYWH();
+    var br = clipRect.getXYWHRoundedOut();
     this.ctx.clearRect(br.x, br.y, br.w, br.h);
     this.ctx.drawImage(srcCanvas, br.x, br.y, br.w, br.h,
                        br.x, br.y, br.w, br.h);
@@ -76,7 +76,7 @@ CanvasUndoState.prototype.update = function(srcCanvas, clipRect) {
  */
 CanvasUndoState.prototype.draw = function(ctx, clipRect) {
     // TODO: assert(!this.invalid);
-    var r = clipRect.getXYWH();
+    var r = clipRect.getXYWHRoundedOut();
     ctx.clearRect(r.x, r.y, r.w, r.h);
     ctx.drawImage(this.canvas, r.x, r.y, r.w, r.h, r.x, r.y, r.w, r.h);
 };

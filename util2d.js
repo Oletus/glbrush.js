@@ -962,7 +962,7 @@ Rect.prototype.area = function() {
  * return value includes numbers x (left edge), y (top edge), w (width) and h
  * (height).
  */
-Rect.prototype.getXYWH = function() {
+Rect.prototype.getXYWHRoundedOut = function() {
     return {
         x: Math.floor(this.left),
         y: Math.floor(this.top),
@@ -1261,7 +1261,7 @@ canvasUtil.getCurrentTransform = function(ctx) {
  * @param {Rect} rect Rectangle to set as canvas clip rectangle.
  */
 canvasUtil.clipRect = function(ctx, rect) {
-    var xywh = rect.getXYWH();
+    var xywh = rect.getXYWHRoundedOut();
     ctx.beginPath();
     ctx.rect(xywh.x, xywh.y, xywh.w, xywh.h);
     ctx.clip();

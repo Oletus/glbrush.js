@@ -142,7 +142,7 @@ glUtils.supportsTextureUnits = function(unitCount) {
  * @param {number} fbHeight The framebuffer height.
  */
 glUtils.updateClip = function(gl, rect, fbHeight) {
-    var br = rect.getXYWH();
+    var br = rect.getXYWHRoundedOut();
     br.y = fbHeight - (br.y + br.h);
     gl.scissor(br.x, br.y, br.w, br.h);
 };
