@@ -957,6 +957,19 @@ Rect.prototype.area = function() {
 };
 
 /**
+ * @return {Object} This rectangle in a different representation. The return
+ * value includes numbers x (left edge), y (top edge), w (width) and h (height).
+ */
+Rect.prototype.getXYWH = function() {
+    return {
+        x: this.left,
+        y: this.top,
+        w: this.right - this.left,
+        h: this.bottom - this.top
+    };
+};
+
+/**
  * @return {Object} This rectangle rounded out to integer coordinates. The
  * return value includes numbers x (left edge), y (top edge), w (width) and h
  * (height).
@@ -1121,6 +1134,18 @@ Rect.prototype.intersectsRectRoundedOut = function(rect) {
 Rect.prototype.intersectsCoordsRoundedOut = function(left, right, top, bottom) {
     return !(this.right <= Math.floor(left) || this.left >= Math.ceil(right) ||
              this.bottom <= Math.floor(top) || this.top >= Math.ceil(bottom));
+};
+
+/**
+ * @param {Vec2} coords Coordinates to check.
+ * @return {boolean} Does this rectangle contain the given coordinates?
+ */
+Rect.prototype.containsVec2 = function(coords) {
+    return !this.isEmpty() &&
+           this.left <= coords.x &&
+           this.right >= coords.x &&
+           this.top <= coords.y &&
+           this.bottom >= coords.y;
 };
 
 /**
