@@ -1632,8 +1632,8 @@ Picture.prototype.animate = function(speed, animationFinishedCallBack) {
     var pushAnimationUpdate = function() {
         if (that.animationData.updateIndex < that.animationData.updateCount) {
             if (updateT === 0) {
-                var updateStr = that.updates[that.animationData.updateIndex].serialize();
-                update = PictureUpdate.parse(updateStr);
+                var updateStr = serializeToString(that.updates[that.animationData.updateIndex]);
+                update = PictureUpdate.fromJS(JSON.parse(updateStr));
             }
             // TODO: assert(update !== null)
             that.animationData.picture.pushUpdate(update);
@@ -1651,8 +1651,8 @@ Picture.prototype.animate = function(speed, animationFinishedCallBack) {
     var animationFrame = function() {
         if (that.animationData.updateIndex < that.animationData.updateCount) {
             if (updateT === 0) {
-                var updateStr = that.updates[that.animationData.updateIndex].serialize();
-                update = PictureUpdate.parse(updateStr);
+                var updateStr = serializeToString(that.updates[that.animationData.updateIndex]);
+                update = PictureUpdate.fromJS(JSON.parse(updateStr));
                 if (update.updateType === 'add_picture_event') {
                     picEvent = update.pictureEvent;
                     picEvent.undone = false;
