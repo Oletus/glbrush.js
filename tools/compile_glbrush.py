@@ -26,7 +26,7 @@ def lib_js():
         return 'C' + path
     js_files = sorted(js_files, key=client_js_key)
     return js_files_in(os.path.join(glbrush, 'lib')) + js_files
-    
+
 def compile_glbrush(output_path):
     '''Compile glbrush.js with Closure compiler.
     output_path should include the name of the file.'''
