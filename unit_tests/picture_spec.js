@@ -18,7 +18,7 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         expect(pic.id).toBe(-1);
         expect(pic.name).toBe('testpicturename');
         expect(pic.pictureTransform.scale).toBe(2.0);
-        expect(pic.mode).toEqual(mode);
+        expect(pic.renderer.mode).toEqual(mode);
         expect(pic.width()).toBe(width);
         expect(pic.height()).toBe(height);
         expect(pic.bitmapWidth()).toBe(width * 2.0);
@@ -770,7 +770,8 @@ var doPictureTest = function(mode) {
     var width = 122;
     var height = 234;
     var testPicture = function() {
-        return new Picture(-1, 'testpicturename', new Rect(0, width, 0, height), 2.0, mode, 0);
+        var renderer = new PictureRenderer(mode, null);
+        return new Picture(-1, 'testpicturename', new Rect(0, width, 0, height), 2.0, renderer);
     };
 
     describe('tests with cleanup', function() {
@@ -779,7 +780,7 @@ var doPictureTest = function(mode) {
 
     if (mode.indexOf('webgl') !== -1) {
         it('has a global flag for failing webgl initialization', function() {
-            expect(Picture.hasFailedWebGLSanity).toBe(false);
+            expect(PictureRenderer.hasFailedWebGLSanity).toBe(false);
 
             // Break the rasterizers
             var oldDoubleBufferedFillCircle = GLDoubleBufferedRasterizer.prototype.fillCircle;
@@ -790,14 +791,14 @@ var doPictureTest = function(mode) {
             GLFloatTexDataRasterizer.prototype.fillCircle = function() {};
 
             var pic = testPicture();
-            expect(Picture.hasFailedWebGLSanity).toBe(true);
+            expect(PictureRenderer.hasFailedWebGLSanity).toBe(true);
             pic.destroy();
 
             // Restore the rasterizers
             GLDoubleBufferedRasterizer.prototype.fillCircle = oldDoubleBufferedFillCircle;
             GLFloatRasterizer.prototype.fillCircle = oldFloatFillCircle;
             GLFloatTexDataRasterizer.prototype.fillCircle = oldFloatTexDataFillCircle;
-            Picture.hasFailedWebGLSanity = false;
+            PictureRenderer.hasFailedWebGLSanity = false;
         });
     }
 
@@ -910,7 +911,7 @@ describe('Picture', function() {
             expect(pic.id).toBe(-1);
             expect(pic.name).toBe(null);
             expect(pic.pictureTransform.scale).toBe(2.0);
-            expect(pic.mode).toEqual(mode);
+            expect(pic.renderer.mode).toEqual(mode);
             expect(pic.width()).toBe(122);
             expect(pic.height()).toBe(234);
             expect(pic.bitmapWidth()).toBe(pic.width() * 2.0);

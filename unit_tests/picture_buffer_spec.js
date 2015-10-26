@@ -1052,7 +1052,7 @@ describe('GLBuffer', function() {
         canvas = document.createElement('canvas');
         canvas.width = params.width;
         canvas.height = params.height;
-        gl = Picture.initWebGL(canvas, debugGLSettingFromURL());
+        gl = PictureRenderer.initWebGL(canvas, debugGLSettingFromURL());
         glManager = glStateManager(gl);
         glManager.useQuadVertexBuffer();
         compositor = new GLCompositor(glManager, gl, 8);

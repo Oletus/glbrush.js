@@ -103,7 +103,7 @@ describe('GLUndoState', function() {
         canvas = document.createElement('canvas');
         canvas.width = 100;
         canvas.height = 128;
-        gl = Picture.initWebGL(canvas);
+        gl = PictureRenderer.initWebGL(canvas);
         glManager = glStateManager(gl);
         glManager.useQuadVertexBuffer();
         compositor = new GLCompositor(glManager, gl, 8);

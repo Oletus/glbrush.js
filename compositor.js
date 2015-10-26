@@ -11,11 +11,7 @@
  */
 var CanvasCompositor = function(ctx) {
     this.ctx = ctx;
-    this.width = this.ctx.canvas.width;
-    this.height = this.ctx.canvas.height;
     this.compositingCanvas = document.createElement('canvas');
-    this.compositingCanvas.width = this.width;
-    this.compositingCanvas.height = this.height;
     this.compositingCtx = this.compositingCanvas.getContext('2d');
 
     this.prepare();
@@ -75,8 +71,12 @@ CanvasCompositor.prototype.pushRasterizer = function(rasterizer, color, opacity,
  * context.
  */
 CanvasCompositor.prototype.flush = function() {
+    var width = this.ctx.canvas.width;
+    var height = this.ctx.canvas.height;
+    this.compositingCanvas.width = width;
+    this.compositingCanvas.height = height;
     if (this.needsClear) {
-        this.ctx.clearRect(0, 0, this.width, this.height);
+        this.ctx.clearRect(0, 0, width, height);
         this.needsClear = false;
     }
     var i = 0;
@@ -88,7 +88,7 @@ CanvasCompositor.prototype.flush = function() {
             ++i;
         } else {
             if (this.pending[i].buffer.hasAlpha) {
-                this.compositingCtx.clearRect(0, 0, this.width, this.height);
+                this.compositingCtx.clearRect(0, 0, width, height);
             }
             var opacity = this.pending[i].buffer.opacity();
             this.compositingCtx.drawImage(this.pending[i].buffer.canvas, 0, 0);
@@ -96,7 +96,7 @@ CanvasCompositor.prototype.flush = function() {
             ++i;
             while (i < this.pending.length &&
                  this.pending[i].type === CanvasCompositor.Element.rasterizer) {
-                var clipRect = new Rect(0, this.width, 0, this.height);
+                var clipRect = new Rect(0, width, 0, height);
                 clipRect.intersectRect(this.pending[i].boundingBox);
                 CanvasBuffer.drawRasterizer(sourceCtx,
                                             this.compositingCtx,
