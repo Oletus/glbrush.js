@@ -45,12 +45,20 @@ PictureRenderer.prototype.usesWebGl = function() {
             this.mode === 'no-texdata-webgl');
 };
 
+/**
+ * Call when the picture doing rendering operations with this renderer's context might have changed.
+ * @param {Picture} picture Picture that's going to do rendering operations with this renderer's context.
+ */
 PictureRenderer.prototype.setPicture = function(picture) {
     if (this.usesWebGl()) {
         this.gl.viewport(0, 0, picture.bitmapWidth(), picture.bitmapHeight());
     }
 };
 
+/**
+ * Prepare for showing the picture on the canvas of this renderer.
+ * @param {Picture} picture Picture about to be displayed on the canvas attached to this renderer.
+ */
 PictureRenderer.prototype.prepareDisplay = function(picture) {
     this.setPicture(picture);
     this.canvas.width = picture.bitmapWidth();
@@ -97,7 +105,7 @@ PictureRenderer.initWebGL = function(canvas, debugGL) {
 
 /**
  * Set up state in an existing gl context.
- * @return {boolean} Whether buffer initialization succeeded.
+ * @return {boolean} Whether initialization succeeded.
  */
 PictureRenderer.prototype.setupGLState = function() {
     var useFloatRasterizer = (this.mode === 'webgl' || this.mode === 'no-texdata-webgl');
