@@ -53,14 +53,7 @@ var Picture = function(id, name, boundsRect, bitmapScale, renderer) {
         this.renderer.setPicture(this);
     }
 
-    if (!this.initRasterizers()) {
-        if (this.renderer.usesWebGl()) {
-            PictureRenderer.hasFailedWebGLSanity = true;
-            console.log('WebGL accelerated rasterizer did not pass sanity test ' +
-                        '(mode ' + this.renderer.mode + '). Update your graphics drivers ' +
-                        'or try switching browsers if possible.');
-        }
-    }
+    this.initRasterizers();
 };
 
 /**
@@ -805,19 +798,13 @@ Picture.prototype.pictureElement = function() {
 
 /**
  * Initialize rasterizers.
- * @return {boolean} True on success.
  * @protected
  */
 Picture.prototype.initRasterizers = function() {
     this.currentEventRasterizer = this.createRasterizer();
-    if (!this.currentEventRasterizer.checkSanity()) {
-        this.currentEventRasterizer.free();
-        return false;
-    }
     this.genericRasterizer = this.createRasterizer();
     this.memoryUse += this.currentEventRasterizer.getMemoryBytes();
     this.memoryUse += this.genericRasterizer.getMemoryBytes();
-    return true;
 };
 
 /**
