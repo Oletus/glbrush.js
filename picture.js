@@ -50,7 +50,7 @@ var Picture = function(id, name, boundsRect, bitmapScale, renderer) {
     if (this.renderer.usesWebGl()) {
         this.gl = this.renderer.gl;
         this.glManager = this.renderer.glManager;
-        this.renderer.prepareDisplay(this);
+        this.renderer.setPicture(this);
     }
 
     if (!this.initRasterizers()) {
@@ -108,7 +108,7 @@ Picture.prototype.crop = function(boundsRect, bitmapScale) {
     this.pictureTransform.scale = bitmapScale;
     this.setBounds(boundsRect);
 
-    this.renderer.prepareDisplay(this);
+    this.renderer.setPicture(this);
 
     this.initRasterizers();
     for (var i = 0; i < this.buffers.length; ++i) {
@@ -1674,5 +1674,5 @@ Picture.prototype.toBlob = function(callback) {
     callback(dataURLtoBlob(this.toDataURL(), 'image/png'));
     // TODO: When this is supported widely enough:
     // this.display();
-    // this.canvas.toBlob(callback);
+    // this.renderer.canvas.toBlob(callback);
 };

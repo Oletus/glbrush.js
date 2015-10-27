@@ -267,6 +267,9 @@ function expectBufferCorrect(buffer, rasterizer, tolerance) {
         stateData = new Uint8Array(buffer.width() * buffer.height() * 4);
         correctData = new Uint8Array(buffer.width() * buffer.height() * 4);
         var readState = function(s, toData) {
+            // Check to make sure that using default FBO is fine here.
+            expect(s.gl.canvas.width).toBe(buffer.width());
+            expect(s.gl.canvas.height).toBe(buffer.height());
             s.glManager.useFbo(null);
             var clipRect = new Rect(0, buffer.width(), 0, buffer.height());
             s.draw(clipRect);

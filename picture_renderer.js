@@ -45,11 +45,17 @@ PictureRenderer.prototype.usesWebGl = function() {
             this.mode === 'no-texdata-webgl');
 };
 
+PictureRenderer.prototype.setPicture = function(picture) {
+    if (this.usesWebGl()) {
+        this.gl.viewport(0, 0, picture.bitmapWidth(), picture.bitmapHeight());
+    }
+};
+
 PictureRenderer.prototype.prepareDisplay = function(picture) {
+    this.setPicture(picture);
     this.canvas.width = picture.bitmapWidth();
     this.canvas.height = picture.bitmapHeight();
     if (this.usesWebGl()) {
-        this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
         this.gl.scissor(0, 0, this.canvas.width, this.canvas.height);
         this.glManager.useFbo(null);
     }

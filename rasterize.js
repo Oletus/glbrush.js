@@ -1091,18 +1091,12 @@ GLDoubleBufferedRasterizer.prototype.linearGradient = function(coords1,
  * @return {number} The pixel value, in the range 0-1.
  */
 GLDoubleBufferedRasterizer.prototype.getPixel = function(coords) {
-    this.glManager.useFbo(null);
-    this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
     var left = Math.floor(coords.x);
     var top = Math.floor(coords.y);
-    glUtils.updateClip(this.gl, new Rect(left, left + 1, top, top + 1),
-                       this.height);
-    this.gl.clear(this.gl.COLOR_BUFFER_BIT);
-    this.drawWithColor([255, 255, 255], 1.0);
+    this.glManager.useFboTex(this.getTex());
     var pixel = new Uint8Array([0, 0, 0, 0]);
-    this.gl.readPixels(left, this.height - 1 - top, 1, 1, this.gl.RGBA,
-                       this.gl.UNSIGNED_BYTE, pixel);
-    return pixel[0] / 255.0;
+    this.gl.readPixels(left, this.height - 1 - top, 1, 1, this.gl.RGBA, this.gl.UNSIGNED_BYTE, pixel);
+    return (pixel[0] + pixel[1] / 256.0) / 255.0;
 };
 
 
@@ -1282,8 +1276,14 @@ GLFloatRasterizer.prototype.linearGradient =
     GLDoubleBufferedRasterizer.prototype.linearGradient;
 
 /** @inheritDoc */
-GLFloatRasterizer.prototype.getPixel =
-    GLDoubleBufferedRasterizer.prototype.getPixel;
+GLFloatRasterizer.prototype.getPixel = function(coords) {
+    var left = Math.floor(coords.x);
+    var top = Math.floor(coords.y);
+    this.glManager.useFboTex(this.getTex());
+    var pixel = new Float32Array([0, 0, 0, 0]);
+    this.gl.readPixels(left, this.height - 1 - top, 1, 1, this.gl.RGBA, this.gl.FLOAT, pixel);
+    return pixel[3];
+};
 
 
 /**
