@@ -966,6 +966,7 @@ GLDoubleBufferedRasterizer.prototype.getDrawRect = function(invalRect) {
  * @protected
  */
 GLDoubleBufferedRasterizer.prototype.preDraw = function(uniformParameters) {
+    this.gl.viewport(0, 0, this.width, this.height);
     this.glManager.useFboTex(this.getTargetTex());
     if (uniformParameters !== null) {
         uniformParameters['uSrcTex'] = this.getTex();
@@ -1232,6 +1233,7 @@ GLFloatRasterizer.prototype.getDrawRect = function(invalRect) {
  * @protected
  */
 GLFloatRasterizer.prototype.preDraw = function(uniformParameters) {
+    this.gl.viewport(0, 0, this.width, this.height);
     this.glManager.useFboTex(this.tex);
     if (uniformParameters !== null) {
         if (this.texturized) {
@@ -1415,10 +1417,8 @@ GLFloatTexDataRasterizer.prototype.flushCircles = function() {
     }
     this.glManager.useFboTex(this.tex);
     var uniformParameters = this.texturized ? this.texUniformParameters : this.fillUniformParameters;
+    this.preDraw(uniformParameters);
     uniformParameters['uCircleCount'] = this.circleInd;
-    if (this.texturized) {
-        uniformParameters['uBrushTex'] = this.brushTex;
-    }
     this.gl.bindTexture(this.gl.TEXTURE_2D, this.parameterTex);
     this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.paramsStride / 4, this.maxCircles,
                        0, this.gl.RGBA, this.gl.FLOAT, this.params);
