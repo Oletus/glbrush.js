@@ -145,7 +145,6 @@ PictureRenderer.prototype.setupGLState = function() {
     this.compositor = new GLCompositor(this.glManager, this.gl, glUtils.maxTextureUnits);
     
     var testRasterizer = new this.glRasterizerConstructor(this.gl, this.glManager, 128, 128, this.brushTextures);
-    this.gl.viewport(0, 0, 128, 128);
     if (!testRasterizer.checkSanity()) {
         PictureRenderer.hasFailedWebGLSanity = true;
         console.log('WebGL accelerated rasterizer did not pass sanity test ' +

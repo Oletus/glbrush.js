@@ -159,6 +159,7 @@ GLUndoState.prototype.update = function(srcTex, clipRect) {
         return;
     }
     this.ensureTexture();
+    this.gl.viewport(0, 0, this.width, this.height);
     this.glManager.useFboTex(this.tex);
     glUtils.updateClip(this.gl, clipRect, this.height);
     this.texBlitUniforms['uSrcTex'] = srcTex;
@@ -176,6 +177,7 @@ GLUndoState.prototype.update = function(srcTex, clipRect) {
  */
 GLUndoState.prototype.draw = function(clipRect) {
     // TODO: assert(!this.invalid);
+    this.gl.viewport(0, 0, this.width, this.height);
     this.texBlitUniforms['uSrcTex'] = this.tex;
     glUtils.updateClip(this.gl, clipRect, this.height);
     this.gl.clearColor(0, 0, 0, 0);

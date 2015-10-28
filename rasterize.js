@@ -241,13 +241,13 @@ Rasterizer.prototype.getMemoryBytes = function() {
  * @param {number} opacity Opacity to use when drawing the rasterization result.
  * Opacity for each individual pixel is its rasterized opacity times this
  * opacity value.
- * @param {number} x Left edge of the area to copy to targetData. Must be an
+ * @param {number} x Left edge of the rasterizer area to copy to targetData. Must be an
  * integer.
- * @param {number} y Top edge of the area to copy to targetData. Must be an
+ * @param {number} y Top edge of the rasterizer area to copy to targetData. Must be an
  * integer.
- * @param {number} w Width of the targetData buffer and the area to copy there.
+ * @param {number} w Width of the targetData buffer and the rasterizer area to copy there.
  * Must be an integer.
- * @param {number} h Height of the targetData buffer and the area to copy there.
+ * @param {number} h Height of the targetData buffer and the rasterizer area to copy there.
  * Must be an integer.
  */
 Rasterizer.prototype.drawWithColor = function(targetData, color, opacity,
@@ -934,6 +934,7 @@ GLDoubleBufferedRasterizer.prototype.clearTargetInval = function() {
  * Clear the rasterizer's bitmap (both textures) to all 0's.
  */
 GLDoubleBufferedRasterizer.prototype.clear = function() {
+    this.gl.viewport(0, 0, this.width, this.height);
     this.gl.clearColor(0, 0, 0, 0);
     glUtils.updateClip(this.gl, this.clipRect, this.height);
     for (var i = 0; i < 2; ++i) {
@@ -1259,6 +1260,7 @@ GLFloatRasterizer.prototype.drawWithColor =
  * Clear the rasterizer's bitmap to all 0's.
  */
 GLFloatRasterizer.prototype.clear = function() {
+    this.gl.viewport(0, 0, this.width, this.height);
     this.gl.clearColor(0, 0, 0, 0);
     glUtils.updateClip(this.gl, this.clipRect, this.height);
     this.glManager.useFboTex(this.tex);

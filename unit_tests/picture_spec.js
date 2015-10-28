@@ -790,9 +790,8 @@ var doPictureTest = function(mode) {
             GLFloatRasterizer.prototype.fillCircle = function() {};
             GLFloatTexDataRasterizer.prototype.fillCircle = function() {};
 
-            var pic = testPicture();
+            var picRenderer = new PictureRenderer('webgl');
             expect(PictureRenderer.hasFailedWebGLSanity).toBe(true);
-            pic.destroy();
 
             // Restore the rasterizers
             GLDoubleBufferedRasterizer.prototype.fillCircle = oldDoubleBufferedFillCircle;

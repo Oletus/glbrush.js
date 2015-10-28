@@ -1247,6 +1247,7 @@ GLBuffer.prototype.updateClip = function() {
  */
 GLBuffer.prototype.drawRasterizerWithColor = function(raster, color, opacity,
                                                       mode) {
+    this.gl.viewport(0, 0, this.width(), this.height());
     this.updateClip();
     if (!this.hasAlpha && mode === PictureEvent.Mode.erase) {
         mode = PictureEvent.Mode.normal;
@@ -1258,6 +1259,8 @@ GLBuffer.prototype.drawRasterizerWithColor = function(raster, color, opacity,
                                        this.height());
     this.glManager.useFboTex(helper);
     this.texBlitUniforms['uSrcTex'] = this.tex;
+
+    // TODO: Make it possible to draw from a rasterizer that is sized differently from the buffer.
     this.glManager.drawFullscreenQuad(this.texBlitProgram, this.texBlitUniforms);
 
     this.glManager.useFboTex(this.tex);
@@ -1273,6 +1276,7 @@ GLBuffer.prototype.drawRasterizerWithColor = function(raster, color, opacity,
  * @param {Rect} rect The extents of the image in this buffer's coordinates.
  */
 GLBuffer.prototype.drawImage = function(img, rect) {
+    this.gl.viewport(0, 0, this.width(), this.height());
     var imageTex = this.gl.createTexture();
     this.gl.bindTexture(this.gl.TEXTURE_2D, imageTex);
     this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
@@ -1298,6 +1302,7 @@ GLBuffer.prototype.drawImage = function(img, rect) {
  * @protected
  */
 GLBuffer.prototype.drawBuffer = function(buffer, opacity) {
+    this.gl.viewport(0, 0, this.width(), this.height());
     this.updateClip();
     // Copy into helper texture from this.tex, then use compositor to render
     // that blended with the contents of the buffer back to this.tex.
