@@ -1260,10 +1260,10 @@ GLBuffer.prototype.drawRasterizerWithColor = function(raster, color, opacity,
     this.glManager.useFboTex(helper);
     this.texBlitUniforms['uSrcTex'] = this.tex;
 
-    // TODO: Make it possible to draw from a rasterizer that is sized differently from the buffer.
     this.glManager.drawFullscreenQuad(this.texBlitProgram, this.texBlitUniforms);
 
     this.glManager.useFboTex(this.tex);
+    this.compositor.setTargetDimensions(this.width(), this.height());
     this.compositor.pushBufferTex(helper, 1.0, false);
     this.compositor.pushRasterizer(raster, color, opacity, mode, null);
     this.compositor.flush();
@@ -1312,6 +1312,7 @@ GLBuffer.prototype.drawBuffer = function(buffer, opacity) {
     this.glManager.drawFullscreenQuad(this.texBlitProgram,
                                       this.texBlitUniforms);
     this.glManager.useFboTex(this.tex);
+    this.compositor.setTargetDimensions(this.width(), this.height());
     this.compositor.pushBufferTex(helper, 1.0, false);
     this.compositor.pushBufferTex(buffer.tex, opacity, false);
     this.compositor.flush();

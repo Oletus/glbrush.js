@@ -26,6 +26,7 @@ compositingShader.getFragmentSource = function(layers) {
             src.push('uniform float uOpacity' + i + ';');
         } else {
             src.push('uniform sampler2D uLayer' + i + ';');
+            src.push('uniform vec2 uLayer' + i + 'Scale;');
             src.push('uniform vec4 uColor' + i + ';');
         }
     }
@@ -100,10 +101,12 @@ compositingShader.getFragmentSource = function(layers) {
         ++i;
         while (i < layers.length &&
                 layers[i].type === CanvasCompositor.Element.rasterizer) {
+            var tcScale = 'uLayer' + i + 'Scale';
+            var scaledCoord = 'vec2(vTexCoord.x * ' + tcScale + '.x, 1.0 - (1.0 - vTexCoord.y) * ' + tcScale + '.y)';
             if (layers[i].rasterizer.format === GLRasterizerFormat.alpha) {
-                src.push('  float layer' + i + 'Alpha = texture2D(uLayer' + i + ', vTexCoord).w;');
+                src.push('  float layer' + i + 'Alpha = texture2D(uLayer' + i + ', ' + scaledCoord + ').w;');
             } else {
-                src.push('  vec4 layer' + i + ' = texture2D(uLayer' + i + ', vTexCoord);');
+                src.push('  vec4 layer' + i + ' = texture2D(uLayer' + i + ', ' + scaledCoord + ');');
                 src.push('  float layer' + i + 'Alpha = layer' + i + '.x + layer' + i + '.y / 256.0;');
             }
             // Unpremultiplied color
@@ -193,9 +196,12 @@ compositingShader.getFragmentSource = function(layers) {
  * stack. Contains uniforms uLayer<n> for visible layers where <n> is the layer
  * index starting from zero for setting samplers for the layers. 'uColor<n>'
  * vec4 uniforms are used for rasterizer layers to pass unpremultiplied color
- * and opacity data, with values ranging from 0 to 1. 'uOpacity<n>' float
- * uniforms are used for buffer layers to pass opacity, with values ranging from
- * 0 to 1.
+ * and opacity data, with values ranging from 0 to 1. 
+ * 'uLayer<n>Scale' vec2 uniforms are used to pass scale to apply to texture
+ * coordinates for rasterizer layers. This makes it possible to use rasterizers
+ * that are larger than the picture.
+ * 'uOpacity<n>' float uniforms are used for buffer layers to pass opacity, with
+ * values ranging from 0 to 1.
  */
 compositingShader.getShaderProgram = function(glManager, layers) {
     var fragSource = compositingShader.getFragmentSource(layers);
@@ -207,6 +213,7 @@ compositingShader.getShaderProgram = function(glManager, layers) {
             uniformTypes['uOpacity' + i] = '1f';
         } else {
             uniformTypes['uLayer' + i] = 'tex2d';
+            uniformTypes['uLayer' + i + 'Scale'] = '2fv';
             uniformTypes['uColor' + i] = '4fv';
         }
     }

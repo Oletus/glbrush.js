@@ -978,11 +978,11 @@ Picture.prototype.createRasterizer = function(saveMemory) {
                                                   this.bitmapHeight(), this.renderer.brushTextures);
         } else {
             return new this.renderer.glRasterizerConstructor(this.gl, this.glManager,
-                                                             this.bitmapWidth(),
-                                                             this.bitmapHeight(), this.renderer.brushTextures);
+                                                             this.bitmapWidth() * 1.5,
+                                                             this.bitmapHeight() * 1.5, this.renderer.brushTextures);
         }
     } else {
-        return new Rasterizer(this.bitmapWidth(), this.bitmapHeight(), this.renderer.brushTextures);
+        return new Rasterizer(Math.floor(this.bitmapWidth()), Math.floor(this.bitmapHeight()), this.renderer.brushTextures);
     }
 };
 
@@ -1387,6 +1387,7 @@ Picture.prototype.display = function() {
     }
     this.renderer.prepareDisplay(this);
     var compositor = this.renderer.compositor;
+    compositor.setTargetDimensions(this.bitmapWidth(), this.bitmapHeight());
     for (var i = 0; i < this.buffers.length; ++i) {
         if (this.buffers[i].isComposited()) {
             compositor.pushBuffer(this.buffers[i]);

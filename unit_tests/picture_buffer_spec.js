@@ -118,34 +118,46 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         buffer.free();
     });
 
-    it('blends an event to the bitmap with the normal mode, opacity and flow', function() {
-        initTestCanvas();
+    var basicEventTest = function(rasterizerWidthMult, rasterizerHeightMult) {
+        var desc = 'blends an event to the bitmap with the normal mode, opacity and flow';
+        if (rasterizerWidthMult != 1.0 || rasterizerHeightMult != 1.0) {
+            desc += ' with a larger rasterizer';
+        }
+        it(desc, function() {
+            initTestCanvas();
 
-        var buffer = createBuffer(params);
-        var rasterizer = createRasterizer(params);
-        var opacity = 0.5;
-        var flow = 0.5;
-        var brushEvent = fillingBrushEvent(params.width, params.height,
-                                           [0.2 * 255, 0.4 * 255, 0.8 * 255],
-                                           opacity, PictureEvent.Mode.normal,
-                                           flow);
-        buffer.pushEvent(brushEvent, rasterizer);
-        var samplePixel = buffer.getPixelRGBA(new Vec2(params.width * 0.5,
-                                                       params.height * 0.5));
-        var sAlpha = opacity * flow;
-        expect(samplePixel[0]).toBeNear(params.clearColor[0] * (1.0 - sAlpha) +
-                                        0.2 * 255 * sAlpha, 10);
-        expect(samplePixel[1]).toBeNear(params.clearColor[1] * (1.0 - sAlpha) +
-                                        0.4 * 255 * sAlpha, 10);
-        expect(samplePixel[2]).toBeNear(params.clearColor[2] * (1.0 - sAlpha) +
-                                        0.8 * 255 * sAlpha, 10);
-        var targetAlpha = params.clearColor[3] / 255;
-        var alpha = (targetAlpha + sAlpha - targetAlpha * sAlpha) * 255;
-        expect(samplePixel[3]).toBeNear(alpha, 15);
+            var buffer = createBuffer(params);
+            var rastParams = {
+                width: Math.floor(params.width * rasterizerWidthMult),
+                height: Math.floor(params.height * rasterizerHeightMult)
+            };
+            var rasterizer = createRasterizer(rastParams);
+            var opacity = 0.5;
+            var flow = 0.5;
+            var brushEvent = fillingBrushEvent(params.width, params.height,
+                                               [0.2 * 255, 0.4 * 255, 0.8 * 255],
+                                               opacity, PictureEvent.Mode.normal,
+                                               flow);
+            buffer.pushEvent(brushEvent, rasterizer);
+            var samplePixel = buffer.getPixelRGBA(new Vec2(params.width * 0.5,
+                                                           params.height * 0.5));
+            var sAlpha = opacity * flow;
+            expect(samplePixel[0]).toBeNear(params.clearColor[0] * (1.0 - sAlpha) +
+                                            0.2 * 255 * sAlpha, 10);
+            expect(samplePixel[1]).toBeNear(params.clearColor[1] * (1.0 - sAlpha) +
+                                            0.4 * 255 * sAlpha, 10);
+            expect(samplePixel[2]).toBeNear(params.clearColor[2] * (1.0 - sAlpha) +
+                                            0.8 * 255 * sAlpha, 10);
+            var targetAlpha = params.clearColor[3] / 255;
+            var alpha = (targetAlpha + sAlpha - targetAlpha * sAlpha) * 255;
+            expect(samplePixel[3]).toBeNear(alpha, 15);
 
-        rasterizer.free();
-        buffer.free();
-    });
+            rasterizer.free();
+            buffer.free();
+        });
+    };
+    basicEventTest(1.0, 1.0);
+    basicEventTest(2.5, 3.5);
 
     var generalizedBlendModeTest = function(testName, blendMode, testAgainst) {
         it('blends an event to the bitmap with the ' + testName + ' blend mode', function() {

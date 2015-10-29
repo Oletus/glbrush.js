@@ -49,7 +49,8 @@ CanvasCompositor.prototype.pushBuffer = function(buffer) {
 };
 
 /**
- * Add a rasterizer to composit to the target context.
+ * Add a rasterizer to composit to the target context. In case the rasterizer is larger than the target,
+ * it is aligned to the top left corner.
  * @param {Rasterizer} rasterizer Rasterizer to merge to the last pushed buffer.
  * @param {Uint8Array|Array.<number>} color Color to color the rasterizer with.
  * @param {number} opacity Opacity to use for blending the rasterizer.
@@ -67,14 +68,21 @@ CanvasCompositor.prototype.pushRasterizer = function(rasterizer, color, opacity,
 };
 
 /**
+ * Set the dimensions of the target buffer that is being composited to.
+ * Must be called before pushing things to composit.
+ */
+CanvasCompositor.prototype.setTargetDimensions = function(width, height) {
+    this.compositingCanvas.width = width;
+    this.compositingCanvas.height = height;
+};
+
+/**
  * Ensure that results of all queued draw operations are written into the target
  * context.
  */
 CanvasCompositor.prototype.flush = function() {
-    var width = this.ctx.canvas.width;
-    var height = this.ctx.canvas.height;
-    this.compositingCanvas.width = width;
-    this.compositingCanvas.height = height;
+    var width = this.compositingCanvas.width;
+    var height = this.compositingCanvas.height;
     if (this.needsClear) {
         this.ctx.clearRect(0, 0, width, height);
         this.needsClear = false;
@@ -171,7 +179,8 @@ GLCompositor.prototype.pushBufferTex = function(tex, opacity, isOpaque) {
 };
 
 /**
- * Add a rasterizer to composit to the framebuffer.
+ * Add a rasterizer to composit to the framebuffer. In case the rasterizer is larger than the target,
+ * it is aligned to the top left corner.
  * @param {BaseRasterizer} rasterizer Rasterizer to merge to the last pushed
  * buffer.
  * @param {Uint8Array|Array.<number>} color Color to color the rasterizer with.
@@ -195,6 +204,15 @@ GLCompositor.prototype.pushRasterizer = function(rasterizer, color, opacity,
     this.pending.push({type: CanvasCompositor.Element.rasterizer,
                        rasterizer: rasterizer, color: color, opacity: opacity,
                        mode: mode, boundingBox: boundingBox});
+};
+
+/**
+ * Set the dimensions of the target buffer that is being composited to.
+ * Must be called before pushing things to composit.
+ */
+GLCompositor.prototype.setTargetDimensions = function(width, height) {
+    this.targetWidth = width;
+    this.targetHeight = height;
 };
 
 /**
@@ -248,6 +266,10 @@ GLCompositor.prototype.flushInternal = function(flushed) {
             compositingUniforms['uOpacity' + i] = flushed[i].opacity;
         } else {
             compositingUniforms['uLayer' + i] = flushed[i].rasterizer.getTex();
+            var scale = 'uLayer' + i + 'Scale';
+            compositingUniforms[scale] =
+                        [this.targetWidth / flushed[i].rasterizer.width,
+                        this.targetHeight / flushed[i].rasterizer.height];
             var color = flushed[i].color;
             compositingUniforms['uColor' + i] =
                         [color[0] / 255, color[1] / 255, color[2] / 255,
