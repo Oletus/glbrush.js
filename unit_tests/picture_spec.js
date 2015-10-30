@@ -732,7 +732,7 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         var parsed;
         var serialization = pic.serialize();
         serialization += '\nmetadata\nappdata';
-        Picture.parse(0, serialization, 1.0, [pic.mode], undefined, function(p) {
+        Picture.parse(0, serialization, 1.0, PictureRenderer.create([pic.mode]), function(p) {
             parsed = p;
         });
         waitsFor(function() {
@@ -898,7 +898,7 @@ describe('Picture', function() {
 
     it('parses a serialization without a version number', function() {
         var parsed;
-        Picture.parse(-1, 'picture 122 234', 2.0, [mode], undefined, function(p) {
+        Picture.parse(-1, 'picture 122 234', 2.0, PictureRenderer.create([mode]), function(p) {
             parsed = p;
         });
         waitsFor(function() {
@@ -930,7 +930,7 @@ describe('Picture', function() {
         'gradient 1 2 0 101 198 255 0.875 1 523 986 575 34'
         ].join('\n');
         var parsed;
-        Picture.parse(-1, picSerialization, 1.0, [mode], undefined, function(p) {
+        Picture.parse(-1, picSerialization, 1.0, PictureRenderer.create([mode]), function(p) {
             parsed = p;
         });
         waitsFor(function() {
@@ -996,7 +996,7 @@ describe('Picture', function() {
         'add_picture_event 0 eventHide 1 4 0 1 3'
         ].join('\n');
         var parsed;
-        Picture.parse(-1, picSerialization, 1.0, [mode], undefined, function(p) {
+        Picture.parse(-1, picSerialization, 1.0, PictureRenderer.create([mode]), function(p) {
             parsed = p;
         });
         waitsFor(function() {

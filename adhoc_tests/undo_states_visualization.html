@@ -18,6 +18,7 @@
 <script type="text/javascript" src="../picture_buffer.js"></script>
 <script type="text/javascript" src="../undo_state.js"></script>
 <script type="text/javascript" src="../picture.js"></script>
+<script type="text/javascript" src="../picture_renderer.js"></script>
 <script type="text/javascript">
 
 // Visualize undo states as a graph over brush events.
@@ -28,7 +29,7 @@ var runTest = function() {
     var bitmapScale = 1.0;
     var t = 0;
     var testPics = [];
-    var testPic = Picture.create(0, null, new Rect(0, w, 0, w), bitmapScale, [pictureMode]);
+    var testPic = new Picture(0, null, new Rect(0, w, 0, w), bitmapScale, PictureRenderer.create([pictureMode]));
     testPic.addBuffer(0, [255, 255, 255, 255], false);
     var flow = 0.8;
     var opacity = 1.0;

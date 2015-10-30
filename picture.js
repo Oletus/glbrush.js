@@ -307,36 +307,6 @@ Picture.prototype.setBufferOpacity = function(bufferId, opacity) {
 };
 
 /**
- * Create a Picture object.
- * @param {number} id Picture's unique id number.
- * @param {string} name Name of the picture. May be null.
- * @param {Rect} boundsRect Picture bounds in picture coordinates. Left and top bounds may be negative.
- * @param {number} bitmapScale Scale for rasterizing the picture. Events that
- * are pushed to this picture get this scale applied to them.
- * @param {Array.<string>} modesToTry Modes to try to initialize the picture.
- * Can contain either 'webgl', 'no-texdata-webgl', 'no-float-webgl' or 'canvas'.
- * Modes are tried in the order they are in the array.
- * @param {Array.<HTMLImageElement|HTMLCanvasElement>=} brushTextureData Set of brush textures to use. Can be undefined
- * if no textures are needed.
- * @return {Picture} The created picture or null if one couldn't be created.
- */
-Picture.create = function(id, name, boundsRect, bitmapScale, modesToTry, brushTextureData) {
-    var i = 0;
-    var renderer = null;
-    while (i < modesToTry.length && renderer === null) {
-        var mode = modesToTry[i];
-        if (glUtils.supportsTextureUnits(4) || mode === 'canvas') {
-            renderer = new PictureRenderer(mode, brushTextureData);
-            if (renderer.mode === undefined) {
-                renderer = null;
-            }
-        }
-        i++;
-    }
-    return new Picture(id, name, boundsRect, bitmapScale, renderer);
-};
-
-/**
  * Create a picture object by parsing a serialization of it. Note that the
  * picture might not be immediately ready after parsing, but might instead be
  * freed when this function returns and take a while to load imported bitmaps,
@@ -357,7 +327,7 @@ Picture.create = function(id, name, boundsRect, bitmapScale, modesToTry, brushTe
  * The function will be called with one parameter, an object containing key 'picture' for the created picture,
  * and key 'metadata' for the metadata lines.
  */
-Picture.parse = function(id, serialization, bitmapScale, modesToTry, brushTextureData, finishedCallback) {
+Picture.parse = function(id, serialization, bitmapScale, renderer, finishedCallback) {
     var eventStrings = serialization.split(/\r?\n/);
     var pictureParams = eventStrings[0].split(' ');
     var version = 0;
@@ -391,8 +361,7 @@ Picture.parse = function(id, serialization, bitmapScale, modesToTry, brushTextur
             name = window.atob(pictureParams[nameIndex + 1]);
         }
     }
-    var pic = Picture.create(id, name, new Rect(left, left + width, top, top + height),
-                             bitmapScale, modesToTry, brushTextureData);
+    var pic = new Picture(id, name, new Rect(left, left + width, top, top + height), bitmapScale, renderer);
     pic.parsedVersion = version;
 
     // First parse all buffers without rasterizing, then rasterize after rasterImport events are loaded.
@@ -544,7 +513,7 @@ Picture.copy = function(pic, finishedCallback, bitmapScale) {
     }
     var serialization = pic.serialize();
     Picture.parse(pic.id, serialization, bitmapScale,
-                  [pic.mode], pic.brushTextureData, function(parsed) {
+                  pic.renderer, function(parsed) {
         parsed.picture.setCurrentEventAttachment(pic.currentEventAttachment);
         finishedCallback(parsed.picture);
     });

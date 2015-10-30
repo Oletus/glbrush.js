@@ -1,10 +1,8 @@
 'use strict';
 
 /**
- * A relatively thin wrapper around a canvas and context used by a Picture.
- * TODO: Make it so that this can be used with multiple Pictures. Right now the GL viewport is not set properly for
- * Rasterizers yet.
- * Maintains state that isn't specific to a single picture, such as the compositor and brush texture collection.
+ * A relatively thin wrapper around a canvas and context used to render multiple Pictures.
+ * Maintains state that isn't specific to a single Picture, such as the compositor and brush texture collection.
  * @param {string=} mode Either 'webgl', 'no-texdata-webgl' or 'canvas'. Defaults to 'webgl'.
  * @param {Array.<HTMLImageElement|HTMLCanvasElement>=} brushTextureData Set of brush textures to use. Can be undefined
  * if no textures are needed.
@@ -30,6 +28,31 @@ var PictureRenderer = function(mode, brushTextureData) {
     } else {
         this.mode = undefined;
     }
+};
+
+/**
+ * Create a renderer, choosing mode automatically.
+ * @param {Array.<string>} modesToTry Modes to try to initialize the picture.
+ * Can contain either 'webgl', 'no-texdata-webgl', 'no-float-webgl' or 'canvas'.
+ * Modes are tried in the order they are in the array.
+ * @param {Array.<HTMLImageElement|HTMLCanvasElement>=} brushTextureData Set of brush textures to use. Can be undefined
+ * if no textures are needed.
+ * @return {PictureRenderer} A renderer or null if failed.
+ */
+PictureRenderer.create = function(modesToTry, brushTextureData) {
+    var i = 0;
+    var renderer = null;
+    while (i < modesToTry.length && renderer === null) {
+        var mode = modesToTry[i];
+        if (glUtils.supportsTextureUnits(4) || mode === 'canvas') {
+            renderer = new PictureRenderer(mode, brushTextureData);
+            if (renderer.mode === undefined) {
+                renderer = null;
+            }
+        }
+        i++;
+    }
+    return renderer;
 };
 
 /**

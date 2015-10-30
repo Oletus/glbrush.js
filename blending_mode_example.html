@@ -47,8 +47,8 @@ loadApp = function() {
     document.body.appendChild(drawArea);
 
     // Initialize a Picture with one opaque layer and add it to the drawArea
-    var picture = Picture.create(0, null, new Rect(0, width, 0, height), 1.0,
-                                 ['webgl', 'no-float-webgl', 'canvas']);
+    var picture = new Picture(0, null, new Rect(0, width, 0, height), 1.0,
+                              PictureRenderer.create(['webgl', 'no-float-webgl', 'canvas']));
     picture.addBuffer(0, [255, 255, 255, 255], false);
     picture.setCurrentEventAttachment(0);
     drawArea.appendChild(picture.pictureElement());

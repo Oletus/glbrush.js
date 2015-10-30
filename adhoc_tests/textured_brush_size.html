@@ -18,6 +18,7 @@
 <script type="text/javascript" src="../picture_update.js"></script>
 <script type="text/javascript" src="../undo_state.js"></script>
 <script type="text/javascript" src="../picture.js"></script>
+<script type="text/javascript" src="../picture_renderer.js"></script>
 <script type="text/javascript">
 
 // Test textured brush scaling by scaling the brush tip texture.
@@ -46,7 +47,7 @@ var runTest = function() {
     var bitmapScale = 1.0;
     var t = 0;
     var brushTextureData = [testTextureCanvas()];
-    var testPic = Picture.create(0, null, new Rect(0, w, 0, w), bitmapScale, [pictureMode], brushTextureData);
+    var testPic = new Picture(0, null, new Rect(0, w, 0, w), bitmapScale, PictureRenderer.create([pictureMode], brushTextureData));
     testPic.addBuffer(0, [255, 255, 255, 255], false);
     testPic.setCurrentEventAttachment(0);
 
@@ -77,7 +78,7 @@ var runTest = function() {
 
     var textureId = 1;
     var textureSelect = document.getElementById('textureSelect');
-    for (var i = 0; i < testPic.brushTextures.textures.length + 1; ++i) {
+    for (var i = 0; i < testPic.renderer.brushTextures.textures.length + 1; ++i) {
         var option = document.createElement('option');
         option.innerHTML = 'texture ' + i;
         option.id = i;
