@@ -745,8 +745,7 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
     });
 
     it('calculates its memory usage', function() {
-        var rasterizerUse = pic.currentEventRasterizer.getMemoryBytes() +
-                            pic.genericRasterizer.getMemoryBytes();
+        var rasterizerUse = pic.currentEventRasterizer.getMemoryBytes();
         var compositorUse = pic.bitmapWidth() * pic.bitmapHeight() * 4;
         expect(pic.memoryUse).toBe(rasterizerUse + compositorUse);
         var clearColor = [12, 23, 34, 0];

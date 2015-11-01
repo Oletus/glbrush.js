@@ -17,6 +17,8 @@ var PictureRenderer = function(mode, brushTextureData) {
 
     this.canvas = document.createElement('canvas');
 
+    this.sharedRasterizer = null;
+
     if (this.usesWebGl()) {
         if (!this.setupGLState()) {
             this.mode = undefined;
@@ -119,6 +121,38 @@ PictureRenderer.prototype.display = function(picture) {
 };
 
 /**
+ * Create a single rasterizer using the mode specified for this renderer.
+ * @param {number} width Width of the rasterizer to create in pixels.
+ * @param {number} height Height of the rasterizer to create in pixels.
+ * @return {BaseRasterizer} The rasterizer.
+ */
+PictureRenderer.prototype.createRasterizer = function(width, height) {
+    if (this.glRasterizerConstructor !== undefined) {
+        return new this.glRasterizerConstructor(this.gl, this.glManager,
+                                                width, height, this.brushTextures);
+    } else {
+        return new Rasterizer(width, height, this.brushTextures);
+    }
+};
+
+/**
+ * Set the minimum size of the shared rasterizer in pixels.
+ * @param {number} width Width of the rasterizer that is required.
+ * @param {number} height Height of the rasterizer that is required.
+ */
+PictureRenderer.prototype.setSharedRasterizerSize = function(width, height) {
+    if (this.sharedRasterizer !== null) {
+        if (this.sharedRasterizer.width < width || this.sharedRasterizer.height < height) {
+            this.sharedRasterizer.free();
+            this.sharedRasterizer = null;
+        }
+    }
+    if (this.sharedRasterizer === null) {
+        this.sharedRasterizer = this.createRasterizer(width, height);
+    }
+};
+
+/**
  * @param {HTMLCanvasElement} canvas Canvas to use for rasterization.
  * @param {boolean=} debugGL True to log every WebGL call made on the context. Defaults to false.
  * @return {WebGLRenderingContext} Context to use or null if unsuccessful.
@@ -193,16 +227,16 @@ PictureRenderer.prototype.setupGLState = function() {
 
     this.compositor = new GLCompositor(this.glManager, this.gl, glUtils.maxTextureUnits);
 
-    var testRasterizer = new this.glRasterizerConstructor(this.gl, this.glManager, 128, 128, this.brushTextures);
-    if (!testRasterizer.checkSanity()) {
+    this.setSharedRasterizerSize(128, 128);
+    if (!this.sharedRasterizer.checkSanity()) {
         PictureRenderer.hasFailedWebGLSanity = true;
         console.log('WebGL accelerated rasterizer did not pass sanity test ' +
                     '(mode ' + this.mode + '). Update your graphics drivers ' +
                     'or try switching browsers if possible.');
-        testRasterizer.free();
+        this.sharedRasterizer.free();
+        this.sharedRasterizer = null;
         return false;
     }
-    testRasterizer.free();
     return true;
 };
 

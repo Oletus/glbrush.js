@@ -97,7 +97,6 @@ Picture.prototype.crop = function(boundsRect, bitmapScale) {
     if (bitmapScale === undefined) {
         bitmapScale = this.pictureTransform.scale;
     }
-    this.genericRasterizer.free();
     this.currentEventRasterizer.free();
 
     this.pictureTransform.scale = bitmapScale;
@@ -107,7 +106,7 @@ Picture.prototype.crop = function(boundsRect, bitmapScale) {
 
     this.initRasterizers();
     for (var i = 0; i < this.buffers.length; ++i) {
-        this.buffers[i].crop(this.bitmapRect.width(), this.bitmapRect.height(), this.genericRasterizer);
+        this.buffers[i].crop(this.bitmapRect.width(), this.bitmapRect.height(), this.renderer.sharedRasterizer);
     }
 };
 
@@ -768,10 +767,9 @@ Picture.prototype.pictureElement = function() {
  * @protected
  */
 Picture.prototype.initRasterizers = function() {
-    this.currentEventRasterizer = this.createRasterizer();
-    this.genericRasterizer = this.createRasterizer();
+    this.currentEventRasterizer = this.renderer.createRasterizer(this.bitmapWidth(), this.bitmapHeight());
     this.memoryUse += this.currentEventRasterizer.getMemoryBytes();
-    this.memoryUse += this.genericRasterizer.getMemoryBytes();
+    this.renderer.setSharedRasterizerSize(this.bitmapWidth(), this.bitmapHeight());
 };
 
 /**
@@ -867,7 +865,7 @@ Picture.prototype.regenerateBuffer = function(buffer) {
     if (buffer.freed) {
         var memIncrease = buffer.getMemoryNeededForReservingStates();
         this.stayWithinMemoryBudget(memIncrease);
-        buffer.regenerate(true, this.genericRasterizer);
+        buffer.regenerate(true, this.renderer.sharedRasterizer);
         this.memoryUse += memIncrease;
     }
 };
@@ -926,31 +924,6 @@ Picture.prototype.createBuffer = function(createEvent, hasUndoStates) {
         }
     }
     return buffer;
-};
-
-/**
- * Create a single rasterizer using the mode specified for this picture.
- * @param {boolean=} saveMemory Choose a rasterizer that uses the least possible
- * memory as opposed to one that has the best performance. Defaults to false.
- * @return {BaseRasterizer} The rasterizer.
- */
-Picture.prototype.createRasterizer = function(saveMemory) {
-    if (saveMemory === undefined) {
-        saveMemory = false;
-    }
-    if (this.renderer.glRasterizerConstructor !== undefined) {
-        if (saveMemory) {
-            return new GLDoubleBufferedRasterizer(this.gl, this.glManager,
-                                                  this.bitmapWidth(),
-                                                  this.bitmapHeight(), this.renderer.brushTextures);
-        } else {
-            return new this.renderer.glRasterizerConstructor(this.gl, this.glManager,
-                                                             this.bitmapWidth(),
-                                                             this.bitmapHeight(), this.renderer.brushTextures);
-        }
-    } else {
-        return new Rasterizer(this.bitmapWidth(), this.bitmapHeight(), this.renderer.brushTextures);
-    }
 };
 
 /**
@@ -1015,7 +988,7 @@ Picture.prototype.pushEvent = function(targetBufferId, event) {
             var bufferIndex = this.findBufferIndex(this.buffers,
                                                    event.bufferId);
             // TODO: assert(bufferIndex >= 0);
-            this.buffers[bufferIndex].pushEvent(event, this.genericRasterizer);
+            this.buffers[bufferIndex].pushEvent(event, this.renderer.sharedRasterizer);
             this.afterRemove(this.buffers[bufferIndex]);
             return;
         } else if (event.eventType === 'bufferMove') {
@@ -1034,9 +1007,9 @@ Picture.prototype.pushEvent = function(targetBufferId, event) {
         if (event.eventType === 'bufferMerge') {
             this.undummify(event);
             // TODO: assert(event.mergedBuffer !== targetBuffer);
-            targetBuffer.pushEvent(event, this.genericRasterizer);
+            targetBuffer.pushEvent(event, this.renderer.sharedRasterizer);
         } else {
-            targetBuffer.pushEvent(event, this.genericRasterizer);
+            targetBuffer.pushEvent(event, this.renderer.sharedRasterizer);
         }
     }
 };
@@ -1060,7 +1033,7 @@ Picture.prototype.insertEvent = function(targetBufferId, event) {
     if (event.eventType === 'bufferRemove') {
         var bufferIndex = this.findBufferIndex(this.buffers, event.bufferId);
         // TODO: assert(bufferIndex >= 0);
-        this.buffers[bufferIndex].insertEvent(event, this.genericRasterizer);
+        this.buffers[bufferIndex].insertEvent(event, this.renderer.sharedRasterizer);
         this.afterRemove(this.buffers[bufferIndex]);
         return;
     }
@@ -1068,9 +1041,9 @@ Picture.prototype.insertEvent = function(targetBufferId, event) {
     if (event.eventType === 'bufferMerge') {
         this.undummify(event);
         // TODO: assert(event.mergedBuffer !== targetBuffer);
-        targetBuffer.insertEvent(event, this.genericRasterizer);
+        targetBuffer.insertEvent(event, this.renderer.sharedRasterizer);
     } else {
-        targetBuffer.insertEvent(event, this.genericRasterizer);
+        targetBuffer.insertEvent(event, this.renderer.sharedRasterizer);
     }
 };
 
@@ -1177,7 +1150,7 @@ Picture.prototype.undoEventIndex = function(buffer, eventIndex) {
     // Disallowing undoing merge events from merged buffers.
     // TODO: Consider lifting undo restrictions from merged buffers.
     var allowUndoMerge = !buffer.isMerged();
-    var undone = buffer.undoEventIndex(eventIndex, this.genericRasterizer,
+    var undone = buffer.undoEventIndex(eventIndex, this.renderer.sharedRasterizer,
                                        allowUndoMerge);
     if (undone) {
         if (eventIndex === 0) {
@@ -1247,16 +1220,16 @@ Picture.prototype.redoEventSessionId = function(sid, sessionEventId) {
                                              event.mergedBuffer.id);
                     // TODO: assert(mergedBufferIndex !== j);
                     // TODO: assert(!event.mergedBuffer.isDummy);
-                    this.buffers[j].redoEventIndex(i, this.genericRasterizer);
+                    this.buffers[j].redoEventIndex(i, this.renderer.sharedRasterizer);
                 } else if (event.eventType === 'bufferRemove') {
-                    this.buffers[j].redoEventIndex(i, this.genericRasterizer);
+                    this.buffers[j].redoEventIndex(i, this.renderer.sharedRasterizer);
                     this.afterRemove(this.buffers[j]);
                 } else {
                     if (i === 0) {
                         // TODO: assert(event.eventType === 'bufferAdd');
                         this.regenerateBuffer(this.buffers[j]);
                     }
-                    this.buffers[j].redoEventIndex(i, this.genericRasterizer);
+                    this.buffers[j].redoEventIndex(i, this.renderer.sharedRasterizer);
                 }
             }
             return true;
@@ -1283,7 +1256,7 @@ Picture.prototype.removeEventSessionId = function(sid, sessionEventId) {
                 undone = this.undoEventIndex(this.buffers[j], i);
             }
             if (undone) {
-                this.buffers[j].removeEventIndex(i, this.genericRasterizer);
+                this.buffers[j].removeEventIndex(i, this.renderer.sharedRasterizer);
                 return true;
             } else {
                 return false; // The event was not undoable
@@ -1339,7 +1312,7 @@ Picture.prototype.moveEvent = function(targetBufferId, sourceBufferId, event) {
     var src = this.findBuffer(sourceBufferId);
     var eventIndex = src.eventIndexBySessionId(event.sid, event.sessionEventId);
     if (eventIndex >= 0) {
-        src.removeEventIndex(eventIndex, this.genericRasterizer);
+        src.removeEventIndex(eventIndex, this.renderer.sharedRasterizer);
     }
     this.pushEvent(targetBufferId, event);
 };
@@ -1372,7 +1345,7 @@ Picture.prototype.regenerate = function() {
     this.freed = false;
     for (var i = 0; i < this.buffers.length; ++i) {
         if (this.buffers[i].freed) {
-            this.buffers[i].regenerate(true, this.genericRasterizer);
+            this.buffers[i].regenerate(true, this.renderer.sharedRasterizer);
         }
     }
 };
