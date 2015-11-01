@@ -1347,17 +1347,22 @@ Picture.prototype.moveEvent = function(targetBufferId, sourceBufferId, event) {
 /**
  * Display the latest updated buffers of this picture. Call after doing changes
  * to any of the picture's buffers.
+ * @param {CanvasRenderingContext2D?} ctx Context to draw the picture to. If undefined, the picture will be displayed
+ * on its own element.
  */
-Picture.prototype.display = function() {
+Picture.prototype.display = function(ctx) {
     if (this.animating) {
         return;
     }
     this.renderer.display(this);
-    this.canvas.width = this.bitmapWidth();
-    this.canvas.height = this.bitmapHeight();
+    if (ctx === undefined) {
+        this.canvas.width = this.bitmapWidth();
+        this.canvas.height = this.bitmapHeight();
+        ctx = this.ctx;
+    }
     // TODO: Would be nice to get rid of this extra copy. That should be easy once browsers have better APIs for
     // offscreen renderíng.
-    this.ctx.drawImage(this.renderer.canvas, 0, 0);
+    ctx.drawImage(this.renderer.canvas, 0, 0);
 };
 
 /**
@@ -1473,12 +1478,12 @@ Picture.prototype.animate = function(speed, animationFinishedCallBack) {
                 untilCoord = Math.ceil(untilCoord / 3) * 3;
                 picEvent.drawTo(that.animationData.picture.currentEventRasterizer, that.pictureTransform, untilCoord);
 
-                that.animationData.picture.display();
+                that.animationData.picture.display(that.ctx);
                 window.requestAnimationFrame(animationFrame);
             } else {
                 pushAnimationUpdate();
 
-                that.animationData.picture.display();
+                that.animationData.picture.display(that.ctx);
                 window.setTimeout(animationFrame, 50);
             }
         } else {
@@ -1500,7 +1505,7 @@ Picture.prototype.scrubAnimation = function(t) {
         this.animationData.pushUpdate();
     }
     if (this.animating) {
-        this.animationData.picture.display();
+        this.animationData.picture.display(this.ctx);
     }
 };
 
