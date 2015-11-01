@@ -18,6 +18,7 @@ var PictureRenderer = function(mode, brushTextureData) {
     this.canvas = document.createElement('canvas');
 
     this.sharedRasterizer = null;
+    this.currentEventRasterizer = null;
 
     if (this.usesWebGl()) {
         if (!this.setupGLState()) {
@@ -86,6 +87,11 @@ PictureRenderer.prototype.setPicture = function(picture) {
  * @param {Picture} picture Picture about to be displayed on the canvas attached to this renderer.
  */
 PictureRenderer.prototype.display = function(picture) {
+    if (picture.currentEvent) {
+        this.currentEventRasterizer.resetClip();
+        picture.currentEvent.drawTo(this.currentEventRasterizer, picture.pictureTransform,
+                                    picture.currentEventUntilCoord);
+    }
     this.setPicture(picture);
     this.canvas.width = picture.bitmapWidth();
     this.canvas.height = picture.bitmapHeight();
@@ -100,16 +106,16 @@ PictureRenderer.prototype.display = function(picture) {
             compositor.pushBuffer(picture.buffers[i]);
             if (picture.currentEventAttachment === picture.buffers[i].id) {
                 if (picture.currentEvent) {
-                   compositor.pushRasterizer(picture.currentEventRasterizer,
-                                             picture.currentEventColor,
-                                             picture.currentEvent.opacity,
-                                             picture.currentEventMode,
-                                             picture.currentEvent.getBoundingBox(picture.bitmapRect,
-                                                                                 picture.pictureTransform));
+                    compositor.pushRasterizer(this.currentEventRasterizer,
+                                              picture.currentEventColor,
+                                              picture.currentEvent.opacity,
+                                              picture.currentEventMode,
+                                              picture.currentEvent.getBoundingBox(picture.bitmapRect,
+                                                                                  picture.pictureTransform));
                 } else {
                     // Even if there's no picture.currentEvent at the moment, push
                     // so that the GLCompositor can avoid extra shader changes.
-                    compositor.pushRasterizer(picture.currentEventRasterizer,
+                    compositor.pushRasterizer(this.currentEventRasterizer,
                                               [0, 0, 0], 0,
                                               picture.currentEventMode,
                                               null);
@@ -147,8 +153,17 @@ PictureRenderer.prototype.setSharedRasterizerSize = function(width, height) {
             this.sharedRasterizer = null;
         }
     }
+    if (this.currentEventRasterizer !== null) {
+        if (this.currentEventRasterizer.width < width || this.currentEventRasterizer.height < height) {
+            this.currentEventRasterizer.free();
+            this.currentEventRasterizer = null;
+        }
+    }
     if (this.sharedRasterizer === null) {
         this.sharedRasterizer = this.createRasterizer(width, height);
+    }
+    if (this.currentEventRasterizer === null) {
+        this.currentEventRasterizer = this.createRasterizer(width, height);
     }
 };
 
@@ -238,6 +253,17 @@ PictureRenderer.prototype.setupGLState = function() {
         return false;
     }
     return true;
+};
+
+/**
+ * Clean up any allocated resources.
+ * Call setSharedRasterizerSize() to make the renderer usable again after this.
+ */
+PictureRenderer.prototype.free = function() {
+    this.currentEventRasterizer.free();
+    this.sharedRasterizer.free();
+    this.currentEventRasterizer = null;
+    this.sharedRasterizer = null;
 };
 
 /**

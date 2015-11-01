@@ -31,6 +31,7 @@ var Picture = function(id, name, boundsRect, bitmapScale, renderer) {
     this.updates = []; // PictureUpdates (state changes used as the basis of serialization and animation).
     this.currentEventAttachment = -1;
     this.currentEvent = null;
+    this.currentEventUntilCoord = undefined;
     this.currentEventMode = PictureEvent.Mode.normal;
     this.currentEventColor = [255, 255, 255];
 
@@ -97,7 +98,6 @@ Picture.prototype.crop = function(boundsRect, bitmapScale) {
     if (bitmapScale === undefined) {
         bitmapScale = this.pictureTransform.scale;
     }
-    this.currentEventRasterizer.free();
 
     this.pictureTransform.scale = bitmapScale;
     this.setBounds(boundsRect);
@@ -767,8 +767,6 @@ Picture.prototype.pictureElement = function() {
  * @protected
  */
 Picture.prototype.initRasterizers = function() {
-    this.currentEventRasterizer = this.renderer.createRasterizer(this.bitmapWidth(), this.bitmapHeight());
-    this.memoryUse += this.currentEventRasterizer.getMemoryBytes();
     this.renderer.setSharedRasterizerSize(this.bitmapWidth(), this.bitmapHeight());
 };
 
@@ -1001,8 +999,8 @@ Picture.prototype.pushEvent = function(targetBufferId, event) {
         }
     }
     var targetBuffer = this.findBuffer(targetBufferId);
-    if (this.currentEventRasterizer.drawEvent === event) {
-        targetBuffer.pushEvent(event, this.currentEventRasterizer);
+    if (this.renderer.currentEventRasterizer.drawEvent === event) {
+        targetBuffer.pushEvent(event, this.renderer.currentEventRasterizer);
     } else {
         if (event.eventType === 'bufferMerge') {
             this.undummify(event);
@@ -1274,10 +1272,7 @@ Picture.prototype.removeEventSessionId = function(sid, sessionEventId) {
  */
 Picture.prototype.setCurrentEvent = function(cEvent) {
     this.currentEvent = cEvent;
-    if (this.currentEvent) {
-        this.currentEventRasterizer.resetClip();
-        this.currentEvent.drawTo(this.currentEventRasterizer, this.pictureTransform);
-    }
+    this.currentEventUntilCoord = undefined;
     this.updateCurrentEventMode();
 };
 
@@ -1290,10 +1285,7 @@ Picture.prototype.setCurrentEvent = function(cEvent) {
  */
 Picture.prototype.setCurrentAnimationEvent = function(cEvent, untilCoord) {
     this.currentEvent = cEvent;
-    if (this.currentEvent) {
-        this.currentEventRasterizer.resetClip();
-        this.currentEvent.drawTo(this.currentEventRasterizer, this.pictureTransform, untilCoord);
-    }
+    this.currentEventUntilCoord = untilCoord;
     this.updateCurrentEventMode();
 };
 
@@ -1449,7 +1441,7 @@ Picture.prototype.animate = function(speed, animationFinishedCallBack) {
                 }
                 var untilCoord = picEvent.coords.length * updateT;
                 untilCoord = Math.ceil(untilCoord / 3) * 3;
-                picEvent.drawTo(that.animationData.picture.currentEventRasterizer, that.pictureTransform, untilCoord);
+                that.animationData.picture.setCurrentAnimationEvent(picEvent, untilCoord);
 
                 that.animationData.picture.display(that.ctx);
                 window.requestAnimationFrame(animationFrame);

@@ -10,6 +10,7 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         pic = testPicture();
     });
     afterEach(function() {
+        pic.renderer.free();
         pic.destroy();
         pic = null;
     });
@@ -745,14 +746,13 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
     });
 
     it('calculates its memory usage', function() {
-        var rasterizerUse = pic.currentEventRasterizer.getMemoryBytes();
         var compositorUse = pic.bitmapWidth() * pic.bitmapHeight() * 4;
-        expect(pic.memoryUse).toBe(rasterizerUse + compositorUse);
+        expect(pic.memoryUse).toBe(compositorUse);
         var clearColor = [12, 23, 34, 0];
         pic.addBuffer(1337, clearColor, true);
         var states = pic.buffers[0].undoStateBudget + 1;
         var bufferUse = pic.bitmapWidth() * pic.bitmapHeight() * 4 * states;
-        expect(pic.memoryUse).toBe(rasterizerUse + compositorUse + bufferUse);
+        expect(pic.memoryUse).toBe(compositorUse + bufferUse);
     });
 
     it('limits its memory usage to meet the given budget', function() {
