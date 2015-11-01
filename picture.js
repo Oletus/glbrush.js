@@ -46,6 +46,8 @@ var Picture = function(id, name, boundsRect, bitmapScale, renderer) {
     this.memoryUse = this.bitmapWidth() * this.bitmapHeight() * 4;
 
     this.container = null;
+    this.canvas = document.createElement('canvas');
+    this.ctx = this.canvas.getContext('2d');
 
     if (this.renderer.usesWebGl()) {
         this.gl = this.renderer.gl;
@@ -758,7 +760,7 @@ Picture.prototype.setContainer = function(container) {
  * @return {HTMLCanvasElement} the element that displays the rasterized picture.
  */
 Picture.prototype.pictureElement = function() {
-    return this.renderer.canvas;
+    return this.canvas;
 };
 
 /**
@@ -1350,31 +1352,12 @@ Picture.prototype.display = function() {
     if (this.animating) {
         return;
     }
-    this.renderer.prepareDisplay(this);
-    var compositor = this.renderer.compositor;
-    compositor.setTargetDimensions(this.bitmapWidth(), this.bitmapHeight());
-    for (var i = 0; i < this.buffers.length; ++i) {
-        if (this.buffers[i].isComposited()) {
-            compositor.pushBuffer(this.buffers[i]);
-            if (this.currentEventAttachment === this.buffers[i].id) {
-                if (this.currentEvent) {
-                   compositor.pushRasterizer(this.currentEventRasterizer,
-                                             this.currentEventColor,
-                                             this.currentEvent.opacity,
-                                             this.currentEventMode,
-                                             this.currentEvent.getBoundingBox(this.bitmapRect, this.pictureTransform));
-                } else {
-                    // Even if there's no this.currentEvent at the moment, push
-                    // so that the GLCompositor can avoid extra shader changes.
-                    compositor.pushRasterizer(this.currentEventRasterizer,
-                                              [0, 0, 0], 0,
-                                              this.currentEventMode,
-                                              null);
-                }
-            }
-        }
-    }
-    compositor.flush();
+    this.renderer.display(this);
+    this.canvas.width = this.bitmapWidth();
+    this.canvas.height = this.bitmapHeight();
+    // TODO: Would be nice to get rid of this extra copy. That should be easy once browsers have better APIs for
+    // offscreen renderíng.
+    this.ctx.drawImage(this.renderer.canvas, 0, 0);
 };
 
 /**
@@ -1608,7 +1591,7 @@ Picture.prototype.getPixelRGBA = function(coords) {
  */
 Picture.prototype.toDataURL = function() {
     this.display();
-    return this.renderer.canvas.toDataURL();
+    return this.canvas.toDataURL();
 };
 
 /**
@@ -1627,5 +1610,6 @@ Picture.prototype.toBlob = function(callback) {
     callback(dataURLtoBlob(this.toDataURL(), 'image/png'));
     // TODO: When this is supported widely enough:
     // this.display();
-    // this.renderer.canvas.toBlob(callback);
+    // this.canvas.toBlob(callback);
 };
+

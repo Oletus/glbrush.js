@@ -80,10 +80,10 @@ PictureRenderer.prototype.setPicture = function(picture) {
 };
 
 /**
- * Prepare for showing the picture on the canvas of this renderer.
+ * Show the picture on the canvas of this renderer.
  * @param {Picture} picture Picture about to be displayed on the canvas attached to this renderer.
  */
-PictureRenderer.prototype.prepareDisplay = function(picture) {
+PictureRenderer.prototype.display = function(picture) {
     this.setPicture(picture);
     this.canvas.width = picture.bitmapWidth();
     this.canvas.height = picture.bitmapHeight();
@@ -91,6 +91,31 @@ PictureRenderer.prototype.prepareDisplay = function(picture) {
         this.gl.scissor(0, 0, this.canvas.width, this.canvas.height);
         this.glManager.useFbo(null);
     }
+    var compositor = this.compositor;
+    compositor.setTargetDimensions(this.canvas.width, this.canvas.height);
+    for (var i = 0; i < picture.buffers.length; ++i) {
+        if (picture.buffers[i].isComposited()) {
+            compositor.pushBuffer(picture.buffers[i]);
+            if (picture.currentEventAttachment === picture.buffers[i].id) {
+                if (picture.currentEvent) {
+                   compositor.pushRasterizer(picture.currentEventRasterizer,
+                                             picture.currentEventColor,
+                                             picture.currentEvent.opacity,
+                                             picture.currentEventMode,
+                                             picture.currentEvent.getBoundingBox(picture.bitmapRect,
+                                                                                 picture.pictureTransform));
+                } else {
+                    // Even if there's no picture.currentEvent at the moment, push
+                    // so that the GLCompositor can avoid extra shader changes.
+                    compositor.pushRasterizer(picture.currentEventRasterizer,
+                                              [0, 0, 0], 0,
+                                              picture.currentEventMode,
+                                              null);
+                }
+            }
+        }
+    }
+    compositor.flush();
 };
 
 /**
