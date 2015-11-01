@@ -3,6 +3,7 @@
 /**
  * A relatively thin wrapper around a canvas and context used to render multiple Pictures.
  * Maintains state that isn't specific to a single Picture, such as the compositor and brush texture collection.
+ * @constructor
  * @param {string=} mode Either 'webgl', 'no-texdata-webgl' or 'canvas'. Defaults to 'webgl'.
  * @param {Array.<HTMLImageElement|HTMLCanvasElement>=} brushTextureData Set of brush textures to use. Can be undefined
  * if no textures are needed.
@@ -166,7 +167,7 @@ PictureRenderer.prototype.setupGLState = function() {
                                                         {'uSrcTex': 'tex2d', 'uScale': '2fv', 'uTranslate': '2fv'});
 
     this.compositor = new GLCompositor(this.glManager, this.gl, glUtils.maxTextureUnits);
-    
+
     var testRasterizer = new this.glRasterizerConstructor(this.gl, this.glManager, 128, 128, this.brushTextures);
     if (!testRasterizer.checkSanity()) {
         PictureRenderer.hasFailedWebGLSanity = true;

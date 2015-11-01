@@ -70,6 +70,8 @@ CanvasCompositor.prototype.pushRasterizer = function(rasterizer, color, opacity,
 /**
  * Set the dimensions of the target buffer that is being composited to.
  * Must be called before pushing things to composit.
+ * @param {number} width Width in pixels.
+ * @param {number} height Height in pixels.
  */
 CanvasCompositor.prototype.setTargetDimensions = function(width, height) {
     this.compositingCanvas.width = width;
@@ -209,6 +211,8 @@ GLCompositor.prototype.pushRasterizer = function(rasterizer, color, opacity,
 /**
  * Set the dimensions of the target buffer that is being composited to.
  * Must be called before pushing things to composit.
+ * @param {number} width Width in pixels.
+ * @param {number} height Height in pixels.
  */
 GLCompositor.prototype.setTargetDimensions = function(width, height) {
     this.targetWidth = width;

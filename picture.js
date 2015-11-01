@@ -318,11 +318,7 @@ Picture.prototype.setBufferOpacity = function(bufferId, opacity) {
  * the Picture object at the end, separated by line "metadata".
  * @param {number} bitmapScale Scale for rasterizing the picture. Events that
  * are pushed to this picture get this scale applied to them.
- * @param {Array.<string>} modesToTry Modes to try to initialize the picture.
- * Can contain either 'webgl', 'no-texdata-webgl', 'no-float-webgl' or 'canvas'.
- * Modes are tried in the order they are in the array.
- * @param {Array.<HTMLImageElement|HTMLCanvasElement>=} brushTextureData Set of brush textures to use. Can be undefined
- * if no textures are needed.
+ * @param {PictureRenderer} renderer Renderer to use to draw the picture.
  * @param {function(Object)} finishedCallback Function to be called asynchronously when loading has finished.
  * The function will be called with one parameter, an object containing key 'picture' for the created picture,
  * and key 'metadata' for the metadata lines.
@@ -947,11 +943,11 @@ Picture.prototype.createRasterizer = function(saveMemory) {
                                                   this.bitmapHeight(), this.renderer.brushTextures);
         } else {
             return new this.renderer.glRasterizerConstructor(this.gl, this.glManager,
-                                                             this.bitmapWidth() * 1.5,
-                                                             this.bitmapHeight() * 1.5, this.renderer.brushTextures);
+                                                             this.bitmapWidth(),
+                                                             this.bitmapHeight(), this.renderer.brushTextures);
         }
     } else {
-        return new Rasterizer(Math.floor(this.bitmapWidth()), Math.floor(this.bitmapHeight()), this.renderer.brushTextures);
+        return new Rasterizer(this.bitmapWidth(), this.bitmapHeight(), this.renderer.brushTextures);
     }
 };
 

@@ -196,7 +196,7 @@ compositingShader.getFragmentSource = function(layers) {
  * stack. Contains uniforms uLayer<n> for visible layers where <n> is the layer
  * index starting from zero for setting samplers for the layers. 'uColor<n>'
  * vec4 uniforms are used for rasterizer layers to pass unpremultiplied color
- * and opacity data, with values ranging from 0 to 1. 
+ * and opacity data, with values ranging from 0 to 1.
  * 'uLayer<n>Scale' vec2 uniforms are used to pass scale to apply to texture
  * coordinates for rasterizer layers. This makes it possible to use rasterizers
  * that are larger than the picture.
