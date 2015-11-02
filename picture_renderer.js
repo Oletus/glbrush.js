@@ -149,12 +149,24 @@ PictureRenderer.prototype.createRasterizer = function(width, height) {
 PictureRenderer.prototype.setSharedRasterizerSize = function(width, height) {
     if (this.sharedRasterizer !== null) {
         if (this.sharedRasterizer.width < width || this.sharedRasterizer.height < height) {
+            if (this.sharedRasterizer.width > width) {
+                width = this.sharedRasterizer.width;
+            }
+            if (this.sharedRasterizer.height > height) {
+                height = this.sharedRasterizer.height;
+            }
             this.sharedRasterizer.free();
             this.sharedRasterizer = null;
         }
     }
     if (this.currentEventRasterizer !== null) {
         if (this.currentEventRasterizer.width < width || this.currentEventRasterizer.height < height) {
+            if (this.currentEventRasterizer.width > width) {
+                width = this.currentEventRasterizer.width;
+            }
+            if (this.currentEventRasterizer.height > height) {
+                height = this.currentEventRasterizer.height;
+            }
             this.currentEventRasterizer.free();
             this.currentEventRasterizer = null;
         }
