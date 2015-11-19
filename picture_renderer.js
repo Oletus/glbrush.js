@@ -133,9 +133,8 @@ PictureRenderer.prototype.display = function(picture) {
  * @return {BaseRasterizer} The rasterizer.
  */
 PictureRenderer.prototype.createRasterizer = function(width, height) {
-    if (this.glRasterizerConstructor !== undefined) {
-        return new this.glRasterizerConstructor(this.gl, this.glManager,
-                                                width, height, this.brushTextures);
+    if (this.glRasterizerCreator !== undefined) {
+        return this.glRasterizerCreator(this.gl, this.glManager, width, height, this.brushTextures);
     } else {
         return new Rasterizer(width, height, this.brushTextures);
     }
@@ -236,13 +235,19 @@ PictureRenderer.prototype.setupGLState = function() {
 
     if (useFloatRasterizer) {
         if (this.mode === 'webgl') {
-            this.glRasterizerConstructor = GLFloatDynamicRasterizer;
+            this.glRasterizerCreator = function(gl, glManager, width, height, brushTextures) {
+                return new GLFloatRasterizer(gl, glManager, width, height, brushTextures, true);
+            };
         } else {
             // TODO: assert(this.mode === 'no-dynamic-webgl');
-            this.glRasterizerConstructor = GLFloatRasterizer;
+            this.glRasterizerCreator = function(gl, glManager, width, height, brushTextures) {
+                return new GLFloatRasterizer(gl, glManager, width, height, brushTextures, false);
+            };
         }
     } else {
-        this.glRasterizerConstructor = GLDoubleBufferedRasterizer;
+        this.glRasterizerCreator = function(gl, glManager, width, height, brushTextures) {
+            return new GLDoubleBufferedRasterizer(gl, glManager, width, height, brushTextures);
+        };
     }
 
     this.texBlitProgram = this.glManager.shaderProgram(blitShader.blitSrc,

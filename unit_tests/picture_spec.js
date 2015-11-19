@@ -784,10 +784,8 @@ var doPictureTest = function(mode) {
             // Break the rasterizers
             var oldDoubleBufferedFillCircle = GLDoubleBufferedRasterizer.prototype.fillCircle;
             var oldFloatFillCircle = GLFloatRasterizer.prototype.fillCircle;
-            var oldFloatTexDataFillCircle = GLFloatDynamicRasterizer.prototype.fillCircle;
             GLDoubleBufferedRasterizer.prototype.fillCircle = function() {};
             GLFloatRasterizer.prototype.fillCircle = function() {};
-            GLFloatDynamicRasterizer.prototype.fillCircle = function() {};
 
             var picRenderer = new PictureRenderer('webgl');
             expect(PictureRenderer.hasFailedWebGLSanity).toBe(true);
@@ -795,7 +793,6 @@ var doPictureTest = function(mode) {
             // Restore the rasterizers
             GLDoubleBufferedRasterizer.prototype.fillCircle = oldDoubleBufferedFillCircle;
             GLFloatRasterizer.prototype.fillCircle = oldFloatFillCircle;
-            GLFloatDynamicRasterizer.prototype.fillCircle = oldFloatTexDataFillCircle;
             PictureRenderer.hasFailedWebGLSanity = false;
         });
     }

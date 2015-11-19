@@ -487,7 +487,7 @@ describe('Rasterizing system', function() {
         commonRasterizerTests(createRasterizer);
     });
 
-    describe('GLFloatRasterizer', function() {
+    describe('GLFloatRasterizer in non-dynamic mode', function() {
         var createRasterizer = function(width, height, brushTextureData) {
             if (width === undefined) {
                 width = 123;
@@ -499,20 +499,20 @@ describe('Rasterizing system', function() {
             var glManager = glStateManager(gl);
             glManager.useQuadVertexBuffer();
             if (brushTextureData === undefined) {
-                return new GLFloatRasterizer(gl, glManager, width, height, null);
+                return new GLFloatRasterizer(gl, glManager, width, height, null, false);
             } else {
                 var brushTextures = new GLBrushTextures(gl, glManager);
                 for (var i = 0; i < brushTextureData.length; ++i) {
                     brushTextures.addTexture(brushTextureData[i]);
                 }
-                return new GLFloatRasterizer(gl, glManager, width, height, brushTextures);
+                return new GLFloatRasterizer(gl, glManager, width, height, brushTextures, false);
             }
         };
 
         commonRasterizerTests(createRasterizer);
     });
 
-    describe('GLFloatDynamicRasterizer', function() {
+    describe('GLFloatRasterizer in dynamic mode', function() {
         var createRasterizer = function(width, height, brushTextureData) {
             if (width === undefined) {
                 width = 123;
@@ -524,13 +524,13 @@ describe('Rasterizing system', function() {
             var glManager = glStateManager(gl);
             glManager.useQuadVertexBuffer();
             if (brushTextureData === undefined) {
-                return new GLFloatDynamicRasterizer(gl, glManager, width, height, null);
+                return new GLFloatRasterizer(gl, glManager, width, height, null, true);
             } else {
                 var brushTextures = new GLBrushTextures(gl, glManager);
                 for (var i = 0; i < brushTextureData.length; ++i) {
                     brushTextures.addTexture(brushTextureData[i]);
                 }
-                return new GLFloatDynamicRasterizer(gl, glManager, width, height, brushTextures);
+                return new GLFloatRasterizer(gl, glManager, width, height, brushTextures, true);
             }
         };
 
