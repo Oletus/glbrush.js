@@ -4,7 +4,7 @@
  * A relatively thin wrapper around a canvas and context used to render multiple Pictures.
  * Maintains state that isn't specific to a single Picture, such as the compositor and brush texture collection.
  * @constructor
- * @param {string=} mode Either 'webgl', 'no-texdata-webgl' or 'canvas'. Defaults to 'webgl'.
+ * @param {string=} mode Either 'webgl', 'no-dynamic-webgl' or 'canvas'. Defaults to 'webgl'.
  * @param {Array.<HTMLImageElement|HTMLCanvasElement>=} brushTextureData Set of brush textures to use. Can be undefined
  * if no textures are needed.
  */
@@ -37,7 +37,7 @@ var PictureRenderer = function(mode, brushTextureData) {
 /**
  * Create a renderer, choosing mode automatically.
  * @param {Array.<string>} modesToTry Modes to try to initialize the picture.
- * Can contain either 'webgl', 'no-texdata-webgl', 'no-float-webgl' or 'canvas'.
+ * Can contain either 'webgl', 'no-dynamic-webgl', 'no-float-webgl' or 'canvas'.
  * Modes are tried in the order they are in the array.
  * @param {Array.<HTMLImageElement|HTMLCanvasElement>=} brushTextureData Set of brush textures to use. Can be undefined
  * if no textures are needed.
@@ -69,7 +69,7 @@ PictureRenderer.hasFailedWebGLSanity = false;
  */
 PictureRenderer.prototype.usesWebGl = function() {
     return (this.mode === 'webgl' || this.mode === 'no-float-webgl' ||
-            this.mode === 'no-texdata-webgl');
+            this.mode === 'no-dynamic-webgl');
 };
 
 /**
@@ -218,7 +218,7 @@ PictureRenderer.initWebGL = function(canvas, debugGL) {
  * @return {boolean} Whether initialization succeeded.
  */
 PictureRenderer.prototype.setupGLState = function() {
-    var useFloatRasterizer = (this.mode === 'webgl' || this.mode === 'no-texdata-webgl');
+    var useFloatRasterizer = (this.mode === 'webgl' || this.mode === 'no-dynamic-webgl');
     if (useFloatRasterizer && !glUtils.floatFboSupported) {
         return false;
     }
@@ -236,9 +236,9 @@ PictureRenderer.prototype.setupGLState = function() {
 
     if (useFloatRasterizer) {
         if (this.mode === 'webgl') {
-            this.glRasterizerConstructor = GLFloatTexDataRasterizer;
+            this.glRasterizerConstructor = GLFloatDynamicRasterizer;
         } else {
-            // TODO: assert(this.mode === 'no-texdata-webgl');
+            // TODO: assert(this.mode === 'no-dynamic-webgl');
             this.glRasterizerConstructor = GLFloatRasterizer;
         }
     } else {

@@ -512,7 +512,7 @@ describe('Rasterizing system', function() {
         commonRasterizerTests(createRasterizer);
     });
 
-    describe('GLFloatTexDataRasterizer', function() {
+    describe('GLFloatDynamicRasterizer', function() {
         var createRasterizer = function(width, height, brushTextureData) {
             if (width === undefined) {
                 width = 123;
@@ -524,13 +524,13 @@ describe('Rasterizing system', function() {
             var glManager = glStateManager(gl);
             glManager.useQuadVertexBuffer();
             if (brushTextureData === undefined) {
-                return new GLFloatTexDataRasterizer(gl, glManager, width, height, null);
+                return new GLFloatDynamicRasterizer(gl, glManager, width, height, null);
             } else {
                 var brushTextures = new GLBrushTextures(gl, glManager);
                 for (var i = 0; i < brushTextureData.length; ++i) {
                     brushTextures.addTexture(brushTextureData[i]);
                 }
-                return new GLFloatTexDataRasterizer(gl, glManager, width, height, brushTextures);
+                return new GLFloatDynamicRasterizer(gl, glManager, width, height, brushTextures);
             }
         };
 

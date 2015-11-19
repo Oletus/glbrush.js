@@ -121,7 +121,7 @@ var init = function() {
         var option = select.options[select.selectedIndex];
         return option.value;
     }
-    var allModes = ['webgl', 'no-texdata-webgl', 'no-float-webgl', 'canvas'];
+    var allModes = ['webgl', 'no-dynamic-webgl', 'no-float-webgl', 'canvas'];
     selection('mode', allModes);
     var textureIds = ['0', '1'];
     var p = document.createElement('span');

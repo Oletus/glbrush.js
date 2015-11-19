@@ -137,18 +137,14 @@ ShaderGenerator.prototype.vertexUniformSource = function() {
  * @param {number} circles Amount of circles to draw in a single pass.
  * @param {boolean} dynamicCircles The amount of circles drawn in a single pass
  * can be set at run-time using an uniform.
- * @param {RasterizeShader.ParameterMode} parameterMode How are circle
- * parameters passed to the shader?
- * @param {boolean=} unroll Unroll the loop. By default unrolling happens if
- * parameterMode is parametersInUniforms.
+ * @param {boolean=} unroll Unroll the loop. True by default.
  */
 var RasterizeShader = function(format, soft, texturized, circles, dynamicCircles,
-                               parameterMode, unroll) {
+                               unroll) {
     if (unroll === undefined) {
-        unroll = parameterMode !== RasterizeShader.ParameterMode.inTex;
+        unroll = true;
     }
-    if (circles + 4 > glUtils.maxUniformVectors &&
-        parameterMode !== RasterizeShader.ParameterMode.inTex) {
+    if (circles + 4 > glUtils.maxUniformVectors) {
         console.log('Invalid RasterizeShader requested! Too many circles.');
         return;
     }
@@ -157,21 +153,11 @@ var RasterizeShader = function(format, soft, texturized, circles, dynamicCircles
     this.circles = circles;
     this.dynamicCircles = dynamicCircles;
     this.texturized = texturized;
-    this.parameterMode = parameterMode;
     this.unroll = unroll;
     this.initShaderGenerator();
 };
 
 RasterizeShader.prototype = new ShaderGenerator();
-
-/**
- * How to pass parameters to the shader.
- * @enum {number}
- */
-RasterizeShader.ParameterMode = {
-    inTex: 0,
-    inUniforms: 1
-};
 
 /**
  * Computes the uniforms used in the shader program.
@@ -194,44 +180,36 @@ RasterizeShader.prototype.uniforms = function(width, height) {
                  inFragment: true, inVertex: false, defaultValue: null});
     }
     if (this.dynamicCircles) {
-        var countInVertex =
-            this.parameterMode === RasterizeShader.ParameterMode.inUniforms;
         us.push({name: 'uCircleCount', type: 'int', shortType: '1i',
-                 inFragment: true, inVertex: countInVertex, defaultValue: 1});
+                 inFragment: true, inVertex: true, defaultValue: 1});
     }
-    if (this.parameterMode === RasterizeShader.ParameterMode.inTex) {
-        us.push({name: 'uCircleParameters', type: 'sampler2D',
-                 shortType: 'tex2d', inFragment: true, inVertex: false,
-                 defaultValue: null});
-    } else {
-        if (this.unroll) {
-            for (i = 0; i < this.circles; ++i) {
-                us.push({name: 'uCircle' + i, type: 'vec4', shortType: '4fv',
-                         inFragment: true, inVertex: false,
-                         defaultValue: [0.0, 0.0, 1.0, 1.0],
-                         comment: 'x, y coords in pixel space, radius in pixels, flowAlpha from 0 to 1'});
-                if (this.texturized) {
-                    us.push({name: 'uCircleB' + i, type: 'vec4', shortType: '4fv',
-                             inFragment: true, inVertex: false,
-                             defaultValue: [0.0, 0.0, 0.0, 0.0],
-                             comment: 'rotation in radians'});
-                }
-            }
-        } else {
-            var def = [];
-            for (i = 0; i < this.circles; ++i) {
-                def.push(0.0, 0.0, 1.0, 1.0);
-            }
-            us.push({name: 'uCircle', type: 'vec4', arraySize: this.circles,
-                     shortType: '4fv', inFragment: true, inVertex: false,
-                     defaultValue: def,
+    if (this.unroll) {
+        for (i = 0; i < this.circles; ++i) {
+            us.push({name: 'uCircle' + i, type: 'vec4', shortType: '4fv',
+                     inFragment: true, inVertex: false,
+                     defaultValue: [0.0, 0.0, 1.0, 1.0],
                      comment: 'x, y coords in pixel space, radius in pixels, flowAlpha from 0 to 1'});
             if (this.texturized) {
-                us.push({name: 'uCircleB', type: 'vec4', arraySize: this.circles,
-                         shortType: '4fv', inFragment: true, inVertex: false,
-                         defaultValue: def,
+                us.push({name: 'uCircleB' + i, type: 'vec4', shortType: '4fv',
+                         inFragment: true, inVertex: false,
+                         defaultValue: [0.0, 0.0, 0.0, 0.0],
                          comment: 'rotation in radians'});
             }
+        }
+    } else {
+        var def = [];
+        for (i = 0; i < this.circles; ++i) {
+            def.push(0.0, 0.0, 1.0, 1.0);
+        }
+        us.push({name: 'uCircle', type: 'vec4', arraySize: this.circles,
+                 shortType: '4fv', inFragment: true, inVertex: false,
+                 defaultValue: def,
+                 comment: 'x, y coords in pixel space, radius in pixels, flowAlpha from 0 to 1'});
+        if (this.texturized) {
+            us.push({name: 'uCircleB', type: 'vec4', arraySize: this.circles,
+                     shortType: '4fv', inFragment: true, inVertex: false,
+                     defaultValue: def,
+                     comment: 'rotation in radians'});
         }
     }
     us.push({name: 'uPixelPitch', type: 'vec2', shortType: '2fv',
@@ -327,29 +305,14 @@ RasterizeShader.prototype.fragmentInnerLoopSource = function(index,
     } else {
         src.push('    {');
     }
-    if (this.parameterMode === RasterizeShader.ParameterMode.inTex) {
-        src.push('      vec4 parameterColor = texture2D(uCircleParameters,' +
-                 'vec2(0.25, (float(' + index + ') + 0.5) / ' + this.circles + '.0));');
-        src.push('      vec2 center = parameterColor.xy;');
-        src.push('      float circleRadius = parameterColor.z;');
-        src.push('      float circleFlowAlpha = parameterColor.w;');
-        if (this.texturized) {
-            src.push('      vec4 parameterColor2 = texture2D(uCircleParameters,' +
-                     'vec2(0.75, (float(' + index + ') + 0.5) / ' + this.circles + '.0));');
-            src.push('      float circleRotation = parameterColor2.x;');
-        }
-    } else {
-        if (arrayIndex === undefined) {
-            arrayIndex = '[' + index + ']';
-        }
-        src.push('      vec2 center = uCircle' + arrayIndex + '.xy;');
-        src.push('      float circleRadius = uCircle' + arrayIndex + '.z;');
-        src.push('      float circleFlowAlpha = uCircle' + arrayIndex + '.w;');
-        if (this.texturized) {
-            src.push('      float circleRotation = uCircleB' + arrayIndex + '.x;');
-        }
+    if (arrayIndex === undefined) {
+        arrayIndex = '[' + index + ']';
     }
+    src.push('      vec2 center = uCircle' + arrayIndex + '.xy;');
+    src.push('      float circleRadius = uCircle' + arrayIndex + '.z;');
+    src.push('      float circleFlowAlpha = uCircle' + arrayIndex + '.w;');
     if (this.texturized) {
+        src.push('      float circleRotation = uCircleB' + arrayIndex + '.x;');
         src.push('      vec2 centerDiff = vPixelCoords - center;');
     } else {
         src.push('      float centerDist = length(center - vPixelCoords);');

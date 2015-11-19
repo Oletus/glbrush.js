@@ -784,10 +784,10 @@ var doPictureTest = function(mode) {
             // Break the rasterizers
             var oldDoubleBufferedFillCircle = GLDoubleBufferedRasterizer.prototype.fillCircle;
             var oldFloatFillCircle = GLFloatRasterizer.prototype.fillCircle;
-            var oldFloatTexDataFillCircle = GLFloatTexDataRasterizer.prototype.fillCircle;
+            var oldFloatTexDataFillCircle = GLFloatDynamicRasterizer.prototype.fillCircle;
             GLDoubleBufferedRasterizer.prototype.fillCircle = function() {};
             GLFloatRasterizer.prototype.fillCircle = function() {};
-            GLFloatTexDataRasterizer.prototype.fillCircle = function() {};
+            GLFloatDynamicRasterizer.prototype.fillCircle = function() {};
 
             var picRenderer = new PictureRenderer('webgl');
             expect(PictureRenderer.hasFailedWebGLSanity).toBe(true);
@@ -795,7 +795,7 @@ var doPictureTest = function(mode) {
             // Restore the rasterizers
             GLDoubleBufferedRasterizer.prototype.fillCircle = oldDoubleBufferedFillCircle;
             GLFloatRasterizer.prototype.fillCircle = oldFloatFillCircle;
-            GLFloatTexDataRasterizer.prototype.fillCircle = oldFloatTexDataFillCircle;
+            GLFloatDynamicRasterizer.prototype.fillCircle = oldFloatTexDataFillCircle;
             PictureRenderer.hasFailedWebGLSanity = false;
         });
     }
@@ -886,7 +886,7 @@ var doPictureTest = function(mode) {
 };
 
 describe('Picture', function() {
-    var modes = ['webgl', 'canvas', 'no-texdata-webgl', 'no-float-webgl'];
+    var modes = ['webgl', 'canvas', 'no-dynamic-webgl', 'no-float-webgl'];
     for (var i = 0; i < modes.length; ++i) {
         describe('in mode ' + modes[i], function() {
             doPictureTest(modes[i]);
