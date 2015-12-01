@@ -737,10 +737,7 @@ var GLDoubleBufferedRasterizer = function(gl, glManager, width, height, brushTex
             GLDoubleBufferedRasterizer.nTexShader.push(
                 new RasterizeShader(GLRasterizerFormat.redGreen, false, true, i, false, true));
         }
-        GLDoubleBufferedRasterizer.linearGradientShader =
-            new GradientShader(GLRasterizerFormat.redGreen, false);
-        GLDoubleBufferedRasterizer.verticalGradientShader =
-            new GradientShader(GLRasterizerFormat.redGreen, true);
+        GLDoubleBufferedRasterizer.linearGradientShader = new GradientShader(GLRasterizerFormat.redGreen);
     }
 
     this.generateShaderPrograms(GLDoubleBufferedRasterizer.nFillShader,
@@ -748,7 +745,6 @@ var GLDoubleBufferedRasterizer = function(gl, glManager, width, height, brushTex
                                 GLDoubleBufferedRasterizer.nTexShader);
 
     this.linearGradientProgram = GLDoubleBufferedRasterizer.linearGradientShader.programInstance(this.gl);
-    this.verticalGradientProgram = GLDoubleBufferedRasterizer.verticalGradientShader.programInstance(this.gl);
     this.gradientUniformParameters =
         GLDoubleBufferedRasterizer.linearGradientShader.uniformParameters(this.width, this.height);
 
@@ -1072,13 +1068,7 @@ GLDoubleBufferedRasterizer.prototype.linearGradient = function(coords1,
     this.gradientUniformParameters['uCoords0'][1] = this.height - coords0.y;
     this.gradientUniformParameters['uCoords1'][0] = coords1.x;
     this.gradientUniformParameters['uCoords1'][1] = this.height - coords1.y;
-    if (coords0.x === coords1.x) {
-        this.glManager.drawFullscreenQuad(this.verticalGradientProgram,
-                                          this.gradientUniformParameters);
-    } else {
-        this.glManager.drawFullscreenQuad(this.linearGradientProgram,
-                                          this.gradientUniformParameters);
-    }
+    this.glManager.drawFullscreenQuad(this.linearGradientProgram, this.gradientUniformParameters);
     this.postDraw(drawRect);
 };
 
@@ -1178,16 +1168,10 @@ var GLFloatRasterizer = function(gl, glManager, width, height, brushTextures, dy
     }
 
     if (!GLFloatRasterizer.linearGradientShader) {
-        // TODO: assert(!GLFloatRasterizer.verticalGradientShader);
-        GLFloatRasterizer.linearGradientShader =
-            new GradientShader(GLRasterizerFormat.alpha, false);
-        GLFloatRasterizer.verticalGradientShader =
-            new GradientShader(GLRasterizerFormat.alpha, true);
+        GLFloatRasterizer.linearGradientShader = new GradientShader(GLRasterizerFormat.alpha);
     }
     this.linearGradientProgram =
         GLFloatRasterizer.linearGradientShader.programInstance(this.gl);
-    this.verticalGradientProgram =
-        GLFloatRasterizer.verticalGradientShader.programInstance(this.gl);
     this.gradientUniformParameters =
         GLFloatRasterizer.linearGradientShader.uniformParameters(this.width,
                                                                  this.height);

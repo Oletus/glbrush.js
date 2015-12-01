@@ -10,12 +10,9 @@
  * @param {GLRasterizerFormat} format Format of the rasterizer's backing.
  * Affects whether to blend with a UINT8 source texture or a floating point
  * framebuffer.
- * @param {boolean} vertical Whether the shader draws only vertical gradients or
- * non-vertical gradients.
  */
-var GradientShader = function(format, vertical) {
+var GradientShader = function(format) {
     this.format = format;
-    this.vertical = vertical;
     this.initShaderGenerator();
 };
 
@@ -76,23 +73,11 @@ GradientShader.prototype.vertexSource = function() {
     src.push.apply(src, this.varyingSource());
     src.push.apply(src, this.vertexUniformSource());
     src.push('void main(void) {');
-    if (this.vertical) {
-        src.push('  vGradientValue = ((aVertexPosition.y + 1.0) * ' +
-                 'uPixels.y - uCoords0.y) / (uCoords1.y - uCoords0.y);');
-    } else {
-        src.push('  vec2 projected = (aVertexPosition + vec2(1.0, 1.0)) * ' +
-                 'uPixels;');
-        src.push('  float lineSlope = (uCoords1.y - uCoords0.y) / ' +
-                 '(uCoords1.x - uCoords0.x);');
-        src.push('  float lineYAtZero = uCoords0.y - lineSlope * uCoords0.x;');
-        src.push('  vec2 perpVector = vec2(1.0, -1.0 / lineSlope);');
-        src.push('  perpVector = normalize(perpVector);');
-        src.push('  float perpProjLength = perpVector.y * (projected.y - ' +
-                 '(lineSlope * projected.x + lineYAtZero));');
-        src.push('  projected.x -= perpVector.x * perpProjLength;');
-        src.push('  vGradientValue = (projected.x - uCoords0.x) / ' +
-                 '(uCoords1.x - uCoords0.x);');
-    }
+    src.push('  vec2 projected = (aVertexPosition + vec2(1.0, 1.0)) * uPixels;');
+    src.push('  vec2 projectionTarget = (uCoords1 - uCoords0);');
+    src.push('  projected -= uCoords0;');
+    src.push('  float projectionLength = dot(projected, normalize(projectionTarget));');
+    src.push('  vGradientValue = projectionLength / length(projectionTarget);');
     src.push('  gl_Position = vec4(aVertexPosition, 0.0, 1.0);');
     src.push('}'); // void main(void)
     return src.join('\n');
