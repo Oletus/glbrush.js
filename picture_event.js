@@ -600,10 +600,39 @@ ScatterEvent.coordsStride = 5; // x, y, radius, flow and rotation coordinates be
 ScatterEvent.prototype = new PictureEvent('scatter');
 
 /** @inheritDoc */
-ScatterEvent.prototype.fromJS = BrushEvent.prototype.fromJS;
+ScatterEvent.prototype.fromJS = function(json) {
+    // TODO: This is just a copy of BrushEvent.fromJS. Make a nicer inheritance hierarchy.
+    this.color = json['color'];
+    this.flow = json['flow'];
+    this.opacity = json['opacity'];
+    this.radius = json['radius'];
+    this.textureId = json['textureId']; // Id 0 is a circle, others are bitmap textures.
+    this.soft = json['softness'] > 0.5;
+    this.mode = json['mode'];
+    var coords = json['coordinates'];
+    for (var i = 0; i < coords.length; ++i) {
+        this.coords.push(coords[i]);
+    }
+};
 
 /** @inheritDoc */
-ScatterEvent.prototype.serialize = BrushEvent.prototype.serialize;
+ScatterEvent.prototype.serialize = function(json) {
+    // TODO: This is just a copy of BrushEvent.serialize. Make a nicer inheritance hierarchy.
+    this.serializePictureEvent(json);
+    json['color'] = colorUtil.serializeRGB(this.color);
+    json['flow'] = this.flow;
+    json['opacity'] = this.opacity;
+    json['radius'] = this.radius;
+    json['textureId'] = this.textureId;
+    json['softness'] = this.soft ? 1.0 : 0.0;
+    json['mode'] = this.mode;
+    var coords = [];
+    var i = 0;
+    while (i < this.coords.length) {
+        coords.push(this.coords[i++]);
+    }
+    json['coordinates'] = coords;
+};
 
 
 /**
@@ -676,8 +705,17 @@ ScatterEvent.prototype.translate = function(offset) {
     ++this.generation; // This invalidates any rasterizers (including BBRasterizer) which have this event cached.
 };
 
-/** @inheritDoc */
-ScatterEvent.prototype.getBoundingBox = BrushEvent.prototype.getBoundingBox;
+/**
+ * @param {Rect} clipRect Canvas bounds that can be used to intersect the
+ * bounding box against, though this is not mandatory.
+ * @param {AffineTransform} transform Transform for the event coordinates.
+ * @return {Rect} The event's bounding box. This function is not allowed to
+ * change its earlier return values as a side effect.
+ */
+ScatterEvent.prototype.getBoundingBox = function(clipRect, transform) {
+    this.drawTo(this.boundingBoxRasterizer, transform);
+    return this.boundingBoxRasterizer.boundingBox;
+};
 
 /**
  * Draw the brush event to the given rasterizer's bitmap.

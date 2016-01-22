@@ -148,7 +148,10 @@ var GLCompositor = function(glManager, gl, multitexturingLimit) {
  * Prepare for another round of compositing.
  * @protected
  */
-GLCompositor.prototype.prepare = CanvasCompositor.prototype.prepare;
+GLCompositor.prototype.prepare = function() {
+    this.pending = [];
+    this.needsClear = true;
+};
 
 /**
  * Add a buffer to composit to the framebuffer.
