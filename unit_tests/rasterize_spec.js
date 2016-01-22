@@ -474,13 +474,13 @@ describe('Rasterizing system', function() {
             var glManager = glStateManager(gl);
             glManager.useQuadVertexBuffer();
             if (brushTextureData === undefined) {
-                return new GLDoubleBufferedRasterizer(gl, glManager, width, height, null);
+                return GLDoubleBufferedRasterizer.create(gl, glManager, width, height, null);
             } else {
                 var brushTextures = new GLBrushTextures(gl, glManager);
                 for (var i = 0; i < brushTextureData.length; ++i) {
                     brushTextures.addTexture(brushTextureData[i]);
                 }
-                return new GLDoubleBufferedRasterizer(gl, glManager, width, height, brushTextures);
+                return GLDoubleBufferedRasterizer.create(gl, glManager, width, height, brushTextures);
             }
         };
 
@@ -499,13 +499,13 @@ describe('Rasterizing system', function() {
             var glManager = glStateManager(gl);
             glManager.useQuadVertexBuffer();
             if (brushTextureData === undefined) {
-                return new GLFloatRasterizer(gl, glManager, width, height, null, false);
+                return GLFloatRasterizer.create(gl, glManager, width, height, null, false);
             } else {
                 var brushTextures = new GLBrushTextures(gl, glManager);
                 for (var i = 0; i < brushTextureData.length; ++i) {
                     brushTextures.addTexture(brushTextureData[i]);
                 }
-                return new GLFloatRasterizer(gl, glManager, width, height, brushTextures, false);
+                return GLFloatRasterizer.create(gl, glManager, width, height, brushTextures, false);
             }
         };
 
@@ -524,13 +524,13 @@ describe('Rasterizing system', function() {
             var glManager = glStateManager(gl);
             glManager.useQuadVertexBuffer();
             if (brushTextureData === undefined) {
-                return new GLFloatRasterizer(gl, glManager, width, height, null, true);
+                return GLFloatRasterizer.create(gl, glManager, width, height, null, true);
             } else {
                 var brushTextures = new GLBrushTextures(gl, glManager);
                 for (var i = 0; i < brushTextureData.length; ++i) {
                     brushTextures.addTexture(brushTextureData[i]);
                 }
-                return new GLFloatRasterizer(gl, glManager, width, height, brushTextures, true);
+                return GLFloatRasterizer.create(gl, glManager, width, height, brushTextures, true);
             }
         };
 

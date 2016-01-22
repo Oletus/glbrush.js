@@ -236,17 +236,17 @@ PictureRenderer.prototype.setupGLState = function() {
     if (useFloatRasterizer) {
         if (this.mode === 'webgl') {
             this.glRasterizerCreator = function(gl, glManager, width, height, brushTextures) {
-                return new GLFloatRasterizer(gl, glManager, width, height, brushTextures, true);
+                return GLFloatRasterizer.create(gl, glManager, width, height, brushTextures, true);
             };
         } else {
             // TODO: assert(this.mode === 'no-dynamic-webgl');
             this.glRasterizerCreator = function(gl, glManager, width, height, brushTextures) {
-                return new GLFloatRasterizer(gl, glManager, width, height, brushTextures, false);
+                return GLFloatRasterizer.create(gl, glManager, width, height, brushTextures, false);
             };
         }
     } else {
         this.glRasterizerCreator = function(gl, glManager, width, height, brushTextures) {
-            return new GLDoubleBufferedRasterizer(gl, glManager, width, height, brushTextures);
+            return GLDoubleBufferedRasterizer.create(gl, glManager, width, height, brushTextures);
         };
     }
 

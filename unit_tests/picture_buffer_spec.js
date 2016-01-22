@@ -1087,7 +1087,7 @@ describe('GLBuffer', function() {
                             createEvent, params.width, params.height, new AffineTransform(), params.hasUndoStates);
     };
     var createRasterizer = function(params) {
-        return new GLDoubleBufferedRasterizer(gl, glManager, params.width, params.height, null);
+        return GLDoubleBufferedRasterizer.create(gl, glManager, params.width, params.height, null);
     };
 
     testBuffer(initTestCanvas, resizeTestCanvas, createBuffer, createRasterizer, params, false);

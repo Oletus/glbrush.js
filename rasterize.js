@@ -704,6 +704,27 @@ var GLRasterizerFormat = {
  * A WebGL rasterizer using two RGB Uint8 buffers as backing for its bitmap.
  * Floating point support in the WebGL implementation is not required.
  * @constructor
+ */
+var GLDoubleBufferedRasterizer = function() {};
+
+GLDoubleBufferedRasterizer.prototype = new BaseRasterizer();
+
+/**
+ * @param {WebGLRenderingContext} gl The rendering context.
+ * @param {Object} glManager The state manager returned by glStateManager() in
+ * utilgl.
+ * @param {number} width Width of the rasterizer bitmap in pixels.
+ * @param {number} height Height of the rasterizer bitmap in pixels.
+ * @param {GLBrushTextures} brushTextures Collection of brush tip textures to use.
+ * @return {GLDoubleBufferedRasterizer}
+ */
+GLDoubleBufferedRasterizer.create = function(gl, glManager, width, height, brushTextures) {
+    var rast = new GLDoubleBufferedRasterizer();
+    rast.init(gl, glManager, width, height, brushTextures);
+    return rast;
+};
+
+/**
  * @param {WebGLRenderingContext} gl The rendering context.
  * @param {Object} glManager The state manager returned by glStateManager() in
  * utilgl.
@@ -711,7 +732,7 @@ var GLRasterizerFormat = {
  * @param {number} height Height of the rasterizer bitmap in pixels.
  * @param {GLBrushTextures} brushTextures Collection of brush tip textures to use.
  */
-var GLDoubleBufferedRasterizer = function(gl, glManager, width, height, brushTextures) {
+GLDoubleBufferedRasterizer.prototype.init = function(gl, glManager, width, height, brushTextures) {
     this.initBaseRasterizer(width, height, brushTextures);
     this.initGLRasterizer(gl, glManager, GLRasterizerFormat.redGreen,
                           GLDoubleBufferedRasterizer.maxCircles);
@@ -775,8 +796,6 @@ GLDoubleBufferedRasterizer.nSoftShader = null;
 * @protected
 */
 GLDoubleBufferedRasterizer.nTexShader = null;
-
-GLDoubleBufferedRasterizer.prototype = new BaseRasterizer();
 
 /**
  * @return {number} The GPU memory usage of this rasterizer in bytes.
@@ -1092,6 +1111,29 @@ GLDoubleBufferedRasterizer.prototype.getPixel = function(coords) {
  * and determines the amount of circles at shader run time. Floating point texture
  * support in the WebGL implementation is required.
  * @constructor
+ */
+var GLFloatRasterizer = function() {};
+
+GLFloatRasterizer.prototype = new GLDoubleBufferedRasterizer();
+
+/**
+ * @param {WebGLRenderingContext} gl The rendering context.
+ * @param {Object} glManager The state manager returned by glStateManager() in
+ * utilgl.
+ * @param {number} width Width of the rasterizer bitmap in pixels.
+ * @param {number} height Height of the rasterizer bitmap in pixels.
+ * @param {GLBrushTextures} brushTextures Collection of brush tip textures to use.
+ * @param {boolean} dynamic Whether to determine amount of circles to draw in a
+ * single pass based on an uniform at shader run time.
+ * @return {GLFloatRasterizer}
+ */
+GLFloatRasterizer.create = function(gl, glManager, width, height, brushTextures, dynamic) {
+    var rast = new GLFloatRasterizer();
+    rast.init(gl, glManager, width, height, brushTextures, dynamic);
+    return rast;
+};
+
+/**
  * @param {WebGLRenderingContext} gl The rendering context.
  * @param {Object} glManager The state manager returned by glStateManager() in
  * utilgl.
@@ -1101,7 +1143,7 @@ GLDoubleBufferedRasterizer.prototype.getPixel = function(coords) {
  * @param {boolean} dynamic Whether to determine amount of circles to draw in a
  * single pass based on an uniform at shader run time.
  */
-var GLFloatRasterizer = function(gl, glManager, width, height, brushTextures, dynamic) {
+GLFloatRasterizer.prototype.init = function(gl, glManager, width, height, brushTextures, dynamic) {
     if (dynamic === undefined) {
         dynamic = false;
     }
@@ -1209,23 +1251,12 @@ GLFloatRasterizer.nSoftShader = null;
  */
 GLFloatRasterizer.nTexShader = null;
 
-GLFloatRasterizer.prototype = new BaseRasterizer();
-
 /**
  * @return {number} The GPU memory usage of this rasterizer in bytes.
  */
 GLFloatRasterizer.prototype.getMemoryBytes = function() {
     return this.width * this.height * 16;
 };
-
-// TODO: Is this use of inheritDoc correct?
-/** @inheritDoc */
-GLFloatRasterizer.prototype.initGLRasterizer =
-    GLDoubleBufferedRasterizer.prototype.initGLRasterizer;
-
-/** @inheritDoc */
-GLFloatRasterizer.prototype.generateShaderPrograms =
-    GLDoubleBufferedRasterizer.prototype.generateShaderPrograms;
 
 /**
  * Clean up any allocated resources. The rasterizer is not usable after this.
@@ -1281,10 +1312,6 @@ GLFloatRasterizer.prototype.preDraw = function(uniformParameters) {
 GLFloatRasterizer.prototype.postDraw = function(invalRect) {
 };
 
-/** @inheritDoc */
-GLFloatRasterizer.prototype.drawWithColor =
-    GLDoubleBufferedRasterizer.prototype.drawWithColor;
-
 /**
  * Clear the rasterizer's bitmap to all 0's.
  */
@@ -1295,10 +1322,6 @@ GLFloatRasterizer.prototype.clear = function() {
     this.glManager.useFboTex(this.tex);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 };
-
-/** @inheritDoc */
-GLFloatRasterizer.prototype.fillCircle =
-    GLDoubleBufferedRasterizer.prototype.fillCircle;
 
 /** @inheritDoc */
 GLFloatRasterizer.prototype.flushCircles = function() {
@@ -1347,10 +1370,6 @@ GLFloatRasterizer.prototype.flushCircles = function() {
     this.circleRect.makeEmpty();
     this.circleInd = 0;
 };
-
-/** @inheritDoc */
-GLFloatRasterizer.prototype.linearGradient =
-    GLDoubleBufferedRasterizer.prototype.linearGradient;
 
 /** @inheritDoc */
 GLFloatRasterizer.prototype.getPixel = function(coords) {
