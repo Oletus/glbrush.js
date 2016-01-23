@@ -5,9 +5,44 @@
 'use strict';
 
 /**
+ * A compositor
+ * @interface
+ */
+var Compositor = function() {};
+
+Compositor.prototype.flush = function() {};
+
+/**
+ * Add a buffer to composit to the target context.
+ * @param {PictureBuffer} buffer Buffer to composit.
+ */
+Compositor.prototype.pushBuffer = function(buffer) {};
+
+/**
+ * Add a rasterizer to composit to the framebuffer. In case the rasterizer is larger than the target,
+ * it is aligned to the top left corner.
+ * @param {BaseRasterizer} rasterizer Rasterizer to merge to the last pushed
+ * buffer.
+ * @param {Uint8Array|Array.<number>} color Color to color the rasterizer with.
+ * @param {number} opacity Opacity to use for blending the rasterizer.
+ * @param {PictureEvent.Mode} mode Blending mode to use.
+ * @param {Rect} boundingBox Bounding box for the rasterizer.
+ */
+Compositor.prototype.pushRasterizer = function(rasterizer, color, opacity, mode, boundingBox) {};
+
+/**
+ * Set the dimensions of the target buffer that is being composited to.
+ * Must be called before pushing things to composit.
+ * @param {number} width Width in pixels.
+ * @param {number} height Height in pixels.
+ */
+Compositor.prototype.setTargetDimensions = function(width, height) {};
+
+/**
  * A compositor for buffers that have canvas backing.
  * @param {CanvasRenderingContext2D} ctx Target rendering context.
  * @constructor
+ * @implements {Compositor}
  */
 var CanvasCompositor = function(ctx) {
     this.ctx = ctx;
@@ -57,8 +92,7 @@ CanvasCompositor.prototype.pushBuffer = function(buffer) {
  * @param {PictureEvent.Mode} mode Blending mode to use.
  * @param {Rect} boundingBox Bounding box for the rasterizer.
  */
-CanvasCompositor.prototype.pushRasterizer = function(rasterizer, color, opacity,
-                                                     mode, boundingBox) {
+CanvasCompositor.prototype.pushRasterizer = function(rasterizer, color, opacity, mode, boundingBox) {
     if (opacity === 0 || boundingBox === null) {
         return;
     }
@@ -134,6 +168,7 @@ CanvasCompositor.prototype.flush = function() {
  * @param {number} multitexturingLimit Maximum number of textures to access in
  * one fragment shader pass.
  * @constructor
+ * @implements {Compositor}
  */
 var GLCompositor = function(glManager, gl, multitexturingLimit) {
     this.glManager = glManager;
