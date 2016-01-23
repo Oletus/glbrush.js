@@ -5,11 +5,15 @@
 'use strict';
 
 /**
- * A compositor
+ * A compositor.
  * @interface
  */
 var Compositor = function() {};
 
+/**
+ * Ensure that results of all queued draw operations are written into the
+ * framebuffer.
+ */
 Compositor.prototype.flush = function() {};
 
 /**

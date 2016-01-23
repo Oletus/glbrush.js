@@ -657,6 +657,9 @@ ScatterEvent.prototype.translate = function(offset) {
     ++this.generation; // This invalidates any rasterizers (including BBRasterizer) which have this event cached.
 };
 
+/**
+ * Normalize pressure (does not apply to scatter event).
+ */
 ScatterEvent.prototype.normalizePressure = function() {};
 
 /**
