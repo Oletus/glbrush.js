@@ -216,6 +216,7 @@ BaseRasterizer.prototype.checkSanity = function() {
  * @param {number} width Width of the rasterizer bitmap in pixels.
  * @param {number} height Height of the rasterizer bitmap in pixels.
  * @param {GLBrushTextures} brushTextures Collection of brush tip textures to use. TODO: SW mode textures
+ * @extends {BaseRasterizer}
  */
 var Rasterizer = function(width, height, brushTextures) {
     this.initBaseRasterizer(width, height, brushTextures);
@@ -704,6 +705,7 @@ var GLRasterizerFormat = {
  * A WebGL rasterizer using two RGB Uint8 buffers as backing for its bitmap.
  * Floating point support in the WebGL implementation is not required.
  * @constructor
+ * @extends {BaseRasterizer}
  */
 var GLDoubleBufferedRasterizer = function() {};
 
@@ -1111,6 +1113,7 @@ GLDoubleBufferedRasterizer.prototype.getPixel = function(coords) {
  * and determines the amount of circles at shader run time. Floating point texture
  * support in the WebGL implementation is required.
  * @constructor
+ * @extends {GLDoubleBufferedRasterizer}
  */
 var GLFloatRasterizer = function() {};
 

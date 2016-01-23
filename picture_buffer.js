@@ -824,6 +824,7 @@ PictureBuffer.prototype.isListed = function() {
 /**
  * A PictureBuffer implementation with a canvas backing for the bitmap.
  * @constructor
+ * @extends {PictureBuffer}
  * @param {BufferAddEvent} createEvent Event that initializes the buffer.
  * @param {number} width Width of the buffer in pixels. Must be an integer.
  * @param {number} height Height of the buffer in pixels. Must be an integer.
@@ -1119,6 +1120,7 @@ CanvasBuffer.prototype.bytesPerPixel = function() {
 /**
  * A PictureBuffer implementation with a GL texture backing for the bitmap.
  * @constructor
+ * @extends {PictureBuffer}
  * @param {WebGLRenderingContext} gl The rendering context.
  * @param {Object} glManager The state manager returned by glStateManager() in
  * utilgl.

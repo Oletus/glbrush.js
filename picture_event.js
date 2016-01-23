@@ -446,6 +446,7 @@ BrushEvent.prototype.scaleRadiusPreservingFlow = function(radiusScale) {
  * A rasterizer that does not rasterize, but computes bounding boxes for a brush
  * event. Only implements functions necessary for drawing a brush event.
  * @constructor
+ * @extends {BaseRasterizer}
  */
 BrushEvent.BBRasterizer = function() {
     this.state = null;
