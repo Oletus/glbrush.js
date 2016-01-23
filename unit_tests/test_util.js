@@ -13,8 +13,9 @@ function testRGB() {
 }
 
 function testBrushEvent() {
-    return new BrushEvent(0, 1, false, testRGB(), 0.78, 0.9, 25, 0, 1.0,
-                          PictureEvent.Mode.normal);
+    var event = new BrushEvent();
+    event.init(0, 1, false, testRGB(), 0.78, 0.9, 25, 0, 1.0, PictureEvent.Mode.normal);
+    return event;
 }
 
 function fillingBrushEvent(widthToFill, heightToFill, color, opacity, mode,
@@ -29,8 +30,8 @@ function fillingBrushEvent(widthToFill, heightToFill, color, opacity, mode,
         flow = 1.0;
     }
     var radius = Math.max(widthToFill, heightToFill) + 2;
-    var event = new BrushEvent(0, 1, false, color, flow, opacity, radius, 0, 0.0,
-                          mode);
+    var event = new BrushEvent();
+    event.init(0, 1, false, color, flow, opacity, radius, 0, 0.0, mode);
     event.pushCoordTriplet(0, 0, 1.0);
     event.pushCoordTriplet(widthToFill, heightToFill, 1.0);
     return event;
@@ -56,15 +57,16 @@ function expectTestBrushEvent(brushEvent, coordsLength) {
 function testScatterEvent() {
     var radius = 25;
     var flowAlpha = 0.78;
-    return new ScatterEvent(0, 1, false, testRGB(), flowAlpha, 0.9, radius, 0, 1.0,
-                              PictureEvent.Mode.normal);
+    var event = new ScatterEvent();
+    event.init(0, 1, false, testRGB(), flowAlpha, 0.9, radius, 0, 1.0, PictureEvent.Mode.normal);
+    return event;
 }
 
 function testScatterEventWithPushCoordTriplet() {
     var radius = 25;
     var flowAlpha = 0.78;
-    var ev = new ScatterEvent(0, 1, false, testRGB(), flowAlpha, 0.9, radius, 0, 1.0,
-                              PictureEvent.Mode.normal);
+    var ev = new ScatterEvent();
+    ev.init(0, 1, false, testRGB(), flowAlpha, 0.9, radius, 0, 1.0, PictureEvent.Mode.normal);
     // To be able to share more tests with BrushEvent:
     ev.pushCoordTriplet = function(x, y, pressure) {
         this.fillCircle(x, y, radius * pressure, flowAlpha, 0.0);

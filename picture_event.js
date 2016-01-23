@@ -199,40 +199,17 @@ PictureEvent.Mode = {
 };
 
 /**
- * Generate a constructor for an event conforming to the brush event format.
- * @param {boolean} needsTipMovers True if needs brush tip movement interpolation.
- * @return {function(number, number, boolean, Uint8Array|Array.<number>, number,
- * number, number, number, number, PictureEvent.Mode)} Constructor for the event.
- */
-var brushEventConstructor = function(needsTipMovers) {
-    return function(sid, sessionEventId, undone, color, flow, opacity, radius, textureId, softness, mode) {
-        if (sid !== undefined) {
-            // TODO: assert(color.length == 3);
-            this.sid = sid;
-            this.sessionEventId = sessionEventId;
-            this.undone = undone;
-            this.color = color;
-            this.flow = flow;
-            this.opacity = opacity;
-            this.radius = radius;
-            this.textureId = textureId; // Id 0 is a circle, others are bitmap textures.
-            this.soft = softness > 0.5;
-            this.mode = mode;
-        }
-        this.coords = []; // holding x,y,pressure triplets
-        this.boundingBoxRasterizer = new BrushEvent.BBRasterizer();
-        this.hideCount = 0;
-        this.generation = 0;
-        if (needsTipMovers) {
-            this.bbTip = new BrushTipMover(true);
-            this.brushTip = new BrushTipMover(true);
-        }
-    };
-};
-
-/**
  * A PictureEvent representing a brush stroke.
  * @constructor
+ */
+var BrushEvent = function() {
+    // True if needs brush tip movement interpolation. Can be set to false in inheriting objects.
+    this.needsTipMovers = true;
+};
+
+BrushEvent.prototype = new PictureEvent('brush');
+
+/**
  * @param {number} sid Session identifier. Must be an integer.
  * @param {number} sessionEventId An event/session specific identifier. The idea
  * is that the sid/sessionEventId pair is unique for this event, and that newer
@@ -251,14 +228,36 @@ var brushEventConstructor = function(needsTipMovers) {
  * @param {number} softness Value controlling the softness. Range 0 to 1.
  * @param {PictureEvent.Mode} mode Blending mode to use.
  */
-var BrushEvent = brushEventConstructor(true);
-
-BrushEvent.prototype = new PictureEvent('brush');
+BrushEvent.prototype.init = function(sid, sessionEventId, undone, color, flow, opacity, radius, textureId, softness,
+                                     mode) {
+    if (sid !== undefined) {
+        // TODO: assert(color.length == 3);
+        this.sid = sid;
+        this.sessionEventId = sessionEventId;
+        this.undone = undone;
+        this.color = color;
+        this.flow = flow;
+        this.opacity = opacity;
+        this.radius = radius;
+        this.textureId = textureId; // Id 0 is a circle, others are bitmap textures.
+        this.soft = softness > 0.5;
+        this.mode = mode;
+    }
+    this.coords = []; // holding x,y,pressure triplets
+    this.boundingBoxRasterizer = new BrushEvent.BBRasterizer();
+    this.hideCount = 0;
+    this.generation = 0;
+    if (this.needsTipMovers) {
+        this.bbTip = new BrushTipMover(true);
+        this.brushTip = new BrushTipMover(true);
+    }
+};
 
 /**
  * @param {Object} json JS object to parse values from.
  */
 BrushEvent.prototype.fromJS = function(json) {
+    this.init();
     this.color = json['color'];
     this.flow = json['flow'];
     this.opacity = json['opacity'];
@@ -573,23 +572,11 @@ BrushEvent.prototype.isRasterized = function() {
 /**
  * A PictureEvent representing a bunch of individually positioned circles.
  * @constructor
- * @param {number} sid Session identifier. Must be an integer.
- * @param {number} sessionEventId An event/session specific identifier. The idea
- * is that the sid/sessionEventId pair is unique for this event, and that newer
- * events will have greater sessionEventIds. Must be an integer.
- * @param {boolean} undone Whether this event is undone.
- * @param {Uint8Array|Array.<number>} color The RGB color of the event. Channel
- * values are between 0-255.
- * @param {number} flow Alpha value controlling blending individual brush
- * samples (circles) to each other in the rasterizer. Range 0 to 1.
- * @param {number} opacity Alpha value controlling blending the rasterizer
- * data to the target buffer. Range 0 to 1.
- * @param {number} radius The stroke radius in pixels.
- * @param {number} textureId Id of the brush tip shape texture. 0 is a circle, others are bitmap textures.
- * @param {number} softness Value controlling the softness. Range 0 to 1.
- * @param {PictureEvent.Mode} mode Blending mode to use.
  */
-var ScatterEvent = brushEventConstructor(false);
+var ScatterEvent = function() {
+    this.eventType = 'scatter';
+    this.needsTipMovers = false;
+};
 
 /**
  * @const
@@ -597,43 +584,7 @@ var ScatterEvent = brushEventConstructor(false);
  */
 ScatterEvent.coordsStride = 5; // x, y, radius, flow and rotation coordinates belong together
 
-ScatterEvent.prototype = new PictureEvent('scatter');
-
-/** @inheritDoc */
-ScatterEvent.prototype.fromJS = function(json) {
-    // TODO: This is just a copy of BrushEvent.fromJS. Make a nicer inheritance hierarchy.
-    this.color = json['color'];
-    this.flow = json['flow'];
-    this.opacity = json['opacity'];
-    this.radius = json['radius'];
-    this.textureId = json['textureId']; // Id 0 is a circle, others are bitmap textures.
-    this.soft = json['softness'] > 0.5;
-    this.mode = json['mode'];
-    var coords = json['coordinates'];
-    for (var i = 0; i < coords.length; ++i) {
-        this.coords.push(coords[i]);
-    }
-};
-
-/** @inheritDoc */
-ScatterEvent.prototype.serialize = function(json) {
-    // TODO: This is just a copy of BrushEvent.serialize. Make a nicer inheritance hierarchy.
-    this.serializePictureEvent(json);
-    json['color'] = colorUtil.serializeRGB(this.color);
-    json['flow'] = this.flow;
-    json['opacity'] = this.opacity;
-    json['radius'] = this.radius;
-    json['textureId'] = this.textureId;
-    json['softness'] = this.soft ? 1.0 : 0.0;
-    json['mode'] = this.mode;
-    var coords = [];
-    var i = 0;
-    while (i < this.coords.length) {
-        coords.push(this.coords[i++]);
-    }
-    json['coordinates'] = coords;
-};
-
+ScatterEvent.prototype = new BrushEvent();
 
 /**
  * Parse a ScatterEvent from a tokenized serialization.
@@ -704,6 +655,8 @@ ScatterEvent.prototype.translate = function(offset) {
     }
     ++this.generation; // This invalidates any rasterizers (including BBRasterizer) which have this event cached.
 };
+
+ScatterEvent.prototype.normalizePressure = function() {};
 
 /**
  * @param {Rect} clipRect Canvas bounds that can be used to intersect the

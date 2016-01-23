@@ -605,8 +605,9 @@ Picture.prototype.setActiveSession = function(sid) {
  */
 Picture.prototype.createBrushEvent = function(color, flow, opacity, radius,
                                               textureId, softness, mode) {
-    var event = new BrushEvent(this.activeSid, this.activeSessionEventId, false,
-                               color, flow, opacity, radius, textureId, softness, mode);
+    var event = new BrushEvent();
+    event.init(this.activeSid, this.activeSessionEventId, false,
+               color, flow, opacity, radius, textureId, softness, mode);
     this.activeSessionEventId++;
     return event;
 };
@@ -628,9 +629,9 @@ Picture.prototype.createBrushEvent = function(color, flow, opacity, radius,
  */
 Picture.prototype.createScatterEvent = function(color, flow, opacity, radius,
                                                 textureId, softness, mode) {
-    var event = new ScatterEvent(this.activeSid, this.activeSessionEventId,
-                                 false, color, flow, opacity, radius, textureId, softness,
-                                 mode);
+    var event = new ScatterEvent();
+    event.init(this.activeSid, this.activeSessionEventId,
+               false, color, flow, opacity, radius, textureId, softness, mode);
     this.activeSessionEventId++;
     return event;
 };
