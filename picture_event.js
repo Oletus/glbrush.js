@@ -298,31 +298,30 @@ BrushEvent.prototype.serialize = function(json) {
 };
 
 /**
- * Generate a parser for an event conforming to the brush event format.
- * @param {function(number, number, boolean, Uint8Array|Array.<number>, number,
- * number, number, number, PictureEvent.Mode)} constructor Constructor for the
- * parsed object.
- * @return {function(Array.<string>, number, number, number, number, boolean)}
- * Parse function.
+ * Parse event attributes conforming to a legacy brush event format.
+ * @param {Object} json JS object corresponding to the event to add parsed information to.
+ * @param {Array.<string>} arr Array containing the tokens, split at spaces from
+ * the original serialization.
+ * @param {number} i Index of the first token to deserialize.
+ * @param {number} version Version number of the serialization format.
+ * @return {number} Index to continue parsing the brush event coordinates from.
  */
-var brushEventLegacyParser = function(constructor) {
-    return function(json, arr, i, version) {
-        var color = [];
-        color[0] = parseInt(arr[i++]);
-        color[1] = parseInt(arr[i++]);
-        color[2] = parseInt(arr[i++]);
-        json['color'] = color;
-        json['flow'] = parseFloat(arr[i++]);
-        json['opacity'] = parseFloat(arr[i++]);
-        json['radius'] = parseFloat(arr[i++]);
-        json['textureId'] = 0;
-        if (version > 1) {
-            json['textureId'] = parseInt(arr[i++]);
-        }
-        json['softness'] = parseFloat(arr[i++]);
-        json['mode'] = parseInt(arr[i++]);
-        constructor.parseLegacyCoords(json, arr, i, version);
-    };
+BrushEvent.parseLegacyAttributes = function(json, arr, i, version) {
+    var color = [];
+    color[0] = parseInt(arr[i++]);
+    color[1] = parseInt(arr[i++]);
+    color[2] = parseInt(arr[i++]);
+    json['color'] = color;
+    json['flow'] = parseFloat(arr[i++]);
+    json['opacity'] = parseFloat(arr[i++]);
+    json['radius'] = parseFloat(arr[i++]);
+    json['textureId'] = 0;
+    if (version > 1) {
+        json['textureId'] = parseInt(arr[i++]);
+    }
+    json['softness'] = parseFloat(arr[i++]);
+    json['mode'] = parseInt(arr[i++]);
+    return i;
 };
 
 /**
@@ -333,7 +332,10 @@ var brushEventLegacyParser = function(constructor) {
  * @param {number} i Index of the first token to deserialize.
  * @param {number} version Version number of the serialization format.
  */
-BrushEvent.parseLegacy = brushEventLegacyParser(BrushEvent);
+BrushEvent.parseLegacy = function(json, arr, i, version) {
+    i = BrushEvent.parseLegacyAttributes(json, arr, i, version);
+    BrushEvent.parseLegacyCoords(json, arr, i, version);
+};
 
 /**
  * Parse BrushEvent coordinates from a tokenized serialization.
@@ -595,7 +597,10 @@ ScatterEvent.prototype = new BrushEvent();
  * @param {number} i Index of the first token to deserialize.
  * @param {number} version Version number of the serialization format.
  */
-ScatterEvent.parseLegacy = brushEventLegacyParser(ScatterEvent);
+ScatterEvent.parseLegacy = function(json, arr, i, version) {
+    i = BrushEvent.parseLegacyAttributes(json, arr, i, version);
+    ScatterEvent.parseLegacyCoords(json, arr, i, version);
+};
 
 /**
  * Parse ScatterEvent coordinates from a tokenized serialization.
