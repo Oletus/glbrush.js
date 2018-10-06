@@ -16,7 +16,7 @@ var glUtils = {
     maxVaryingVectors: 8, // minimum mandated by the spec
     maxUniformVectors: 16, // minimum mandated by the spec for the fragment shader
     maxTextureUnits: 32,
-    maxFramebufferSize: 2048,
+    maxFramebufferSize: 4096,
     textureUnits: null
 };
 
@@ -419,9 +419,9 @@ var glStateManager = function(gl) {
     glUtils.maxFramebufferSize =
         Math.min(gl.getParameter(gl.MAX_TEXTURE_SIZE),
                  glUtils.maxFramebufferSize);
-    // Memory limits are an issue, so additionally limit to 2048 at least for
+    // Memory limits are an issue, so additionally limit to 4096 at least for
     // now...
-    glUtils.maxFramebufferSize = Math.min(2048, glUtils.maxFramebufferSize);
+    glUtils.maxFramebufferSize = Math.min(4096, glUtils.maxFramebufferSize);
     glUtils.textureUnits = [gl.TEXTURE0, gl.TEXTURE1, gl.TEXTURE2, gl.TEXTURE3,
                             gl.TEXTURE4, gl.TEXTURE5, gl.TEXTURE6, gl.TEXTURE7,
                             gl.TEXTURE8, gl.TEXTURE9, gl.TEXTURE10,
