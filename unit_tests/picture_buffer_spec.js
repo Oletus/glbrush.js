@@ -321,16 +321,26 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         buffer.free();
     });
 
-    it('blends a bitmap image', function() {
-        initTestCanvas();
-        var buffer = createBuffer(params);
-        var rasterImportEvent = testRasterImportEvent();
+    {
+        let buffer;
+        let rasterImportEvent;
 
-        waitsFor(function() {
-            return rasterImportEvent.loaded;
+        it('blends a bitmap image', function(done) {
+            initTestCanvas();
+            buffer = createBuffer(params);
+            rasterImportEvent = testRasterImportEvent();
+
+            let checkLoaded = function() {
+                if (rasterImportEvent.loaded) {
+                    done();
+                } else {
+                    setTimeout(checkLoaded, 1000);
+                }
+            }
+            checkLoaded();
         });
 
-        runs(function() {
+        it('blends a bitmap image', function() {
             buffer.pushEvent(rasterImportEvent, null);
 
             var samplePixel = buffer.getPixelRGBA(new Vec2(8, 18));
@@ -347,7 +357,7 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
 
             buffer.free();
         });
-    });
+    }
 
     var generateBrushEvent = function(seed, width, height) {
         var event = testBrushEvent();

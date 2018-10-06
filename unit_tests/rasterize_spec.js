@@ -544,7 +544,7 @@ describe('Rasterizing system', function() {
             var coords = new Vec2(0, 1);
             expect(rasterizer.getPixel(coords)).toBe(0);
             coords.x = 122;
-            expect(rasterizer.getPixel(coords)).toNotBe(0);
+            expect(rasterizer.getPixel(coords)).not.toBe(0);
         });
     });
 

@@ -5,9 +5,17 @@
 'use strict';
 
 beforeEach(function() {
-  this.addMatchers({
-    toBeNear: function(expected, tolerance) {
-      return Math.abs(this.actual - expected) <= tolerance;
+  jasmine.addMatchers({
+    toBeNear: function(util, customEqualityTesters) {
+      return {
+          compare: function(actual, expected, tolerance) {
+            let passed = Math.abs(actual - expected) <= tolerance;
+            return {
+                pass: passed,
+                message: 'Expected ' + actual + ' to be near ' + expected + ' within tolerance of ' + tolerance
+            };
+          }
+      }
     }
   });
 });
