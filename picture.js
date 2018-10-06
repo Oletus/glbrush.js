@@ -17,6 +17,7 @@ var Picture = function(id, name, boundsRect, bitmapScale, renderer) {
     this.id = id;
     this.name = name;
     this.renderer = renderer;
+    this.renderer.addRef();
     this.parsedVersion = null;
 
     this.freed = false; // Freed picture has no bitmaps. They can be regenerated.
@@ -149,16 +150,11 @@ Picture.prototype.markAsSaved = function() {
 };
 
 /**
- * Kill WebGL context if one exists to free as many resources as possible.
+ * Immediately remove reference to the renderer to free as many resources as possible.
  * Meant mainly for testing.
  */
 Picture.prototype.destroy = function() {
-    if (this.gl) {
-        this.gl.finish();
-        if (this.renderer.loseContext) {
-            this.renderer.loseContext.loseContext();
-        }
-    }
+    this.renderer.removeRef();
 };
 
 /**

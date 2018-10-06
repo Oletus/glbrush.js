@@ -15,6 +15,8 @@ var PictureRenderer = function(mode, brushTextureData) {
     this.mode = mode;
     this.brushTextureData = brushTextureData;
 
+    this.refCount = 0;
+
     this.canvas = document.createElement('canvas');
 
     this.sharedRasterizer = null;
@@ -57,6 +59,29 @@ PictureRenderer.create = function(modesToTry, brushTextureData) {
         i++;
     }
     return renderer;
+};
+
+/**
+ * Add a reference to the renderer. We allocate a lot of resources indirectly and don't rely on JS GC to free them so
+ * we do this manual refcounting.
+ */
+PictureRenderer.prototype.addRef = function() {
+    this.refCount += 1;
+};
+
+/**
+ * Remove a reference to the renderer. This will free resources if refCount goes to zero.
+ */
+PictureRenderer.prototype.removeRef = function() {
+    --this.refCount;
+    if (this.refCount == 0) {
+        if (this.gl) {
+            this.gl.finish();
+            if (this.loseContext) {
+                this.loseContext.loseContext();
+            }
+        }
+    }
 };
 
 /**
