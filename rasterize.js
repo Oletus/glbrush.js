@@ -582,7 +582,7 @@ Rasterizer.prototype.fillCircleBlending = function(boundsRect, centerX, centerY,
  * @protected
  */
 Rasterizer.prototype.fillSoftCircleBlending = function(boundsRect, centerX, centerY, radius, alpha) {
-    var rad2 = (radius + 1.0) * (radius + 1.0);
+    var rad2 = radius * radius;
     for (var y = boundsRect.top; y < boundsRect.bottom; ++y) {
         var ind = boundsRect.left + y * this.width;
         var powy = Math.pow(y - centerY, 2);

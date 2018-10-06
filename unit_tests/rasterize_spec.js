@@ -1,5 +1,5 @@
 /*
- * Copyright Olli Etuaho 2013.
+ * Copyright Olli Etuaho 2013-2018.
  */
 
 'use strict';
@@ -270,6 +270,92 @@ describe('Rasterizing system', function() {
             var rasterizer = createRasterizer();
             expect(rasterizer.checkSanity()).toBe(true);
 
+            rasterizer.free();
+        });
+
+        it('draws a small hard circle at pixel corner exactly', function() {
+            let rasterizer = createRasterizer();
+            let centerX = 1;
+            let centerY = 1;
+            let radius = 1;
+            let flowAlpha = 1;
+            rasterizer.beginCircles(false, 0);
+            rasterizer.fillCircle(centerX, centerY, radius, flowAlpha, 0);
+            rasterizer.flushCircles();
+            for (let y = 0; y <= 1; ++y) {
+                for (let x = 0; x <= 1; ++x) {
+                    let samplePoint = new Vec2(x, y);
+                    expect(rasterizer.getPixel(samplePoint)).toBeNear(0.64, 0.01);
+                }
+            }
+            rasterizer.free();
+        });
+
+        it('draws a small hard circle at pixel center exactly', function() {
+            let rasterizer = createRasterizer();
+            let centerX = 1.5;
+            let centerY = 1.5;
+            let radius = 1;
+            let flowAlpha = 1;
+            rasterizer.beginCircles(false, 0);
+            rasterizer.fillCircle(centerX, centerY, radius, flowAlpha, 0);
+            rasterizer.flushCircles();
+            for (let y = 0; y <= 2; ++y) {
+                for (let x = 0; x <= 2; ++x) {
+                    let samplePoint = new Vec2(x, y);
+                    let cornerness = ((x != 1) ? 1 : 0) + ((y != 1) ? 1 : 0);
+                    if (cornerness == 2) {
+                        expect(rasterizer.getPixel(samplePoint)).toBeNear(0.293, 0.01);
+                    } else if (cornerness == 1) {
+                        expect(rasterizer.getPixel(samplePoint)).toBeNear(0.5, 0.01);
+                    } else {
+                        expect(rasterizer.getPixel(samplePoint)).toBeNear(1.0, 0.01);
+                    }
+                }
+            }
+            rasterizer.free();
+        });
+
+        it('draws a small soft circle at pixel corner exactly', function() {
+            let rasterizer = createRasterizer();
+            let centerX = 1;
+            let centerY = 1;
+            let radius = 1.5;
+            let flowAlpha = 1;
+            rasterizer.beginCircles(true, 0);
+            rasterizer.fillCircle(centerX, centerY, radius, flowAlpha, 0);
+            rasterizer.flushCircles();
+            for (let y = 0; y <= 1; ++y) {
+                for (let x = 0; x <= 1; ++x) {
+                    let samplePoint = new Vec2(x, y);
+                    expect(rasterizer.getPixel(samplePoint)).toBeNear(0.473, 0.01);
+                }
+            }
+            rasterizer.free();
+        });
+
+        it('draws a small soft circle at pixel center exactly', function() {
+            let rasterizer = createRasterizer();
+            let centerX = 1.5;
+            let centerY = 1.5;
+            let radius = 1.5;
+            let flowAlpha = 1;
+            rasterizer.beginCircles(true, 0);
+            rasterizer.fillCircle(centerX, centerY, radius, flowAlpha, 0);
+            rasterizer.flushCircles();
+            for (let y = 0; y <= 2; ++y) {
+                for (let x = 0; x <= 2; ++x) {
+                    let samplePoint = new Vec2(x, y);
+                    let cornerness = ((x != 1) ? 1 : 0) + ((y != 1) ? 1 : 0);
+                    if (cornerness == 2) {
+                        expect(rasterizer.getPixel(samplePoint)).toBeNear(0.03, 0.01);
+                    } else if (cornerness == 1) {
+                        expect(rasterizer.getPixel(samplePoint)).toBeNear(0.25, 0.01);
+                    } else {
+                        expect(rasterizer.getPixel(samplePoint)).toBeNear(1.0, 0.01);
+                    }
+                }
+            }
             rasterizer.free();
         });
 
