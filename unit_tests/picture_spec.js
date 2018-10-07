@@ -238,17 +238,11 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         expect(samplePixel[3]).toBeNear(blendedPixel[3], 8);
     });
 
-    {
-        let pic2;
-        it('resizes when being copied', function(done) {
-            var clearColor = [12, 23, 34];
-            pic.addBuffer(1337, clearColor, false);
-            Picture.copy(pic, function(p2) {
-                pic2 = p2;
-                done();
-            }, 3.0);
-        });
-        it('resizes when being copied', function() {
+    it('resizes when being copied', function(done) {
+        var clearColor = [12, 23, 34];
+        pic.addBuffer(1337, clearColor, false);
+        Picture.copy(pic, function(p2) {
+            let pic2 = p2;
             expect(pic2.parsedVersion).toBe(Picture.formatVersion);
             expect(pic2.width()).toBe(pic.width());
             expect(pic2.height()).toBe(pic.height());
@@ -262,8 +256,9 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
             expect(samplePixel[2]).toBe(34);
             expect(samplePixel[3]).toBe(255);
             pic2.destroy();
-        });
-    }
+            done();
+        }, 3.0);
+    });
 
     it('resizes to the maximum scale', function() {
         var clearColor = [12, 23, 34];
@@ -281,51 +276,42 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         expect(samplePixel[3]).toBe(255);
     });
 
-    {
-        let pic2;
-        let pic3;
-        it('handles bitmapScale as relative to the picture dimensions, not bitmap dimensions', function(done) {
-            // The picture is copied twice with the same bitmapScale, and we check that the dimensions are the same
-            // in both of the two copies.
-            var clearColor = [12, 23, 34];
-            pic.addBuffer(1337, clearColor, false);
-            var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 10, 0, 0,
-                                                  PictureEvent.Mode.normal);
-            brushEvent.pushCoordTriplet(0, 0, 1.0);
-            brushEvent.pushCoordTriplet(pic.width(), pic.height(), 1.0);
-            var update = new PictureUpdate('add_picture_event');
-            update.setPictureEvent(1337, brushEvent);
-            pic.pushUpdate(update);
-            Picture.copy(pic, function(p2) {
-                pic2 = p2;
-                done();
-            }, 0.5);
-        });
-        it('handles bitmapScale as relative to the picture dimensions, not bitmap dimensions', function(done) {
+    it('handles bitmapScale as relative to the picture dimensions, not bitmap dimensions', function(done) {
+        // The picture is copied twice with the same bitmapScale, and we check that the dimensions are the same
+        // in both of the two copies.
+        var clearColor = [12, 23, 34];
+        pic.addBuffer(1337, clearColor, false);
+        var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 10, 0, 0,
+                                              PictureEvent.Mode.normal);
+        brushEvent.pushCoordTriplet(0, 0, 1.0);
+        brushEvent.pushCoordTriplet(pic.width(), pic.height(), 1.0);
+        var update = new PictureUpdate('add_picture_event');
+        update.setPictureEvent(1337, brushEvent);
+        pic.pushUpdate(update);
+        Picture.copy(pic, function(p2) {
+            let pic2 = p2;
             Picture.copy(pic2, function(p3) {
-                pic3 = p3;
-                pic2.destroy();
+                let pic3 = p3;
+                expect(pic3.width()).toBe(pic.width());
+                expect(pic3.height()).toBe(pic.height());
+                expect(pic3.bitmapWidth()).toBe(pic3.width() * 0.5);
+                expect(pic3.bitmapHeight()).toBe(pic3.height() * 0.5);
+                expect(pic3.pictureTransform.scale).toBe(0.5);
+                var samplePixel = pic3.getPixelRGBA(new Vec2(pic3.bitmapWidth() - 1,
+                                                             pic3.bitmapHeight() - 1));
+                expect(samplePixel[0]).toBe(56);
+                expect(samplePixel[1]).toBe(67);
+                expect(samplePixel[2]).toBe(78);
+                expect(samplePixel[3]).toBe(255);
+                var event = pic3.buffers[0].events[1];
+                expect(event.coords[3]).toBeNear(pic3.width(), 1);
+                expect(event.coords[4]).toBeNear(pic3.height(), 1);
+                pic2.destroy();                    
+                pic3.destroy();
                 done();
             }, 0.5);
-        });
-        it('handles bitmapScale as relative to the picture dimensions, not bitmap dimensions', function() {
-            expect(pic3.width()).toBe(pic.width());
-            expect(pic3.height()).toBe(pic.height());
-            expect(pic3.bitmapWidth()).toBe(pic3.width() * 0.5);
-            expect(pic3.bitmapHeight()).toBe(pic3.height() * 0.5);
-            expect(pic3.pictureTransform.scale).toBe(0.5);
-            var samplePixel = pic3.getPixelRGBA(new Vec2(pic3.bitmapWidth() - 1,
-                                                         pic3.bitmapHeight() - 1));
-            expect(samplePixel[0]).toBe(56);
-            expect(samplePixel[1]).toBe(67);
-            expect(samplePixel[2]).toBe(78);
-            expect(samplePixel[3]).toBe(255);
-            var event = pic3.buffers[0].events[1];
-            expect(event.coords[3]).toBeNear(pic3.width(), 1);
-            expect(event.coords[4]).toBeNear(pic3.height(), 1);
-            pic3.destroy();
-        });
-    }
+        }, 0.5);
+    });
 
     it('composits buffers with opacity', function() {
         var clearColor = [254, 254, 254];
@@ -340,20 +326,14 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         expect(samplePixel[3]).toBe(255);
     });
 
-    {
-        let pic2;
-        it('serializes buffer opacities', function(done) {
-            var clearColor = [254, 254, 254];
-            pic.addBuffer(1337, clearColor, false);
-            var clearColor2 = [0, 0, 0];
-            pic.addBuffer(1338, clearColor2, false);
-            pic.setBufferOpacity(1338, 0.5);
-            Picture.copy(pic, function(p2) {
-                pic2 = p2;
-                done();
-            });
-        });
-        it('serializes buffer opacities', function() {
+    it('serializes buffer opacities', function(done) {
+        var clearColor = [254, 254, 254];
+        pic.addBuffer(1337, clearColor, false);
+        var clearColor2 = [0, 0, 0];
+        pic.addBuffer(1338, clearColor2, false);
+        pic.setBufferOpacity(1338, 0.5);
+        Picture.copy(pic, function(p2) {
+            let pic2 = p2;
             expect(pic2.buffers[1].opacity()).toBe(0.5);
             var samplePixel = pic2.getPixelRGBA(new Vec2(0, 0));
             expect(samplePixel[0]).toBeNear(127, 5);
@@ -361,32 +341,28 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
             expect(samplePixel[2]).toBeNear(127, 5);
             expect(samplePixel[3]).toBe(255);
             pic2.destroy();
+            done();
         });
-    }
+    });
 
-    {
-        let pic2;
-        it('serializes buffer merges', function(done) {
-            var clearColor = [254, 254, 254];
-            pic.addBuffer(1337, clearColor, false);
-            var clearColor2 = [0, 0, 0];
-            pic.addBuffer(1338, clearColor2, false);
-            var mergeEvent = pic.createMergeEvent(1, 0.7);
-            var update = new PictureUpdate('add_picture_event');
-            update.setPictureEvent(1337, mergeEvent);
-            pic.pushUpdate(update);
-            expect(pic.buffers[1].mergedTo).toBe(pic.buffers[0]);
+    it('serializes buffer merges', function(done) {
+        var clearColor = [254, 254, 254];
+        pic.addBuffer(1337, clearColor, false);
+        var clearColor2 = [0, 0, 0];
+        pic.addBuffer(1338, clearColor2, false);
+        var mergeEvent = pic.createMergeEvent(1, 0.7);
+        var update = new PictureUpdate('add_picture_event');
+        update.setPictureEvent(1337, mergeEvent);
+        pic.pushUpdate(update);
+        expect(pic.buffers[1].mergedTo).toBe(pic.buffers[0]);
 
-            Picture.copy(pic, function(p2) {
-                pic2 = p2;
-                done();
-            });
-        });
-        it('serializes buffer merges', function() {
+        Picture.copy(pic, function(p2) {
+            let pic2 = p2;
             expect(pic2.buffers[1].mergedTo).toBe(pic2.buffers[0]);
             pic2.destroy();
+            done();
         });
-    }
+    });
 
     it('can undo the latest event', function() {
         var clearColor = [12, 23, 34];
@@ -577,23 +553,18 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         expect(samplePixel[3]).toBe(0);
     });
 
-    {
-        let pic2;
-        it('serializes buffer removes', function(done) {
-            var pic = testPicture();
-            var clearColor = [12, 23, 34];
-            pic.addBuffer(1337, clearColor, false);
-            pic.removeBuffer(1337);
-            Picture.copy(pic, function(p2) {
-                pic2 = p2;
-                done();
-            });
-        });
-        it('serializes buffer removes', function() {
+    it('serializes buffer removes', function(done) {
+        var pic = testPicture();
+        var clearColor = [12, 23, 34];
+        pic.addBuffer(1337, clearColor, false);
+        pic.removeBuffer(1337);
+        Picture.copy(pic, function(p2) {
+            let pic2 = p2;
             expect(pic2.buffers[0].isRemoved()).toBe(true);
             pic2.destroy();
+            done();
         });
-    }
+    });
 
     it('keeps the last buffer when undoing if told so', function() {
         var clearColor = [12, 23, 34];
@@ -681,67 +652,52 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         expect(pic.buffers[2].id).toBe(1338);
     });
 
-    {
-        let pic2;
-        it('serializes and parses a picture with buffer moves', function(done) {
-            var clearColor = [12, 23, 34];
-            pic.addBuffer(1337, clearColor, false);
-            pic.addBuffer(9001, clearColor, false);
-            pic.addBuffer(1338, clearColor, false);
-            pic.moveBuffer(9001, 0);
-            pic.moveBuffer(1338, 0);
-            Picture.copy(pic, function(p2) {
-                pic2 = p2;
-                done();
-            });
-        });
-        it('serializes and parses a picture with buffer moves', function() {
+    it('serializes and parses a picture with buffer moves', function(done) {
+        var clearColor = [12, 23, 34];
+        pic.addBuffer(1337, clearColor, false);
+        pic.addBuffer(9001, clearColor, false);
+        pic.addBuffer(1338, clearColor, false);
+        pic.moveBuffer(9001, 0);
+        pic.moveBuffer(1338, 0);
+        Picture.copy(pic, function(p2) {
+            let pic2 = p2;
             expect(pic2.buffers[0].id).toBe(1338);
             expect(pic2.buffers[1].id).toBe(9001);
             expect(pic2.buffers[2].id).toBe(1337);
             pic2.moveBuffer(9001, 0);
             expect(pic2.buffers[0].id).toBe(9001);
             pic2.destroy();
+            done();
         });
-    }
+    });
 
-    {
-        let pic2;
-        it('serializes buffer insertion points', function(done) {
-            var clearColor = [12, 23, 34];
-            pic.addBuffer(1337, clearColor, false);
-            var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 5, 0, 0,
-                                                  PictureEvent.Mode.normal);
-            brushEvent.pushCoordTriplet(0, 0, 1.0);
-            brushEvent.pushCoordTriplet(5, 5, 1.0);
-            pic.insertEvent(1337, brushEvent);
-            expect(pic.buffers[0].insertionPoint).toBe(2);
-            Picture.copy(pic, function(p2) {
-                pic2 = p2;
-                done();
-            });
-        });
-        it('serializes buffer insertion points', function() {
+    it('serializes buffer insertion points', function(done) {
+        var clearColor = [12, 23, 34];
+        pic.addBuffer(1337, clearColor, false);
+        var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 5, 0, 0,
+                                              PictureEvent.Mode.normal);
+        brushEvent.pushCoordTriplet(0, 0, 1.0);
+        brushEvent.pushCoordTriplet(5, 5, 1.0);
+        pic.insertEvent(1337, brushEvent);
+        expect(pic.buffers[0].insertionPoint).toBe(2);
+        Picture.copy(pic, function(p2) {
+            let pic2 = p2;
             expect(pic2.buffers[0].insertionPoint).toBe(2);
             pic2.destroy();
+            done();
         });
-    }
+    });
 
-    {
-        let parsed;
-        it('places app-specific metadata into an array when parsing', function(done) {
-            var serialization = pic.serialize();
-            serialization += '\nmetadata\nappdata';
-            Picture.parse(0, serialization, 1.0, PictureRenderer.create([pic.mode]), function(p) {
-                parsed = p;
-                done();
-            });
-        });
-        it('places app-specific metadata into an array when parsing', function() {
+    it('places app-specific metadata into an array when parsing', function(done) {
+        var serialization = pic.serialize();
+        serialization += '\nmetadata\nappdata';
+        Picture.parse(0, serialization, 1.0, PictureRenderer.create([pic.mode]), function(p) {
+            let parsed = p;
             expect(parsed.metadata[0]).toBe('metadata');
             expect(parsed.metadata[1]).toBe('appdata');
+            done();
         });
-    }
+    });
 
     it('calculates its memory usage', function() {
         var compositorUse = pic.bitmapWidth() * pic.bitmapHeight() * 4;
@@ -795,80 +751,72 @@ var doPictureTest = function(mode) {
         });
     }
 
-    {
-        let img;
+    it('converts to a dataURL', function(done) {
         let clearColor = [12, 23, 34];
-        it('converts to a dataURL', function(done) {
-            var pic = testPicture();
-            pic.addBuffer(1337, clearColor, false);
-            var dataURL = pic.toDataURL();
-            img = document.createElement('img');
-            img.onload = function() {
-                done();
-            };
-            img.src = dataURL;
-
-            pic.destroy();
-        });
-        it('converts to a dataURL', function() {
+        var pic = testPicture();
+        pic.addBuffer(1337, clearColor, false);
+        var dataURL = pic.toDataURL();
+        let img = document.createElement('img');
+        img.onload = function() {
             clearColor.push(255); // imageData is always RGBA
             expect(clearColor.length).toBe(4);
             expect(countColoredPixelsInImage(img, clearColor, 4)).toBe(img.width * img.height);
-        });
-    }
+            done();
+        };
+        img.src = dataURL;
 
-    {
-        let pic = null;
+        pic.destroy();
+    });
+
+
+    it('converts to a Blob', function(done) {
+        let pic = testPicture();
         let blob = null;
         let clearColor = [12, 23, 34];
-        let img = null;
+        pic.addBuffer(1337, clearColor, false);
+        // Make this test always asynchronous since toBlob is allowed to be asynchronous.
+        setTimeout(function() {
+            pic.toBlob(function(b) {
+                blob = b;
+            });
+        }, 0);
+        asyncTestExec(
+            function() {
+                return blob !== null;
+            },
+            function() {
+                expect(blob instanceof Blob).toBe(true);
+                expect(blob.type).toBe('image/png');
+                let img = document.createElement('img');
+                img.onload = function() {
+                    clearColor.push(255); // imageData is always RGBA
+                    expect(clearColor.length).toBe(4);
+                    expect(countColoredPixelsInImage(img, clearColor, 4)).toBe(img.width * img.height);
+                    var objURL = img.src;
+                    img.src = '';
+                    var revokeObjectURL = null;
+                    try {
+                        revokeObjectURL = URL.revokeObjectURL;
+                    } catch (e) {}
+                    if (!revokeObjectURL) {
+                        revokeObjectURL = webkitURL.revokeObjectURL;
+                    }
+                    revokeObjectURL(objURL);
 
-        it('converts to a Blob', function(done) {
-            pic = testPicture();
-            pic.addBuffer(1337, clearColor, false);
-            // Make this test always asynchronous since toBlob is allowed to be asynchronous.
-            setTimeout(function() {
-                pic.toBlob(function(b) {
-                    blob = b;
+                    pic.destroy();
                     done();
-                });
-            }, 0);
-        });
-        it('converts to a Blob', function(done) {
-            expect(blob instanceof Blob).toBe(true);
-            expect(blob.type).toBe('image/png');
-            img = document.createElement('img');
-            img.onload = function() {
-                done();
-            };
-            // TODO: Check the spec of createObjectURL once it's stable (also revokeObjectURL below)
-            var createObjectURL = null;
-            try {
-                createObjectURL = URL.createObjectURL;
-            } catch (e) {}
-            if (!createObjectURL) {
-                createObjectURL = webkitURL.createObjectURL;
-            }
-            img.src = createObjectURL(blob);
-        });
-        it('converts to a Blob', function() {
-            clearColor.push(255); // imageData is always RGBA
-            expect(clearColor.length).toBe(4);
-            expect(countColoredPixelsInImage(img, clearColor, 4)).toBe(img.width * img.height);
-            var objURL = img.src;
-            img.src = '';
-            var revokeObjectURL = null;
-            try {
-                revokeObjectURL = URL.revokeObjectURL;
-            } catch (e) {}
-            if (!revokeObjectURL) {
-                revokeObjectURL = webkitURL.revokeObjectURL;
-            }
-            revokeObjectURL(objURL);
-
-            pic.destroy();
-        });
-    }
+                };
+                // TODO: Check the spec of createObjectURL once it's stable (also revokeObjectURL below)
+                var createObjectURL = null;
+                try {
+                    createObjectURL = URL.createObjectURL;
+                } catch (e) {}
+                if (!createObjectURL) {
+                    createObjectURL = webkitURL.createObjectURL;
+                }
+                img.src = createObjectURL(blob);
+            });
+    });
 };
 
 describe('Picture', function() {
@@ -881,15 +829,9 @@ describe('Picture', function() {
 
     var mode = modes[0]; // Do these remaining tests with only one mode, since they don't test rendering
 
-    {
-        let parsed;
-        it('parses a serialization without a version number', function(done) {
-            Picture.parse(-1, 'picture 122 234', 2.0, PictureRenderer.create([mode]), function(p) {
-                parsed = p;
-                done();
-            });
-        });
-        it('parses a serialization without a version number', function() {
+    it('parses a serialization without a version number', function(done) {
+        Picture.parse(-1, 'picture 122 234', 2.0, PictureRenderer.create([mode]), function(p) {
+            let parsed = p;
             var pic = parsed.picture;
             expect(pic.parsedVersion).toBe(0);
             expect(pic.id).toBe(-1);
@@ -903,25 +845,20 @@ describe('Picture', function() {
             expect(pic.buffers.length).toBe(0);
 
             pic.destroy();
+            done();
         });
-    }
+    });
 
-    {
-        let parsed;
-        it('parses a serialization of version 4', function(done) {
-            var picSerialization = [
-            'picture version 4 840 970 named YmxhY2tkcmFnb24=',
-            'bufferAdd 1 0 0 0 0 255 255 255 1 4383',
-            'brush 1 1 1 27 28 29 0.42 0.9 1.93 0 0.0 2 482.66 322.37 0.20626 482.62 322.37 0.20626 ' +
-                '479.12 322.37 0.23656 473.12 322.37 0.26197 464.74 325.99 0.39687',
-            'gradient 1 2 0 101 198 255 0.875 1 523 986 575 34'
-            ].join('\n');
-            Picture.parse(-1, picSerialization, 1.0, PictureRenderer.create([mode]), function(p) {
-                parsed = p;
-                done();
-            });
-        });
-        it('parses a serialization of version 4', function() {
+    it('parses a serialization of version 4', function(done) {
+        var picSerialization = [
+        'picture version 4 840 970 named YmxhY2tkcmFnb24=',
+        'bufferAdd 1 0 0 0 0 255 255 255 1 4383',
+        'brush 1 1 1 27 28 29 0.42 0.9 1.93 0 0.0 2 482.66 322.37 0.20626 482.62 322.37 0.20626 ' +
+            '479.12 322.37 0.23656 473.12 322.37 0.26197 464.74 325.99 0.39687',
+        'gradient 1 2 0 101 198 255 0.875 1 523 986 575 34'
+        ].join('\n');
+        Picture.parse(-1, picSerialization, 1.0, PictureRenderer.create([mode]), function(p) {
+            let parsed = p;
             var pic = parsed.picture;
             expect(pic.parsedVersion).toBe(4);
             expect(pic.id).toBe(-1);
@@ -966,28 +903,23 @@ describe('Picture', function() {
             expect(event.coords1.y).toBe(34);
 
             pic.destroy();
+            done();
         });
-    }
+    });
 
-    {
-        let parsed;
-        it('parses a serialization of version 6', function(done) {
-            var picSerialization = [
-            'picture version 6 277.46 46.48 347.75 526.31 named bWljcm9mbG93ZXJz',
-            'add_picture_event 0 bufferAdd 1 0 0 0 0 255 255 255 1 2932',
-            'add_picture_event 0 brush 1 1 1 27 28 29 0.42 0.9 1.93 0 0.0 2 554 294 0.08504 548 294 0.09775 ' +
-                '544 292 0.12708 541 290 0.16325 541 286 0.1955 542 281 0.23167',
-            'undo 1 1',
-            'add_picture_event 0 gradient 1 2 0 23 68 34 0.75 1 406 695 405 668',
-            'add_picture_event 0 scatter 1 3 0 27 28 29 0.42 0.9 0 0 1.0 3 253 22 571 0.1439999999999999 0',
-            'add_picture_event 0 eventHide 1 4 0 1 3'
-            ].join('\n');
-            Picture.parse(-1, picSerialization, 1.0, PictureRenderer.create([mode]), function(p) {
-                parsed = p;
-                done();
-            });
-        });
-        it('parses a serialization of version 6', function() {
+    it('parses a serialization of version 6', function(done) {
+        var picSerialization = [
+        'picture version 6 277.46 46.48 347.75 526.31 named bWljcm9mbG93ZXJz',
+        'add_picture_event 0 bufferAdd 1 0 0 0 0 255 255 255 1 2932',
+        'add_picture_event 0 brush 1 1 1 27 28 29 0.42 0.9 1.93 0 0.0 2 554 294 0.08504 548 294 0.09775 ' +
+            '544 292 0.12708 541 290 0.16325 541 286 0.1955 542 281 0.23167',
+        'undo 1 1',
+        'add_picture_event 0 gradient 1 2 0 23 68 34 0.75 1 406 695 405 668',
+        'add_picture_event 0 scatter 1 3 0 27 28 29 0.42 0.9 0 0 1.0 3 253 22 571 0.1439999999999999 0',
+        'add_picture_event 0 eventHide 1 4 0 1 3'
+        ].join('\n');
+        Picture.parse(-1, picSerialization, 1.0, PictureRenderer.create([mode]), function(p) {
+            let parsed = p;
             var pic = parsed.picture;
             expect(pic.parsedVersion).toBe(6);
             expect(pic.id).toBe(-1);
@@ -1057,6 +989,7 @@ describe('Picture', function() {
             expect(event.hiddenSessionEventId).toBe(3);
 
             pic.destroy();
+            done();
         });
-    }
+    });
 });

@@ -321,43 +321,34 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         buffer.free();
     });
 
-    {
-        let buffer;
-        let rasterImportEvent;
+    it('blends a bitmap image', function(done) {
+        initTestCanvas();
+        let buffer = createBuffer(params);
+        let rasterImportEvent = testRasterImportEvent();
 
-        it('blends a bitmap image', function(done) {
-            initTestCanvas();
-            buffer = createBuffer(params);
-            rasterImportEvent = testRasterImportEvent();
+        asyncTestExec(
+            function() {
+                return rasterImportEvent.loaded;
+            },
+            function() {
+                buffer.pushEvent(rasterImportEvent, null);
 
-            let checkLoaded = function() {
-                if (rasterImportEvent.loaded) {
-                    done();
-                } else {
-                    setTimeout(checkLoaded, 1000);
-                }
-            }
-            checkLoaded();
-        });
+                var samplePixel = buffer.getPixelRGBA(new Vec2(8, 18));
+                expect(samplePixel[0]).toBeNear(params.clearColor[0], 10);
+                expect(samplePixel[1]).toBeNear(params.clearColor[1], 10);
+                expect(samplePixel[2]).toBeNear(params.clearColor[2], 10);
+                expect(samplePixel[3]).toBeNear(params.clearColor[3], 10);
 
-        it('blends a bitmap image', function() {
-            buffer.pushEvent(rasterImportEvent, null);
+                samplePixel = buffer.getPixelRGBA(new Vec2(11, 21));
+                expect(samplePixel[0]).toBeNear(0, 10);
+                expect(samplePixel[1]).toBeNear(255, 10);
+                expect(samplePixel[2]).toBeNear(0, 10);
+                expect(samplePixel[3]).toBeNear(255, 10);
 
-            var samplePixel = buffer.getPixelRGBA(new Vec2(8, 18));
-            expect(samplePixel[0]).toBeNear(params.clearColor[0], 10);
-            expect(samplePixel[1]).toBeNear(params.clearColor[1], 10);
-            expect(samplePixel[2]).toBeNear(params.clearColor[2], 10);
-            expect(samplePixel[3]).toBeNear(params.clearColor[3], 10);
-
-            samplePixel = buffer.getPixelRGBA(new Vec2(11, 21));
-            expect(samplePixel[0]).toBeNear(0, 10);
-            expect(samplePixel[1]).toBeNear(255, 10);
-            expect(samplePixel[2]).toBeNear(0, 10);
-            expect(samplePixel[3]).toBeNear(255, 10);
-
-            buffer.free();
-        });
-    }
+                buffer.free();
+                done();
+            });
+    });
 
     var generateBrushEvent = function(seed, width, height) {
         var event = testBrushEvent();

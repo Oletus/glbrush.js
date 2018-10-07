@@ -4,6 +4,17 @@
 
 'use strict';
 
+let asyncTestExec = function(condition, callbackOnConditionFulfilled) {
+    let checkConditionAndCallback = function() {
+        if (condition()) {
+            callbackOnConditionFulfilled();
+        } else {
+            setTimeout(checkConditionAndCallback, 100);
+        }
+    };
+    setTimeout(checkConditionAndCallback, 10);
+};
+
 function testRGB() {
     var color = [];
     color[0] = 12;
