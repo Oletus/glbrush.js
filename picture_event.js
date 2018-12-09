@@ -1033,12 +1033,17 @@ RasterImportEvent.prototype.serialize = function(json) {
 /**
  * @param {Rect} clipRect Canvas bounds that can be used to intersect the
  * bounding box against, though this is not mandatory.
+ * @param {AffineTransform} transform Transform for the event coordinates.
  * @return {Rect} The event's bounding box. This function is not allowed to
  * change its earlier return values as a side effect.
  */
-RasterImportEvent.prototype.getBoundingBox = function(clipRect) {
+RasterImportEvent.prototype.getBoundingBox = function(clipRect, transform) {
     var bbRect = new Rect();
-    bbRect.setRect(this.rect);
+    // TODO: Support AffineTransforms that do rotating - this assumes that the AffineTransform only does scaling and translating.
+    bbRect.left = transform.transformX(this.rect.left, this.rect.top);
+    bbRect.right = transform.transformX(this.rect.right, this.rect.top);
+    bbRect.top = transform.transformY(this.rect.left, this.rect.top);
+    bbRect.bottom = transform.transformY(this.rect.left, this.rect.bottom);
     return bbRect;
 };
 

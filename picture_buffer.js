@@ -1293,7 +1293,7 @@ GLBuffer.prototype.drawImage = function(img, rect) {
     this.updateClip();
     this.glManager.useFboTex(this.tex);
     this.rectBlitUniforms['uSrcTex'] = imageTex;
-    this.glManager.drawRect(this.rectBlitProgram, this.rectBlitUniforms, rect);
+    this.glManager.drawRect(this.rectBlitProgram, this.rectBlitUniforms, rect, this.bitmapRect);
     this.gl.deleteTexture(imageTex);
 };
 
