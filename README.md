@@ -20,7 +20,6 @@ Code standards:
 
 * Largely unit tested using jasmine. New code should pass all existing tests. New functionality should be unit tested.
 * JSDoc annotated with Closure compiler in mind - https://developers.google.com/closure/compiler/docs/js-for-compiler
-* Style-checked with gjslint.
 * Compatible with newest Chrome, Firefox and Internet Explorer 11 (earlier IE with software backend)
 
 Contributions welcome! Getting started for contributors:
