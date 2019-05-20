@@ -53,56 +53,48 @@ GradientShader.prototype.uniforms = function(width, height) {
  * @return {Array<string>} Shader source code lines.
  */
 GradientShader.prototype.varyingSource = function() {
-    var src = [];
-    /*if (this.format === GLRasterizerFormat.redGreen) {
-        src.push('varying vec2 vSrcTexCoord;');
-    }*/
-    //src.push('varying vec2 vPixelCoords; // in pixels');
-    src.push('varying float vGradientValue;');
-    return src;
+    return 'varying float vGradientValue;';
 };
 
 /**
  * @return {string} Vertex shader source.
  */
 GradientShader.prototype.vertexSource = function() {
-    var src = [];
-    src.push('attribute vec2 aVertexPosition; ' +
-             '// expecting a vertex array with corners at ' +
-             '-1 and 1 x and y coordinates');
-    src.push.apply(src, this.varyingSource());
-    src.push.apply(src, this.vertexUniformSource());
-    src.push('void main(void) {');
-    src.push('  vec2 projected = (aVertexPosition + vec2(1.0, 1.0)) * uPixels;');
-    src.push('  vec2 projectionTarget = (uCoords1 - uCoords0);');
-    src.push('  projected -= uCoords0;');
-    src.push('  float projectionLength = dot(projected, normalize(projectionTarget));');
-    src.push('  vGradientValue = projectionLength / length(projectionTarget);');
-    src.push('  gl_Position = vec4(aVertexPosition, 0.0, 1.0);');
-    src.push('}'); // void main(void)
-    return src.join('\n');
+    return `
+    attribute vec2 aVertexPosition; // expecting a vertex array with corners at -1 and 1 x and y coordinates
+    ${ this.varyingSource() }
+    ${ this.vertexUniformSource().join('\n') }
+    void main(void) {
+      vec2 projected = (aVertexPosition + vec2(1.0, 1.0)) * uPixels;
+      vec2 projectionTarget = (uCoords1 - uCoords0);
+      projected -= uCoords0;
+      float projectionLength = dot(projected, normalize(projectionTarget));
+      vGradientValue = projectionLength / length(projectionTarget);
+      gl_Position = vec4(aVertexPosition, 0.0, 1.0);
+    }`;
 };
 
 /**
  * @return {string} Fragment shader source.
  */
 GradientShader.prototype.fragmentSource = function() {
-    var src = ['precision highp float;'];
-    src.push.apply(src, this.varyingSource());
-    src.push.apply(src, this.vertexUniformSource());
-    src.push('void main(void) {');
+    var src = `
+    precision highp float;
+    ${ this.varyingSource() }
+    ${ this.vertexUniformSource().join('\n') }
+    void main(void) {
+`;
     if (this.format === GLRasterizerFormat.redGreen) {
         // NOTE: No blending done here.
-        src.push('  int bytes = int(clamp(vGradientValue, 0.0, 1.0) * ' +
-                 '255.0 * 256.0);');
-        src.push('  int highByte = bytes / 256;');
-        src.push('  int lowByte = bytes - highByte * 256;');
-        src.push('  gl_FragColor = vec4(float(highByte) / 255.0, ' +
-                 'float(lowByte) / 255.0, 0.0, 1.0);');
+        src += `
+          int bytes = int(clamp(vGradientValue, 0.0, 1.0) * 255.0 * 256.0);
+          int highByte = bytes / 256;
+          int lowByte = bytes - highByte * 256;
+          gl_FragColor = vec4(float(highByte) / 255.0, float(lowByte) / 255.0, 0.0, 1.0);
+        `;
     } else {
-        src.push('  gl_FragColor = vec4(0, 0, 0, ' +
-                 'clamp(vGradientValue, 0.0, 1.0));');
+        src += '      gl_FragColor = vec4(0, 0, 0, clamp(vGradientValue, 0.0, 1.0));\n';
     }
-    src.push('}'); // void main(void)
-    return src.join('\n');
+    src += '}';  // void main(void)
+    return src;
 };
