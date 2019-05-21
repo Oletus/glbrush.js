@@ -80,18 +80,14 @@ GradientShader.prototype.vertexSource = function() {
 GradientShader.prototype.fragmentSource = function() {
     var src = `
     precision highp float;
+    ${ ShaderGenerator.commonGLSLHelpers }
     ${ this.varyingSource() }
     ${ this.vertexUniformSource().join('\n') }
     void main(void) {
 `;
     if (this.format === GLRasterizerFormat.redGreen) {
         // NOTE: No blending done here.
-        src += `
-          int bytes = int(clamp(vGradientValue, 0.0, 1.0) * 255.0 * 256.0);
-          int highByte = bytes / 256;
-          int lowByte = bytes - highByte * 256;
-          gl_FragColor = vec4(float(highByte) / 255.0, float(lowByte) / 255.0, 0.0, 1.0);
-        `;
+        src += '      gl_FragColor = packNormFloatToRG(clamp(vGradientValue, 0.0, 1.0));\n';
     } else {
         src += '      gl_FragColor = vec4(0, 0, 0, clamp(vGradientValue, 0.0, 1.0));\n';
     }

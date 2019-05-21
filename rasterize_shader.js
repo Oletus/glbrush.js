@@ -125,6 +125,15 @@ ShaderGenerator.prototype.vertexUniformSource = function() {
     return src;
 };
 
+ShaderGenerator.commonGLSLHelpers = `
+// Packs a normalized float in the 0.0 to 1.0 range to the red and green channels.
+vec4 packNormFloatToRG(float value) {
+  int bytes = int(value * 255.0 * 256.0);
+  int highByte = bytes / 256;
+  int lowByte = bytes - highByte * 256;
+  return vec4(float(highByte) / 255.0, float(lowByte) / 255.0, 0.0, 1.0);
+}`;
+
 
 /**
  * A shader program for blending together a bunch of monochrome circles.
@@ -350,15 +359,13 @@ RasterizeShader.prototype.fragmentSource = function() {
     if (this.doubleBuffered) {
         writeFragColor = `
   float alpha = destAlpha + (1.0 - destAlpha) * srcAlpha;
-  int bytes = int(alpha * 255.0 * 256.0);
-  int highByte = bytes / 256;
-  int lowByte = bytes - highByte * 256;
-  gl_FragColor = vec4(float(highByte) / 255.0, float(lowByte) / 255.0, 0.0, 1.0);`;
+  gl_FragColor = packNormFloatToRG(alpha);`;
     }
     return `
 precision highp float;
 precision highp sampler2D;
 precision highp int;
+${ ShaderGenerator.commonGLSLHelpers }
 ${ this.varyingSource() }
 ${ this.fragmentUniformSource().join('\n') }
 void main(void) {
