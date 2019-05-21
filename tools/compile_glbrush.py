@@ -52,21 +52,27 @@ def compile_with_online_compiler(js_code, compilation_level):
 def compile_glbrush(output_path):
     '''Compile glbrush.js with Closure compiler.
     output_path should include the name of the file.'''
+    restore_dir = os.getcwd()
     file_path = os.path.dirname(os.path.abspath(__file__))
+    compiler_path = os.path.abspath(os.path.join(file_path, '..', 'node_modules', 'google-closure-compiler-java'))
     lib_js_list = lib_js()
+    if not os.path.exists(compiler_path):
+        os.mkdir(compiler_path)
+    os.chdir(compiler_path)
 
-    lib_js_code = ""
-    for js_file in lib_js_list:
-        source_file = open(js_file, "r")
-        lib_js_code += source_file.read()
-        source_file.close()
+    if not os.path.exists('compiler.jar'):
+        print('Closure compiler not found. Run "npm install" to install it')
+        os.chdir(restore_dir)
+        return False
 
     # Compile a package that's usable within another app, so WHITESPACE_ONLY
-    compiled_code = compile_with_online_compiler(lib_js_code, 'WHITESPACE_ONLY')
-    output_file = open(output_path, "w")
-    output_file.write(compiled_code)
-    output_file.close()
+    command = ['java', '-jar', 'compiler.jar', '--compilation_level', 'WHITESPACE_ONLY', '--js']
+    command += lib_js_list
+    command += ['--js_output_file', output_path]
+    print(' '.join(command))
+    subprocess.call(command)
 
+    os.chdir(restore_dir)
     return True
 
 if __name__ == '__main__':
