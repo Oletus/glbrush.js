@@ -228,11 +228,10 @@ RasterizeShader.prototype.uniforms = function(width, height) {
  * @return {Array<string>} Shader source code lines.
  */
 RasterizeShader.prototype.varyingSource = function() {
-    var src = [];
+    var src = 'varying vec2 vPixelCoords; // in pixels\n';
     if (this.doubleBuffered) {
-        src.push('varying vec2 vSrcTexCoord;');
+        src += 'varying vec2 vSrcTexCoord;\n';
     }
-    src.push('varying vec2 vPixelCoords; // in pixels');
     return src;
 };
 
@@ -255,29 +254,33 @@ RasterizeShader.prototype.fragmentAlphaSource = function(assignTo, indent) {
     // 1. circleRadius contains the intended perceived radius of the circle.
     // 1. circleFlowAlpha contains the intended perceived alpha of the circle.
     // 2. centerDist contains the fragment's distance from the circle center.
-    var src = [];
-    src.push(indent + 'float radius = max(circleRadius, ' + this.minRadius().toFixed(1) + ');');
-    src.push(indent + 'float flowAlpha = (circleRadius < ' + this.minRadius().toFixed(1) + ') ? ' +
-            'circleFlowAlpha * circleRadius * circleRadius * ' + Math.pow(1.0 / this.minRadius(), 2).toFixed(1) +
-            ': circleFlowAlpha;');
+    var src = `
+float radius = max(circleRadius, ${ this.minRadius().toFixed(1) });
+float flowAlpha = (circleRadius < ${ this.minRadius().toFixed(1) }) ?
+  circleFlowAlpha * circleRadius * circleRadius * ${ Math.pow(1.0 / this.minRadius(), 2).toFixed(1) } :
+  circleFlowAlpha;
+float antialiasMult = clamp((radius + 1.0 - centerDist) * 0.5, 0.0, 1.0);`;
     if (this.texturized) {
-        // Usage of antialiasMult increases accuracy at small brush sizes and ensures that the brush stays inside the
-        // bounding box even when rotated (rotation support is TODO)
-        src.push(indent + 'float antialiasMult = ' + 'clamp((radius + 1.0 - length(centerDiff)) * 0.5, 0.0, 1.0);');
-        src.push(indent + 'mat2 texRotation = mat2(cos(circleRotation), -sin(circleRotation), ' +
-                                                  'sin(circleRotation), cos(circleRotation));');
-        src.push(indent + 'vec2 texCoords = texRotation * centerDiff / radius * 0.5 + 0.5;');
-        // Note: remember to keep the texture2D call outside non-uniform flow control.
-        src.push(indent + 'float texValue = texture2D(uBrushTex, texCoords).r;');
-        src.push(indent + assignTo + ' = flowAlpha * antialiasMult * texValue;');
+        src += `
+mat2 texRotation = mat2(cos(circleRotation), -sin(circleRotation),
+                        sin(circleRotation), cos(circleRotation));
+vec2 texCoords = texRotation * centerDiff / radius * 0.5 + 0.5;
+// Note: remember to keep the texture2D call outside non-uniform flow control.
+// TODO: We could also use explicit texture LOD in here in case it is supported.
+float texValue = texture2D(uBrushTex, texCoords).r;
+// Usage of antialiasMult even when we have a texturized brush increases accuracy at small brush sizes and ensures
+// that the brush stays inside the bounding box even when rotated.
+${ assignTo } = flowAlpha * antialiasMult * texValue;`;
     } else {
-        src.push(indent + 'float antialiasMult = ' + 'clamp((radius + 1.0 - centerDist) * 0.5, 0.0, 1.0);');
         if (this.soft) {
-            src.push(indent + assignTo + ' = max((1.0 - centerDist / radius) ' + '* flowAlpha * antialiasMult, 0.0);');
+            src += `
+${ assignTo } = max((1.0 - centerDist / radius) * flowAlpha * antialiasMult, 0.0);`;
         } else {
-            src.push(indent + assignTo + ' = flowAlpha * antialiasMult;');
+            src += `
+${ assignTo } =  flowAlpha * antialiasMult;`;
         }
     }
+    // TODO: Restore indentation
     return src;
 };
 
@@ -292,80 +295,78 @@ RasterizeShader.prototype.fragmentAlphaSource = function(assignTo, indent) {
  */
 RasterizeShader.prototype.fragmentInnerLoopSource = function(index,
                                                              arrayIndex) {
-    var src = [];
+    if (arrayIndex === undefined) {
+        arrayIndex = `[${ index }]`;
+    }
+    var texturizedCircleParams = '';
+    if (this.texturized) {
+        texturizedCircleParams = `
+      float circleRotation = uCircleB${ arrayIndex }.x;
+      vec2 centerDiff = vPixelCoords - center;`;
+    }
+
     // The conditional controlling blending the circle is non-uniform flow control.
     // See GLSL ES 1.0.17 spec Appendix A.6.
-    // TODO: See if moving the texture2D call outside the if would help
-    // performance or compatibility. It would be required by the spec if it
-    // was mipmapped.
     // For the texturized brush, the if must be deferred since the texture is mipmapped.
     var evaluateCircleInsideIf = !this.texturized;
-    if (evaluateCircleInsideIf && this.dynamicCircles) {
-        src.push('    if (' + index + ' < uCircleCount) {');
-    } else {
-        src.push('    {');
-    }
-    if (arrayIndex === undefined) {
-        arrayIndex = '[' + index + ']';
-    }
-    src.push('      vec2 center = uCircle' + arrayIndex + '.xy;');
-    src.push('      float circleRadius = uCircle' + arrayIndex + '.z;');
-    src.push('      float circleFlowAlpha = uCircle' + arrayIndex + '.w;');
-    if (this.texturized) {
-        src.push('      float circleRotation = uCircleB' + arrayIndex + '.x;');
-        src.push('      vec2 centerDiff = vPixelCoords - center;');
-    } else {
-        src.push('      float centerDist = length(center - vPixelCoords);');
-    }
-    src.push.apply(src, this.fragmentAlphaSource('float circleAlpha', '      '));
-    if (!evaluateCircleInsideIf && this.dynamicCircles) {
-        // The mipmapped brush texture can't be accessed inside non-uniform flow control,
-        // so the if is here instead of before doing the operations.
-        src.push('      if (' + index + ' < uCircleCount) {');
-    }
-    src.push('      destAlpha = clamp(circleAlpha + (1.0 - circleAlpha) ' +
-             '* destAlpha, 0.0, 1.0);');
-    if (!evaluateCircleInsideIf && this.dynamicCircles) {
-        src.push('      }'); // if
-    }
-    src.push('    }'); // if
-    return src;
+    var ifCircleActive = this.dynamicCircles ? `if (${ index } < uCircleCount)` : '';
+
+    return `
+    ${ evaluateCircleInsideIf ? ifCircleActive : '' } {
+      vec2 center = uCircle${ arrayIndex }.xy;
+      float circleRadius = uCircle${ arrayIndex }.z;
+      float circleFlowAlpha = uCircle${ arrayIndex }.w;
+      float centerDist = length(vPixelCoords - center);
+${ texturizedCircleParams }
+${ this.fragmentAlphaSource('float circleAlpha', '      ') }
+${ !evaluateCircleInsideIf ? ifCircleActive : '' } {
+        destAlpha = clamp(circleAlpha + (1.0 - circleAlpha) * destAlpha, 0.0, 1.0);
+      }
+    }`;
 };
 
 /**
  * @return {string} Fragment shader source.
  */
 RasterizeShader.prototype.fragmentSource = function() {
-    var src = ['precision highp float;', 'precision highp sampler2D;', 'precision highp int;'];
-    src.push.apply(src, this.varyingSource());
-    src.push.apply(src, this.fragmentUniformSource());
-    src.push('void main(void) {');
+    var initSrcAlphaIfAny = '';
     if (this.doubleBuffered) {
-        src.push('  vec4 src = texture2D(uSrcTex, vSrcTexCoord);');
-        src.push('  float srcAlpha = src.x + src.y / 256.0;');
+        initSrcAlphaIfAny = `
+  vec4 src = texture2D(uSrcTex, vSrcTexCoord);
+  float srcAlpha = src.x + src.y / 256.0;`;
     }
-    src.push('  float destAlpha = 0.0;');
+    var fragmentInnerLoop = '';
     if (this.unroll) {
         for (var i = 0; i < this.circles; ++i) {
-            src.push.apply(src, this.fragmentInnerLoopSource(i, i));
+            fragmentInnerLoop += this.fragmentInnerLoopSource(i, i);
         }
     } else {
-        src.push('  for (int i = 0; i < ' + this.circles + '; ++i) {');
-        src.push.apply(src, this.fragmentInnerLoopSource('i'));
-        src.push('  }'); // for
+        fragmentInnerLoop = `
+  for (int i = 0; i < ${ this.circles }; ++i) {
+    ${ this.fragmentInnerLoopSource('i') }
+  }`;
     }
+    var writeFragColor = 'gl_FragColor = vec4(0.0, 0.0, 0.0, destAlpha);';
     if (this.doubleBuffered) {
-        src.push('  float alpha = destAlpha + (1.0 - destAlpha) * srcAlpha;');
-        src.push('  int bytes = int(alpha * 255.0 * 256.0);');
-        src.push('  int highByte = bytes / 256;');
-        src.push('  int lowByte = bytes - highByte * 256;');
-        src.push('  gl_FragColor = vec4(float(highByte) / 255.0, ' +
-                 'float(lowByte) / 255.0, 0.0, 1.0);');
-    } else {
-        src.push('  gl_FragColor = vec4(0.0, 0.0, 0.0, destAlpha);');
+        writeFragColor = `
+  float alpha = destAlpha + (1.0 - destAlpha) * srcAlpha;
+  int bytes = int(alpha * 255.0 * 256.0);
+  int highByte = bytes / 256;
+  int lowByte = bytes - highByte * 256;
+  gl_FragColor = vec4(float(highByte) / 255.0, float(lowByte) / 255.0, 0.0, 1.0);`;
     }
-    src.push('}'); // void main(void)
-    return src.join('\n');
+    return `
+precision highp float;
+precision highp sampler2D;
+precision highp int;
+${ this.varyingSource() }
+${ this.fragmentUniformSource().join('\n') }
+void main(void) {
+  float destAlpha = 0.0;
+  ${ initSrcAlphaIfAny }
+  ${ fragmentInnerLoop }
+  ${ writeFragColor }
+}`;
 };
 
 /**
@@ -376,38 +377,38 @@ RasterizeShader.prototype.fragmentSource = function() {
  * @return {Array<string>} Vertex shader inner loop lines.
  */
 RasterizeShader.prototype.vertexInnerLoopSource = function(index, arrayIndex) {
-    return [];
+    return '';
 };
 
 /**
  * @return {string} Vertex shader source.
  */
 RasterizeShader.prototype.vertexSource = function() {
-    var src = ['precision highp float;']; // TODO: This probably isn't necessary
-    src.push('attribute vec2 aVertexPosition; ' +
-             '// expecting a vertex array with corners at ' +
-             '-1 and 1 x and y coordinates');
-    src.push.apply(src, this.varyingSource());
-    src.push.apply(src, this.vertexUniformSource());
-    src.push('void main(void) {');
+    var src = `precision highp float;
+
+// expecting a vertex array with corners at -1 and 1 x and y coordinates
+attribute vec2 aVertexPosition;
+${ this.varyingSource() }
+${ this.vertexUniformSource().join('\n') }
+void main(void) {
+  vPixelCoords = vec2(aVertexPosition.x + 1.0, 1.0 - aVertexPosition.y) / uPixelPitch;
+`;
     if (this.doubleBuffered) {
-        src.push('  vSrcTexCoord = vec2((aVertexPosition.x + 1.0) * 0.5, ' +
-                 '(aVertexPosition.y + 1.0) * 0.5);');
+        src += '  vSrcTexCoord = (aVertexPosition + 1.0) * 0.5;\n';
     }
-    src.push('  vPixelCoords = vec2(aVertexPosition.x + 1.0, ' +
-             '1.0 - aVertexPosition.y) / uPixelPitch;');
     if (this.vertexInnerLoopSource('').length > 0) {
         if (this.unroll) {
             for (var i = 0; i < this.circles; ++i) {
-                src.push.apply(src, this.vertexInnerLoopSource(i, i));
+                src += this.vertexInnerLoopSource(i, i);
             }
         } else {
-            src.push('  for (int i = 0; i < ' + this.circles + '; ++i) {');
-            src.push.apply(src, this.vertexInnerLoopSource('i'));
-            src.push('  }'); // for
+            src += `
+  for (int i = 0; i < ${ this.circles }; ++i) {
+    ${ this.vertexInnerLoopSource('i') }
+  }`;
         }
     }
-    src.push('  gl_Position = vec4(aVertexPosition, 0.0, 1.0);');
-    src.push('}');
-    return src.join('\n');
+    src += `  gl_Position = vec4(aVertexPosition, 0.0, 1.0);
+}`;
+    return src;
 };
