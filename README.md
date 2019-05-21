@@ -22,7 +22,11 @@ Code standards:
 * JSDoc annotated with Closure compiler in mind - https://developers.google.com/closure/compiler/docs/js-for-compiler
 * Compatible with newest Chrome, Firefox and Microsoft Edge
 
-Contributions welcome! Getting started for contributors:
+Contributions welcome!
 
-* Install Python 2.7 and Closure linter.
-* run hooks/install.py to install automated testing hooks. Contributions that don't pass these are not accepted.
+Getting started with development scripts (not necessary to simply use the package):
+
+* Install Python 2.7
+* Install node.js (tested with version 10.15.3 LTS)
+* run "npm install"
+* run "python tools\compile_glbrush.py" to compile the library using Closure compiler
