@@ -4,6 +4,8 @@
 
 'use strict';
 
+import { PictureEvent } from './picture_event.js';
+
 /**
  * A change to the picture state. Can either add or undo a PictureEvent.
  * @constructor
@@ -130,3 +132,5 @@ PictureUpdate.parseLegacy = function(string, version) {
     }
     return json;
 };
+
+export { PictureUpdate };

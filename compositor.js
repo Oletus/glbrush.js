@@ -4,6 +4,12 @@
 
 'use strict';
 
+import { CanvasBuffer } from './picture_buffer.js';
+
+import { Rect } from './util2d.js';
+
+import { compositingShader } from './compositing_shader.js';
+
 /**
  * A compositor.
  * @interface
@@ -328,3 +334,5 @@ GLCompositor.prototype.flushInternal = function(flushed) {
         this.gl.blendFunc(this.gl.ONE, this.gl.ONE_MINUS_SRC_ALPHA);
     }
 };
+
+export { Compositor, CanvasCompositor, GLCompositor };

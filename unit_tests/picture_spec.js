@@ -4,6 +4,25 @@
 
 'use strict';
 
+import { colorUtil, Rect, Vec2 } from '../util2d.js';
+
+import { glUtils } from '../utilgl.js';
+
+import { PictureEvent, serializeToString } from '../picture_event.js';
+
+import { PictureUpdate } from '../picture_update.js';
+
+import { PictureRenderer } from '../picture_renderer.js';
+
+import { GLDoubleBufferedRasterizer, GLFloatRasterizer } from '../rasterize.js';
+
+import { Picture } from '../picture.js';
+
+import {
+    asyncTestExec,
+    countColoredPixelsInImage
+} from './test_util.js';
+
 var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
     var pic = null;
     beforeEach(function() {

@@ -4,6 +4,10 @@
 
 'use strict';
 
+import { GLRasterizerFormat } from './rasterize.js';
+
+import { ShaderGenerator } from './rasterize_shader.js';
+
 /**
  * A shader program for drawing a gradient.
  * @constructor
@@ -94,3 +98,5 @@ GradientShader.prototype.fragmentSource = function() {
     src += '}';  // void main(void)
     return src;
 };
+
+export { GradientShader };

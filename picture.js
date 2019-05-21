@@ -4,6 +4,30 @@
 
 'use strict';
 
+import { AffineTransform, Rect } from './util2d.js';
+
+import { glUtils } from './utilgl.js';
+
+import {
+    BrushEvent,
+    BufferAddEvent,
+    BufferMergeEvent,
+    BufferMoveEvent,
+    BufferRemoveEvent,
+    EventHideEvent,
+    GradientEvent,
+    PictureEvent,
+    RasterImportEvent,
+    ScatterEvent,
+    serializeToString
+} from './picture_event.js';
+
+import { BaseRasterizer } from './rasterize.js';
+
+import { CanvasBuffer, GLBuffer } from './picture_buffer.js';
+
+import { PictureUpdate } from './picture_update.js';
+
 /**
  * @constructor
  * @param {number} id Picture's unique id number.
@@ -1580,3 +1604,4 @@ Picture.prototype.toBlob = function(callback) {
     // this.canvas.toBlob(callback);
 };
 
+export { Picture };

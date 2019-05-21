@@ -4,6 +4,29 @@
 
 'use strict';
 
+import {
+    Rect,
+    colorUtil,
+    cssUtil
+} from './util2d.js';
+
+import {
+    glUtils
+} from './utilgl.js';
+
+import {
+    PictureEvent
+} from './picture_event.js';
+
+import {
+    CanvasUndoState,
+    GLUndoState
+} from './undo_state.js';
+
+import {
+    Rasterizer
+} from './rasterize.js';
+
 /**
  * A buffer for 2D picture data. Contains a series of picture events in back-
  * to-front order and a combined bitmap representation of them. Not to be
@@ -1363,3 +1386,5 @@ GLBuffer.prototype.getPixelRGBA = function(coords) {
     this.gl.readPixels(glX, glY, 1, 1, this.gl.RGBA, this.gl.UNSIGNED_BYTE, pixelData);
     return pixelData;
 };
+
+export { PictureBuffer, CanvasBuffer, GLBuffer };

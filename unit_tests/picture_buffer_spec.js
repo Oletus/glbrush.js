@@ -4,6 +4,49 @@
 
 'use strict';
 
+import {
+    colorUtil,
+    AffineTransform,
+    Rect,
+    Vec2
+} from '../util2d.js';
+
+import {
+    glStateManager
+} from '../utilgl.js';
+
+import {
+    blitShader
+} from '../blit_shader.js';
+
+import {
+    PictureRenderer
+} from '../picture_renderer.js';
+
+import {
+    BufferAddEvent,
+    BufferMergeEvent,
+    BufferRemoveEvent,
+    PictureEvent,
+    EventHideEvent
+} from '../picture_event.js';
+
+import { Rasterizer, GLDoubleBufferedRasterizer } from '../rasterize.js';
+
+import { GLCompositor } from '../compositor.js';
+
+import { PictureBuffer, CanvasBuffer, GLBuffer } from '../picture_buffer.js';
+
+import {
+    asyncTestExec,
+    debugGLSettingFromURL,
+    expectBufferCorrect,
+    fillingBrushEvent,
+    testBrushEvent,
+    testRasterImportEvent,
+    testScatterEvent
+} from './test_util.js';
+
 var testBufferParams = {
     id: 0,
     width: 100,

@@ -2,6 +2,27 @@
  * Copyright Olli Etuaho 2013.
  */
 
+import {
+    Rect
+} from '../util2d.js';
+
+import {
+    glStateManager,
+    glUtils
+} from '../utilgl.js';
+
+import {
+    blitShader
+} from '../blit_shader.js';
+
+import { CanvasUndoState, GLUndoState } from '../undo_state.js';
+
+import { GLCompositor } from '../compositor.js';
+
+import { PictureRenderer } from '../picture_renderer.js';
+
+import { expectArrayCorrect } from './test_util.js';
+
 describe('CanvasUndoState', function() {
     var createTestCanvas = function() {
         var canvas = document.createElement('canvas');

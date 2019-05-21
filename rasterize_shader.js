@@ -4,6 +4,10 @@
 
 'use strict';
 
+import { glUtils, ShaderProgram } from './utilgl.js';
+
+import { GLRasterizerFormat } from './rasterize.js';
+
 /**
  * A shader program generator. Inherited objects must generate 1 shader program
  * and implement uniforms(width, height), vertexSource(), and fragmentSource().
@@ -419,3 +423,5 @@ void main(void) {
 }`;
     return src;
 };
+
+export { RasterizeShader, ShaderGenerator };

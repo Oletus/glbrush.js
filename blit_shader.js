@@ -75,3 +75,5 @@ blitShader.ConversionUniformParameters = function() {
     this['uSrcTex'] = null;
     this['uColor'] = new Float32Array([0.0, 0.0, 0.0, 0.0]);
 };
+
+export { blitShader };

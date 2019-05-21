@@ -4,6 +4,12 @@
 
 'use strict';
 
+import { serializeToString } from '../picture_event.js';
+
+import { PictureUpdate } from '../picture_update.js';
+
+import { testBrushEvent, expectTestBrushEvent } from './test_util.js';
+
 describe('PictureUpdate', function() {
     it('initializes', function() {
         var testUpdate = new PictureUpdate('add_picture_event');

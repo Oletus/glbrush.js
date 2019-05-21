@@ -4,6 +4,32 @@
 
 'use strict';
 
+import {
+    colorUtil,
+    Rect,
+    Vec2
+} from './util2d.js';
+
+import {
+    ShaderProgram,
+    Uniform,
+    glStateManager,
+    glUtils,
+    shaderProgramCache
+} from './utilgl.js';
+
+import {
+    SWMipmap,
+    CanvasBrushTextures,
+    GLBrushTextures
+} from './brush_textures.js';
+
+import { blitShader } from './blit_shader.js';
+
+import { GradientShader } from './gradient_shader.js';
+
+import { RasterizeShader } from './rasterize_shader.js';
+
 /**
  * A base object for a rasterizer that can blend together monochrome circles and
  * draw gradients. Do not instance this directly.
@@ -1382,4 +1408,12 @@ GLFloatRasterizer.prototype.getPixel = function(coords) {
     var pixel = new Float32Array([0, 0, 0, 0]);
     this.gl.readPixels(left, this.height - 1 - top, 1, 1, this.gl.RGBA, this.gl.FLOAT, pixel);
     return pixel[3];
+};
+
+export {
+	BaseRasterizer,
+	GLDoubleBufferedRasterizer,
+	GLFloatRasterizer,
+	Rasterizer,
+	GLRasterizerFormat
 };

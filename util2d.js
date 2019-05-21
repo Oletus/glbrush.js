@@ -1125,3 +1125,13 @@ canvasUtil.clipRect = function(ctx, rect) {
     ctx.rect(xywh.x, xywh.y, xywh.w, xywh.h);
     ctx.clip();
 };
+
+export {
+    AffineTransform,
+    canvasUtil,
+    colorUtil,
+    cssUtil,
+    mathUtil,
+    Rect,
+    Vec2
+};

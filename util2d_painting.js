@@ -7,6 +7,11 @@
 
 'use strict';
 
+import {
+    colorUtil,
+    Rect
+} from "./util2d.js";
+
 /**
  * Calculate the resulting alpha value from blending a given alpha value with
  * itself n times.

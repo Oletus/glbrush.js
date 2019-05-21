@@ -4,6 +4,16 @@
 
 'use strict';
 
+import { glStateManager } from './utilgl.js';
+
+import { blitShader } from './blit_shader.js';
+
+import { PictureEvent } from './picture_event.js';
+
+import { CanvasCompositor } from './compositor.js';
+
+import { GLRasterizerFormat } from './rasterize.js';
+
 /**
  * Generate shaders for compositing a linear stack of layers.
  */
@@ -219,3 +229,5 @@ compositingShader.getShaderProgram = function(glManager, layers) {
     return glManager.shaderProgram(fragSource, blitShader.blitVertSrc,
                                    uniformTypes);
 };
+
+export { compositingShader };

@@ -4,6 +4,29 @@
 
 'use strict';
 
+import {
+    Rect,
+    Vec2
+} from '../util2d.js';
+
+import {
+    BrushEvent,
+    BufferAddEvent,
+    BufferMergeEvent,
+    BufferMoveEvent,
+    BufferRemoveEvent,
+    EventHideEvent,
+    GradientEvent,
+    PictureEvent,
+    RasterImportEvent,
+    ScatterEvent
+} from '../picture_event.js';
+
+import {
+    CanvasUndoState,
+    GLUndoState
+} from '../undo_state.js';
+
 let asyncTestExec = function(condition, callbackOnConditionFulfilled) {
     let checkConditionAndCallback = function() {
         if (condition()) {
@@ -346,3 +369,31 @@ function countColoredPixelsInImage(img, color, tolerance) {
 function debugGLSettingFromURL() {
     return window.location.search.indexOf('debugGL=1') > 0;
 }
+
+export {
+    asyncTestExec,
+    countColoredPixelsInImage,
+    debugGLSettingFromURL,
+    dummyBufferMergeEvent,
+    expectArrayCorrect,
+    expectBufferCorrect,
+    expectDummyBufferMergeEvent,
+    expectTestBrushEvent,
+    expectTestBufferAddEvent,
+    expectTestBufferMoveEvent,
+    expectTestBufferRemoveEvent,
+    expectTestEventHideEvent,
+    expectTestGradientEvent,
+    expectTestRasterImportEvent,
+    expectTestScatterEvent,
+    fillingBrushEvent,
+    testBrushEvent,
+    testBufferAddEvent,
+    testBufferMoveEvent,
+    testBufferRemoveEvent,
+    testEventHideEvent,
+    testGradientEvent,
+    testRasterImportEvent,
+    testScatterEvent,
+    testScatterEventWithPushCoordTriplet
+};

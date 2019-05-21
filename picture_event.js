@@ -4,6 +4,16 @@
 
 'use strict';
 
+import {
+    colorUtil,
+    Rect,
+    Vec2
+} from './util2d.js';
+
+import './util2d_painting.js';
+
+import { BrushTipMover } from './brush_tip_mover.js';
+
 /**
  * Draw state for a brush event. Used to resume drawTo() from a point along
  * the brush stroke.
@@ -1520,4 +1530,18 @@ var serializeToString = function(obj) {
     var json = {};
     obj.serialize(json);
     return JSON.stringify(json);
+};
+
+export {
+    BrushEvent,
+    BufferAddEvent,
+    BufferMergeEvent,
+    BufferMoveEvent,
+    BufferRemoveEvent,
+    EventHideEvent,
+    GradientEvent,
+    PictureEvent,
+    RasterImportEvent,
+    ScatterEvent,
+    serializeToString
 };

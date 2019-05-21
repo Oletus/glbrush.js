@@ -4,6 +4,53 @@
 
 'use strict';
 
+import {
+    AffineTransform,
+    colorUtil,
+    Rect,
+    Vec2
+} from '../util2d.js';
+
+import {
+    BrushEvent,
+    BufferAddEvent,
+    BufferMergeEvent,
+    BufferMoveEvent,
+    BufferRemoveEvent,
+    EventHideEvent,
+    GradientEvent,
+    PictureEvent,
+    RasterImportEvent,
+    ScatterEvent,
+    serializeToString
+} from '../picture_event.js';
+
+import {
+    BrushTipMover
+} from '../brush_tip_mover.js';
+
+import {
+    dummyBufferMergeEvent,
+    expectDummyBufferMergeEvent,
+    expectTestBrushEvent,
+    expectTestBufferAddEvent,
+    expectTestBufferMoveEvent,
+    expectTestBufferRemoveEvent,
+    expectTestEventHideEvent,
+    expectTestGradientEvent,
+    expectTestRasterImportEvent,
+    expectTestScatterEvent,
+    testBrushEvent,
+    testBufferAddEvent,
+    testBufferMoveEvent,
+    testBufferRemoveEvent,
+    testEventHideEvent,
+    testGradientEvent,
+    testRasterImportEvent,
+    testScatterEvent,
+    testScatterEventWithPushCoordTriplet
+} from './test_util.js';
+
 describe('PictureEvent', function() {
     var commonEventTests = function(creator, tester) {
         it('initializes', function() {

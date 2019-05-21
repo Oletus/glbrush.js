@@ -4,6 +4,8 @@
 
 'use strict';
 
+import { Vec2 } from './util2d.js';
+
 var glUtils = {
     createTexture: null,
     getShader: null,
@@ -433,3 +435,11 @@ var glStateManager = function(gl) {
                             gl.TEXTURE26, gl.TEXTURE27, gl.TEXTURE28,
                             gl.TEXTURE29, gl.TEXTURE30, gl.TEXTURE31];
 })();
+
+export {
+    ShaderProgram,
+    Uniform,
+    glStateManager,
+    glUtils,
+    shaderProgramCache
+};

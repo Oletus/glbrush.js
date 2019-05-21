@@ -4,6 +4,18 @@
 
 'use strict';
 
+import {
+    AffineTransform,
+    canvasUtil,
+    colorUtil,
+    cssUtil,
+    mathUtil,
+    Rect,
+    Vec2
+} from "../util2d.js";
+
+import "../util2d_painting.js";
+
 beforeEach(function() {
   jasmine.addMatchers({
     toBeNear: function(util, customEqualityTesters) {

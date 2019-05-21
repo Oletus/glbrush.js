@@ -4,6 +4,12 @@
 
 'use strict';
 
+import {
+	colorUtil,
+	mathUtil,
+	Vec2
+} from './util2d.js';
+
 /**
  * Utility for generating a series of individual tip sample positions from
  * control points.
@@ -268,3 +274,5 @@ BrushTipMover.prototype.circleLineTo = function(centerX, centerY, radius, rotati
     this.targetR = radius;
     this.targetRot = rotation;
 };
+
+export { BrushTipMover };

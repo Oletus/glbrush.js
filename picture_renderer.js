@@ -1,5 +1,15 @@
 'use strict';
 
+import { glUtils, glStateManager } from './utilgl.js';
+
+import { CanvasBrushTextures, GLBrushTextures } from './brush_textures.js';
+
+import { blitShader } from './blit_shader.js';
+
+import { CanvasCompositor, GLCompositor } from './compositor.js';
+
+import { Rasterizer, GLDoubleBufferedRasterizer, GLFloatRasterizer } from './rasterize.js';
+
 /**
  * A relatively thin wrapper around a canvas and context used to render multiple Pictures.
  * Maintains state that isn't specific to a single Picture, such as the compositor and brush texture collection.
@@ -320,3 +330,5 @@ PictureRenderer.prototype.initBrushTextures = function() {
         this.brushTextures.addTexture(this.brushTextureData[i]);
     }
 };
+
+export { PictureRenderer };

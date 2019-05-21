@@ -4,6 +4,14 @@
 
 'use strict';
 
+import {
+    Rect
+} from './util2d.js';
+
+import {
+    glUtils
+} from './utilgl.js';
+
 /**
  * Storage for bitmap data from a past PictureBuffer state.
  * @constructor
@@ -197,3 +205,5 @@ GLUndoState.prototype.free = function() {
         this.invalid = true;
     }
 };
+
+export { CanvasUndoState, GLUndoState };

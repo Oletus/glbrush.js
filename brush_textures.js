@@ -265,3 +265,5 @@ GLBrushTextures.prototype.addTexture = function(imageSource) {
 GLBrushTextures.prototype.getTexture = function(textureIndex) {
     return this.textures[textureIndex];
 };
+
+export { SWMipmap, CanvasBrushTextures, GLBrushTextures };
