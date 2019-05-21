@@ -88,7 +88,6 @@ void main(void) {
   } else {
     ${ bufferColor } = vec4(0.0);
   }`;
-        console.log(blendSrc);
         src.push(blendSrc);
     };
     i = 0;
