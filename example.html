@@ -1,26 +1,21 @@
 <html>
 <head>
-<!-- Copyright Olli Etuaho 2013 -->
+<!-- Copyright Olli Etuaho 2013-2019 -->
+<meta charset="UTF-8">
 <title>glbrush.js example application</title>
 <script type="text/javascript" src="lib/hsl.js"></script>
-<script type="text/javascript" src="util2d.js"></script>
-<script type="text/javascript" src="util2d_painting.js"></script>
-<script type="text/javascript" src="utilgl.js"></script>
-<script type="text/javascript" src="blit_shader.js"></script>
-<script type="text/javascript" src="rasterize_shader.js"></script>
-<script type="text/javascript" src="gradient_shader.js"></script>
-<script type="text/javascript" src="compositing_shader.js"></script>
-<script type="text/javascript" src="brush_tip_mover.js"></script>
-<script type="text/javascript" src="brush_textures.js"></script>
-<script type="text/javascript" src="compositor.js"></script>
-<script type="text/javascript" src="picture_event.js"></script>
-<script type="text/javascript" src="rasterize.js"></script>
-<script type="text/javascript" src="picture_buffer.js"></script>
-<script type="text/javascript" src="undo_state.js"></script>
-<script type="text/javascript" src="picture_update.js"></script>
-<script type="text/javascript" src="picture.js"></script>
-<script type="text/javascript" src="picture_renderer.js"></script>
-<script type="text/javascript">
+<script type="module">
+
+import { Rect, Vec2 } from './util2d.js';
+
+import { PictureEvent } from './picture_event.js'
+
+import { PictureUpdate } from './picture_update.js'
+
+import { Picture } from './picture.js';
+
+import { PictureRenderer } from './picture_renderer.js';
+
 /**
  * Utility function to get event coordinates relative to an element.
  */
@@ -35,7 +30,7 @@ function getRelativeCoords(event, element) {
                     event.clientY - rect.top + 0.5);
 }
 
-loadApp = function() {
+var loadApp = function() {
     // Create a container element for the picture
     var drawArea = document.createElement('div');
     var width = 800;
@@ -137,8 +132,10 @@ loadApp = function() {
 
     // And there's a lot more public API in Picture to use...
 }
+
+loadApp();
 </script>
 </head>
-<body onload="loadApp()" style="background:#888;">
+<body style="background:#888;">
 </body>
 </html>
