@@ -1,6 +1,14 @@
 /*
- * Copyright Olli Etuaho 2014.
+ * Copyright Olli Etuaho 2014-2019.
  */
+
+import { Rect, Vec2 } from '../util2d.js';
+
+import { PictureEvent } from '../picture_event.js'
+
+import { Picture } from '../picture.js';
+
+import { PictureRenderer } from '../picture_renderer.js';
 
 var testTextureCanvas = function() {
     var image = document.createElement('canvas');
@@ -25,7 +33,7 @@ var testTextureCanvas = function() {
 var testLog = function(message) {
     console.log(message);
     var displayLog = document.createElement('div');
-    displayLog.textContent = timeMessage;
+    displayLog.textContent = message;
     document.body.appendChild(displayLog);
 };
 
@@ -56,7 +64,7 @@ var measureBrushStrokeTime = function(testPic, eventCount, radius, textureId, so
     var totalTime = new Date().getTime() - startTime;
     if (report) {
         var logTime = function(mode, testTextureId, blendMode, time) {
-            timeMessage = 'Mode: ' + mode + ', blend mode: ' + blendMode + ', texture id: ' + testTextureId + ', brush events per second: ' +
+            var timeMessage = 'Mode: ' + mode + ', blend mode: ' + blendMode + ', texture id: ' + testTextureId + ', brush events per second: ' +
                           (eventCount / time * 1000).toFixed(2);
             testLog(timeMessage);
         };
@@ -169,3 +177,5 @@ var init = function() {
     }
     document.body.appendChild(runAll);
 }
+
+init();
