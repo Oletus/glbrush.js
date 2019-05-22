@@ -59,7 +59,7 @@ def compile_brushbench(output_path):
     brushbench_js_path = os.path.abspath(os.path.join(file_path, '..', 'benchmark', 'brushbench.js'))
     brushbench_js_path_no_extension = brushbench_js_path[0:-3]
 
-    command = ['java', '-jar', 'compiler.jar', '--compilation_level', 'WHITESPACE_ONLY' ]
+    command = ['java', '-jar', 'compiler.jar', '--compilation_level', 'SIMPLE_OPTIMIZATIONS' ]
     command += ['--js_module_root', glbrush_root_path()]
     command += ['--dependency_mode=STRICT'] # This enables dependency sorting.
     command += ['--entry_point', brushbench_js_path_no_extension]
