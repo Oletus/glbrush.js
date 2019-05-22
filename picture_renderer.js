@@ -10,6 +10,8 @@ import { CanvasCompositor, GLCompositor } from './compositor.js';
 
 import { Rasterizer, GLDoubleBufferedRasterizer, GLFloatRasterizer } from './rasterize.js';
 
+import { WebGLDebugUtils } from './lib/webgl-debug.js';
+
 /**
  * A relatively thin wrapper around a canvas and context used to render multiple Pictures.
  * Maintains state that isn't specific to a single Picture, such as the compositor and brush texture collection.
