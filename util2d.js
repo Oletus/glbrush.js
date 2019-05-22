@@ -12,6 +12,8 @@
 
 'use strict';
 
+import { hslToRgb, rgbToHsl } from './lib/hsl.js';
+
 var cssUtil = {
     rgbString: null,
     rgbaString: null
