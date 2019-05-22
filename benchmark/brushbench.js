@@ -178,4 +178,4 @@ var init = function() {
     document.body.appendChild(runAll);
 }
 
-init();
+setTimeout(init, 0);

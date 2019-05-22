@@ -1,5 +1,6 @@
 /nbproject/
 compile/glbrush_min.js
 benchmark/glbrush_min.js
+benchmark/brushbench_glbrush_min.js
 *.pyc
 /node_modules

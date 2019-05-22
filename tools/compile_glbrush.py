@@ -13,18 +13,9 @@ def glbrush_root_path():
     return os.path.abspath(os.path.join(file_path, '..'))
 
 def lib_js():
-    '''Returns a list of absolute paths to glbrush js files containing the library.
-    Files are sorted in dependency order.'''
+    '''Returns a list of absolute paths to glbrush js files containing the library.'''
     glbrush_root = glbrush_root_path()
     js_files = js_files_in(glbrush_root)
-    def client_js_key(path):
-        # This hardcoded dependency order is a bit ugly, could perhaps be replaced with better dependency management.
-        if path.count('util') > 0:
-            return 'A' + path
-        if path.count('rasterize_shader') > 0:
-            return 'B' + path
-        return 'C' + path
-    js_files = sorted(js_files, key=client_js_key)
     return js_files_in(os.path.join(glbrush_root, 'lib')) + js_files
 
 def compile_with_online_compiler(js_code, compilation_level):
@@ -49,7 +40,7 @@ def compile_with_online_compiler(js_code, compilation_level):
     conn.close()
     return data
 
-def compile_glbrush(output_path):
+def compile_brushbench(output_path):
     '''Compile glbrush.js with Closure compiler.
     output_path should include the name of the file.'''
     restore_dir = os.getcwd()
@@ -65,9 +56,17 @@ def compile_glbrush(output_path):
         os.chdir(restore_dir)
         return False
 
-    # Compile a package that's usable within another app, so WHITESPACE_ONLY
-    command = ['java', '-jar', 'compiler.jar', '--compilation_level', 'WHITESPACE_ONLY', '--js']
+    brushbench_js_path = os.path.abspath(os.path.join(file_path, '..', 'benchmark', 'brushbench.js'))
+    brushbench_js_path_no_extension = brushbench_js_path[0:-3]
+
+    command = ['java', '-jar', 'compiler.jar', '--compilation_level', 'WHITESPACE_ONLY' ]
+    command += ['--js_module_root', glbrush_root_path()]
+    command += ['--dependency_mode=STRICT'] # This enables dependency sorting.
+    command += ['--entry_point', brushbench_js_path_no_extension]
+    command += ['--module_resolution', 'BROWSER']
+    command += ['--js']
     command += lib_js_list
+    command += [brushbench_js_path]
     command += ['--js_output_file', output_path]
     print(' '.join(command))
     subprocess.call(command)
@@ -76,4 +75,4 @@ def compile_glbrush(output_path):
     return True
 
 if __name__ == '__main__':
-    compile_glbrush(os.path.join(glbrush_root_path(), 'benchmark', 'glbrush_min.js'))
+    compile_brushbench(os.path.join(glbrush_root_path(), 'benchmark', 'brushbench_glbrush_min.js'))
