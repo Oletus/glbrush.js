@@ -1,27 +1,21 @@
 <html>
 <head>
-<!-- Copyright Olli Etuaho 2013 -->
-<title>glbrush.js brush benchmark</title>
-<script type="text/javascript" src="../util2d.js"></script>
-<script type="text/javascript" src="../util2d_painting.js"></script>
-<script type="text/javascript" src="../utilgl.js"></script>
-<script type="text/javascript" src="../blit_shader.js"></script>
-<script type="text/javascript" src="../rasterize_shader.js"></script>
-<script type="text/javascript" src="../gradient_shader.js"></script>
-<script type="text/javascript" src="../compositing_shader.js"></script>
-<script type="text/javascript" src="../brush_tip_mover.js"></script>
-<script type="text/javascript" src="../brush_textures.js"></script>
-<script type="text/javascript" src="../compositor.js"></script>
-<script type="text/javascript" src="../picture_event.js"></script>
-<script type="text/javascript" src="../rasterize.js"></script>
-<script type="text/javascript" src="../picture_update.js"></script>
-<script type="text/javascript" src="../picture_buffer.js"></script>
-<script type="text/javascript" src="../undo_state.js"></script>
-<script type="text/javascript" src="../picture.js"></script>
-<script type="text/javascript" src="../picture_renderer.js"></script>
-<script type="text/javascript">
+<!-- Copyright Olli Etuaho 2013-2019 -->
+<meta charset="UTF-8">
+<title>glbrush.js brush scaling test</title>
+<script type="module">
 
 // Test brush scaling by resizing the picture bitmap on each frame.
+
+import { Rect, Vec2 } from '../util2d.js';
+
+import { PictureEvent } from '../picture_event.js'
+
+import { PictureUpdate } from '../picture_update.js'
+
+import { Picture } from '../picture.js';
+
+import { PictureRenderer } from '../picture_renderer.js';
 
 var runTest = function() {
     var w = 256;
@@ -150,9 +144,11 @@ var runTest = function() {
     }
 };
 
+runTest();
+
 </script>
 </head>
-<body onload="runTest()" style="background:#888;">
+<body style="background:#888;">
 <div id="parent" style="width:384px; height: 384px;">
 </div>
 <p id="picScale"></p>

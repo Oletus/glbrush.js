@@ -1,11 +1,12 @@
 <html>
     <head>
         <!-- Copyright Jerry Ylilammi 2013 -->
-        <!-- Copyright Olli Etuaho 2013 -->
+        <!-- Copyright Olli Etuaho 2013-2019 -->
+        <meta charset="UTF-8">
         <title>Photoshop blend mode comparison</title>
-        <script type="text/javascript" src="../util2d.js"></script>
-        <script type="text/javascript" src="../util2d_painting.js"></script>
-        <script type="text/javascript">
+        <script type="module">
+
+import { colorUtil } from '../util2d.js';
 
             // Generate input values, these are the same values used in Photoshop layers, input1.png and input2.png
             var inputs = [];
@@ -98,8 +99,10 @@
                 ++testIndex;
             }
 
+            runTest();
+
         </script>
     </head>
-    <body onload="runTest()" style="background:#DDD;">
+    <body onload="" style="background:#DDD;">
     </body>
 </html>

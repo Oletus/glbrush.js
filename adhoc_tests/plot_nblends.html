@@ -1,8 +1,12 @@
 <html>
 <head>
-<script type="text/javascript" src="../util2d.js"></script>
-<script type="text/javascript" src="../util2d_painting.js"></script>
-<script type="text/javascript">
+<!-- Copyright Olli Etuaho 2013-2019 -->
+<meta charset="UTF-8">
+<title>Plot of alpha resulting from repeated blending</title>
+<script type="module">
+
+import { colorUtil } from '../util2d.js';
+import '../util2d_painting.js';
 
 colorUtil.alphaForNBlendsBisect = function(flow, n) {
     if (flow < 1.0) {
@@ -145,8 +149,10 @@ var plot = function() {
     measureSecantTime();
     measureBisectTime();
 };
+
+plot();
 </script>
 </head>
-<body onload="plot()" style="background-color: #888">
+<body style="background-color: #888">
 </body>
 </html>
