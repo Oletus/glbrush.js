@@ -476,7 +476,7 @@ describe('Rasterizing system', function() {
                 for (var x = step / 2; x < w; x += step) {
                     var pixel = rasterizer.getPixel(new Vec2(x + 0.5, y + 0.5));
                     var wrong = 0;
-                    var centerDist = center.distance(new Vec2(x + 0.5, y + 0.5));
+                    var centerDist = center.distanceTo(new Vec2(x + 0.5, y + 0.5));
                     if (centerDist > radius + 2) {
                         if (pixel !== 0) {
                             ++wrongPixelsOutsideCircle;

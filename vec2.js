@@ -7,40 +7,6 @@ import { Vector2 } from './lib/Vector2.js';
 var Vec2 = Vector2;
 
 /**
- * Copy vec2 coordinates from another vec2.
- * @param {Vec2} vec Another vector.
- */
-Vec2.prototype.setVec2 = function(vec) {
-    this.copy(vec);
-};
-
-/**
- * Calculate this vector's distance from another vector.
- * @param {Vec2} vec The other vector.
- * @return {number} The distance.
- */
-Vec2.prototype.distance = function(vec) {
-    return this.distanceTo(vec);
-};
-
-/**
- * Scale this vector by scalar mult.
- * @param {number} mult Multiplier to scale with.
- */
-Vec2.prototype.scale = function(mult) {
-    this.multiplyScalar(mult);
-};
-
-/**
- * Dot product with another Vec2.
- * @param {Vec2} vec Vector to calculate the dot product with.
- * @return {number} The dot product.
- */
-Vec2.prototype.dotProduct = function(vec) {
-    return this.dot(vec);
-};
-
-/**
  * Calculate the angle of this vector compared to the positive x axis, so that
  * the angle is < PI when y < 0 and > PI when y < 0.
  * @return {number} The angle.
@@ -121,7 +87,7 @@ Vec2.prototype.projectToCircle = function(x, y, radius) {
 Vec2.prototype.distanceToLine = function(lineA, lineB) {
     var projection = new Vec2(this.x, this.y);
     projection.projectToLine(lineA, lineB);
-    return this.distance(projection);
+    return this.distanceTo(projection);
 };
 
 /**

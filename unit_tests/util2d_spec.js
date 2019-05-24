@@ -260,7 +260,7 @@ describe('util2d', function() {
         it('calculates distance with another Vec2', function() {
             var vecA = new Vec2(3, 4);
             var vecB = new Vec2(7, 7);
-            expect(vecA.distance(vecB)).toBeNear(5, 0.001);
+            expect(vecA.distanceTo(vecB)).toBeNear(5, 0.001);
         });
 
         it('can be normalized', function() {
@@ -320,7 +320,7 @@ describe('util2d', function() {
             var radius = 5.0;
             var center = new Vec2(6.7, 8.9);
             vec.projectToCircle(center.x, center.y, radius);
-            expect(vec.distance(center)).toBeNear(radius, 0.00001);
+            expect(vec.distanceTo(center)).toBeNear(radius, 0.00001);
             var projectedAngle = Math.atan2(vec.y - center.y, vec.x - center.x);
             var originalAngle = Math.atan2(3.4 - center.y, 1.2 - center.x);
             expect(projectedAngle).toBeNear(originalAngle, 0.00001);
