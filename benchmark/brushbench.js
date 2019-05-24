@@ -180,4 +180,4 @@ var init = function() {
     document.body.appendChild(runAll);
 }
 
-setTimeout(init, 0);
+window['initBrushbench'] = init;
