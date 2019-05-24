@@ -27,9 +27,10 @@ import {
     BufferAddEvent,
     BufferMergeEvent,
     BufferRemoveEvent,
-    PictureEvent,
     EventHideEvent
 } from '../picture_event.js';
+
+import { BlendingMode } from '../blending_mode.js';
 
 import { Rasterizer, GLDoubleBufferedRasterizer } from '../rasterize.js';
 
@@ -152,7 +153,7 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         var rasterizer = createRasterizer(params);
         var brushEvent = fillingBrushEvent(params.width, params.height,
                                            [0, 0, 0], 1.0,
-                                           PictureEvent.Mode.erase);
+                                           BlendingMode.erase);
         buffer.pushEvent(brushEvent, rasterizer);
         var samplePixel = buffer.getPixelRGBA(new Vec2(0, 0));
         expect(samplePixel[3]).toBe(0);
@@ -179,7 +180,7 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
             var flow = 0.5;
             var brushEvent = fillingBrushEvent(params.width, params.height,
                                                [0.2 * 255, 0.4 * 255, 0.8 * 255],
-                                               opacity, PictureEvent.Mode.normal,
+                                               opacity, BlendingMode.normal,
                                                flow);
             buffer.pushEvent(brushEvent, rasterizer);
             var samplePixel = buffer.getPixelRGBA(new Vec2(params.width * 0.5,
@@ -272,22 +273,22 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         });
     };
 
-    generalizedBlendModeTest('multiply', PictureEvent.Mode.multiply, colorUtil.blendMultiply);
-    generalizedBlendModeTest('screen', PictureEvent.Mode.screen, colorUtil.blendScreen);
-    generalizedBlendModeTest('overlay', PictureEvent.Mode.overlay, colorUtil.blendOverlay);
-    generalizedBlendModeTest('hardlight', PictureEvent.Mode.hardlight, colorUtil.blendHardLight);
-    generalizedBlendModeTest('softlight', PictureEvent.Mode.softlight, colorUtil.blendSoftLight);
-    generalizedBlendModeTest('darken', PictureEvent.Mode.darken, colorUtil.blendDarken);
-    generalizedBlendModeTest('lighten', PictureEvent.Mode.lighten, colorUtil.blendLighten);
-    generalizedBlendModeTest('difference', PictureEvent.Mode.difference, colorUtil.blendDifference);
-    generalizedBlendModeTest('exclusion', PictureEvent.Mode.exclusion, colorUtil.blendExclusion);
-    generalizedBlendModeTest('colorburn', PictureEvent.Mode.colorburn, colorUtil.blendColorBurn);
-    generalizedBlendModeTest('linearburn', PictureEvent.Mode.linearburn, colorUtil.blendLinearBurn);
-    generalizedBlendModeTest('vividlight', PictureEvent.Mode.vividlight, colorUtil.blendVividLight);
-    generalizedBlendModeTest('linearlight', PictureEvent.Mode.linearlight, colorUtil.blendLinearLight);
-    generalizedBlendModeTest('pinlight', PictureEvent.Mode.pinlight, colorUtil.blendPinLight);
-    generalizedBlendModeTest('colordodge', PictureEvent.Mode.colordodge, colorUtil.blendColorDodge);
-    generalizedBlendModeTest('lineardodge', PictureEvent.Mode.lineardodge, colorUtil.blendLinearDodge);
+    generalizedBlendModeTest('multiply', BlendingMode.multiply, colorUtil.blendMultiply);
+    generalizedBlendModeTest('screen', BlendingMode.screen, colorUtil.blendScreen);
+    generalizedBlendModeTest('overlay', BlendingMode.overlay, colorUtil.blendOverlay);
+    generalizedBlendModeTest('hardlight', BlendingMode.hardlight, colorUtil.blendHardLight);
+    generalizedBlendModeTest('softlight', BlendingMode.softlight, colorUtil.blendSoftLight);
+    generalizedBlendModeTest('darken', BlendingMode.darken, colorUtil.blendDarken);
+    generalizedBlendModeTest('lighten', BlendingMode.lighten, colorUtil.blendLighten);
+    generalizedBlendModeTest('difference', BlendingMode.difference, colorUtil.blendDifference);
+    generalizedBlendModeTest('exclusion', BlendingMode.exclusion, colorUtil.blendExclusion);
+    generalizedBlendModeTest('colorburn', BlendingMode.colorburn, colorUtil.blendColorBurn);
+    generalizedBlendModeTest('linearburn', BlendingMode.linearburn, colorUtil.blendLinearBurn);
+    generalizedBlendModeTest('vividlight', BlendingMode.vividlight, colorUtil.blendVividLight);
+    generalizedBlendModeTest('linearlight', BlendingMode.linearlight, colorUtil.blendLinearLight);
+    generalizedBlendModeTest('pinlight', BlendingMode.pinlight, colorUtil.blendPinLight);
+    generalizedBlendModeTest('colordodge', BlendingMode.colordodge, colorUtil.blendColorDodge);
+    generalizedBlendModeTest('lineardodge', BlendingMode.lineardodge, colorUtil.blendLinearDodge);
 
     it('erases from an opaque buffer', function() {
         initTestCanvas();
@@ -301,13 +302,13 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         var opacity = 1.0;
         var brushEvent = fillingBrushEvent(params.width, params.height,
                                            [0.2 * 255, 0.4 * 255, 0.8 * 255],
-                                           opacity, PictureEvent.Mode.normal);
+                                           opacity, BlendingMode.normal);
         buffer.pushEvent(brushEvent, rasterizer);
         // The erase event color should be ignored and clear color should be
         // used instead.
         brushEvent = fillingBrushEvent(params.width, params.height,
                                        [255, 255, 255], opacity,
-                                       PictureEvent.Mode.erase);
+                                       BlendingMode.erase);
         buffer.pushEvent(brushEvent, rasterizer);
         var samplePixel = buffer.getPixelRGBA(new Vec2(0, 0));
         var cc = params.clearColor;
@@ -330,7 +331,7 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         var scatterEvent = testScatterEvent();
         // Assumptions this test makes:
         expect(scatterEvent.radius).toBeLessThan(params.width / 2);
-        expect(scatterEvent.mode).toBe(PictureEvent.Mode.normal);
+        expect(scatterEvent.mode).toBe(BlendingMode.normal);
 
         scatterEvent.fillCircle(0, 0, scatterEvent.radius, scatterEvent.flow, 0);
         scatterEvent.fillCircle(params.width, params.height, scatterEvent.radius, scatterEvent.flow, 0);
@@ -613,7 +614,7 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
 
         var brushEvent = fillingBrushEvent(params.width, params.height,
                                            [0.2 * 255, 0.4 * 255, 0.8 * 255],
-                                           0.5, PictureEvent.Mode.normal);
+                                           0.5, BlendingMode.normal);
         buffer.setInsertionPoint(5);
         buffer.insertEvent(brushEvent, rasterizer);
         expect(undoState.index).toBe(undoStateStartIndex + 1);
@@ -622,14 +623,14 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         buffer.setInsertionPoint(undoState.index - 1);
         brushEvent = fillingBrushEvent(params.width, params.height,
                                        [0.2 * 255, 0.4 * 255, 0.8 * 255],
-                                       0.5, PictureEvent.Mode.normal);
+                                       0.5, BlendingMode.normal);
         buffer.insertEvent(brushEvent, rasterizer);
         expect(undoState.index).toBe(undoStateStartIndex + 2);
 
         buffer.setInsertionPoint(undoState.index);
         brushEvent = fillingBrushEvent(params.width, params.height,
                                        [0.2 * 255, 0.4 * 255, 0.8 * 255],
-                                       0.5, PictureEvent.Mode.normal);
+                                       0.5, BlendingMode.normal);
         buffer.insertEvent(brushEvent, rasterizer);
         expect(undoState.index).toBe(undoStateStartIndex + 2);
 
@@ -711,7 +712,7 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
 
         var brushEvent = fillingBrushEvent(params.width, params.height,
                                            [0.2 * 255, 0.4 * 255, 0.8 * 255],
-                                           0.5, PictureEvent.Mode.normal);
+                                           0.5, BlendingMode.normal);
         brushEvent.undone = true;
         buffer.setInsertionPoint(5);
         buffer.insertEvent(brushEvent, rasterizer);
@@ -880,7 +881,7 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         var rasterizer = createRasterizer(params);
         var brushEvent = fillingBrushEvent(params.width, params.height,
                                            [0, 0, 0], 0.7,
-                                           PictureEvent.Mode.normal);
+                                           BlendingMode.normal);
         buffer.pushEvent(brushEvent, rasterizer);
         var blame = buffer.blamePixel(new Vec2(1, 1));
         expect(blame.length).toBe(1);
@@ -905,11 +906,11 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         fillBuffer(buffer, rasterizer, 10);
         var brushEvent = fillingBrushEvent(params.width, params.height,
                                            [0, 0, 0], 0.7,
-                                           PictureEvent.Mode.normal);
+                                           BlendingMode.normal);
         buffer.pushEvent(brushEvent, rasterizer);
         var brushEvent2 = fillingBrushEvent(params.width, params.height,
                                             [0, 0, 0], 0.7,
-                                            PictureEvent.Mode.normal);
+                                            BlendingMode.normal);
         buffer.pushEvent(brushEvent2, rasterizer);
         var blame = buffer.blamePixel(new Vec2(1, 1));
         expect(blame.length).toBeGreaterThan(1);
@@ -944,11 +945,11 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         var rasterizer = createRasterizer(params);
         var brushEvent = fillingBrushEvent(params.width, params.height,
                                            [0, 0, 0], 0.5,
-                                           PictureEvent.Mode.normal);
+                                           BlendingMode.normal);
         buffer.pushEvent(brushEvent, rasterizer);
         var brushEvent = fillingBrushEvent(params.width, params.height,
                                        [90, 30, 60], 1.0,
-                                       PictureEvent.Mode.normal);
+                                       BlendingMode.normal);
         brushEvent.translate(new Vec2(-params.width * 3, -params.height * 3));
         buffer.pushEvent(brushEvent, rasterizer);
 
@@ -979,7 +980,7 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         var rasterizer = createRasterizer(params);
         var brushEvent = fillingBrushEvent(params.width, params.height,
                                        [90, 30, 60], 1.0,
-                                       PictureEvent.Mode.normal);
+                                       BlendingMode.normal);
         brushEvent.translate(new Vec2(params.width, params.height));
         buffer.pushEvent(brushEvent, rasterizer);
 
@@ -1003,7 +1004,7 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
         fillBuffer(buffer, rasterizer, buffer.undoStateInterval + 1); // We want to hit an undo state in this test.
-        var brushEvent = fillingBrushEvent(params.width, params.height, [90, 30, 60], 1.0, PictureEvent.Mode.normal);
+        var brushEvent = fillingBrushEvent(params.width, params.height, [90, 30, 60], 1.0, BlendingMode.normal);
         brushEvent.translate(new Vec2(-params.width * 3, -params.height * 3));
         buffer.pushEvent(brushEvent, rasterizer);
 
@@ -1039,7 +1040,7 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
             var buffer = createBuffer(params);
             var rasterizer = createRasterizer(params);
             var brushEvent = fillingBrushEvent(params.width, params.height, [90, 30, 60], 0.02,
-                                               PictureEvent.Mode.normal);
+                                               BlendingMode.normal);
             buffer.pushEvent(brushEvent, rasterizer);
             var samplePixel = buffer.getPixelRGBA(new Vec2(0, 0));
             expect(samplePixel[0]).toBeNear(90, 4);
@@ -1059,7 +1060,7 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
             var rasterizer = createRasterizer(params);
             for (var i = 0; i < 50; ++i) {
                 var brushEvent = fillingBrushEvent(params.width, params.height, [90, 30, 60], 0.02,
-                                                   PictureEvent.Mode.normal);
+                                                   BlendingMode.normal);
                 brushEvent.sessionEventId = i + 1;
                 buffer.pushEvent(brushEvent, rasterizer);
             }

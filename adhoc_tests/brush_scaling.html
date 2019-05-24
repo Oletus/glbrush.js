@@ -9,7 +9,7 @@
 
 import { Rect, Vec2 } from '../util2d.js';
 
-import { PictureEvent } from '../picture_event.js'
+import { BlendingMode } from '../blending_mode.js'
 
 import { PictureUpdate } from '../picture_update.js'
 
@@ -35,7 +35,7 @@ var runTest = function() {
     var opacity = 1.0;
     var radius = 20;
     var softness = 1.0;
-    var mode = PictureEvent.Mode.normal;
+    var mode = BlendingMode.normal;
     var event = testPic.createBrushEvent(color, flow, opacity, radius, 0, softness, mode);
     var yStep = 1/6;
     var ySteps = yStep;

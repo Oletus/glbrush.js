@@ -7,7 +7,7 @@
 
 import { Rect, Vec2 } from './util2d.js';
 
-import { PictureEvent } from './picture_event.js'
+import { BlendingMode } from './blending_mode.js'
 
 import { PictureUpdate } from './picture_update.js'
 
@@ -59,7 +59,7 @@ var loadApp = function() {
         var blue = 42;
         currentEvent = picture.createBrushEvent([red, green, blue], 0.8, 1.0,
                                                 20, 0, 1,
-                                                PictureEvent.Mode.normal);
+                                                BlendingMode.normal);
     };
     drawArea.onmouseup = function(e) {
         if (currentEvent !== null) {

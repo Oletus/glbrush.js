@@ -9,6 +9,8 @@ import {
     Vec2
 } from '../util2d.js';
 
+import { BlendingMode } from '../blending_mode.js';
+
 import {
     BrushEvent,
     BufferAddEvent,
@@ -17,7 +19,6 @@ import {
     BufferRemoveEvent,
     EventHideEvent,
     GradientEvent,
-    PictureEvent,
     RasterImportEvent,
     ScatterEvent
 } from '../picture_event.js';
@@ -48,7 +49,7 @@ function testRGB() {
 
 function testBrushEvent() {
     var event = new BrushEvent();
-    event.init(0, 1, false, testRGB(), 0.78, 0.9, 25, 0, 1.0, PictureEvent.Mode.normal);
+    event.init(0, 1, false, testRGB(), 0.78, 0.9, 25, 0, 1.0, BlendingMode.normal);
     return event;
 }
 
@@ -58,7 +59,7 @@ function fillingBrushEvent(widthToFill, heightToFill, color, opacity, mode,
         color = [0, 0, 0];
     }
     if (mode === undefined) {
-        mode = PictureEvent.Mode.normal;
+        mode = BlendingMode.normal;
     }
     if (flow === undefined) {
         flow = 1.0;
@@ -85,14 +86,14 @@ function expectTestBrushEvent(brushEvent, coordsLength) {
     expect(brushEvent.textureId).toBe(0);
     expect(brushEvent.soft).toBe(true);
     expect(brushEvent.coords.length).toBe(coordsLength);
-    expect(brushEvent.mode).toBe(PictureEvent.Mode.normal);
+    expect(brushEvent.mode).toBe(BlendingMode.normal);
 }
 
 function testScatterEvent() {
     var radius = 25;
     var flowAlpha = 0.78;
     var event = new ScatterEvent();
-    event.init(0, 1, false, testRGB(), flowAlpha, 0.9, radius, 0, 1.0, PictureEvent.Mode.normal);
+    event.init(0, 1, false, testRGB(), flowAlpha, 0.9, radius, 0, 1.0, BlendingMode.normal);
     return event;
 }
 
@@ -100,7 +101,7 @@ function testScatterEventWithPushCoordTriplet() {
     var radius = 25;
     var flowAlpha = 0.78;
     var ev = new ScatterEvent();
-    ev.init(0, 1, false, testRGB(), flowAlpha, 0.9, radius, 0, 1.0, PictureEvent.Mode.normal);
+    ev.init(0, 1, false, testRGB(), flowAlpha, 0.9, radius, 0, 1.0, BlendingMode.normal);
     // To be able to share more tests with BrushEvent:
     ev.pushCoordTriplet = function(x, y, pressure) {
         this.fillCircle(x, y, radius * pressure, flowAlpha, 0.0);
@@ -112,7 +113,7 @@ var expectTestScatterEvent = expectTestBrushEvent;
 
 function testGradientEvent() {
     return new GradientEvent(0, 1, false, testRGB(), 0.78,
-                             PictureEvent.Mode.normal);
+                             BlendingMode.normal);
 }
 
 function expectTestGradientEvent(gradientEvent) {
@@ -121,7 +122,7 @@ function expectTestGradientEvent(gradientEvent) {
     expect(gradientEvent.undone).toBe(false);
     expect(gradientEvent.color).toEqual(testRGB());
     expect(gradientEvent.opacity).toBe(0.78);
-    expect(gradientEvent.mode).toBe(PictureEvent.Mode.normal);
+    expect(gradientEvent.mode).toBe(BlendingMode.normal);
 }
 
 var testGreenDataURL = (function() {

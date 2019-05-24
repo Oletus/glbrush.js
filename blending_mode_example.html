@@ -7,7 +7,7 @@
 
 import { Rect, Vec2 } from './util2d.js';
 
-import { PictureEvent } from './picture_event.js'
+import { BlendingMode } from './blending_mode.js'
 
 import { PictureUpdate } from './picture_update.js'
 
@@ -29,7 +29,7 @@ function getRelativeCoords(event, element) {
                     event.clientY - rect.top + 0.5);
 }
 
-var drawingBlendMode = PictureEvent.Mode.normal;
+var drawingBlendMode = BlendingMode.normal;
 
 var loadApp = function() {
     // Create a container element for the picture
@@ -98,9 +98,9 @@ var loadApp = function() {
     };
     
     var blendModes = new Array();
-    for (var key in PictureEvent.Mode) {
-      if (PictureEvent.Mode.hasOwnProperty(key)) {        
-        blendModes.push([key, PictureEvent.Mode[key]]);
+    for (var key in BlendingMode) {
+      if (BlendingMode.hasOwnProperty(key)) {        
+        blendModes.push([key, BlendingMode[key]]);
       }
     }    
     createSelection(blendModes, drawingBlendMode, function(sel) {

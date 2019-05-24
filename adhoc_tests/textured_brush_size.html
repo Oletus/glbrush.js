@@ -7,7 +7,7 @@
 
 import { Rect, Vec2 } from '../util2d.js';
 
-import { PictureEvent } from '../picture_event.js'
+import { BlendingMode } from '../blending_mode.js'
 
 import { PictureUpdate } from '../picture_update.js'
 
@@ -68,7 +68,7 @@ var runTest = function() {
     var flow = 1.0;
     var opacity = 1.0;
     var softness = 0.0;
-    var mode = PictureEvent.Mode.normal;
+    var mode = BlendingMode.normal;
 
     var textureId = 1;
     var textureSelect = document.getElementById('textureSelect');

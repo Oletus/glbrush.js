@@ -6,6 +6,8 @@
 
 import { AffineTransform, Rect } from './util2d.js';
 
+import { BlendingMode } from './blending_mode.js';
+
 import { glUtils } from './utilgl.js';
 
 import {
@@ -18,9 +20,10 @@ import {
     GradientEvent,
     PictureEvent,
     RasterImportEvent,
-    ScatterEvent,
-    serializeToString
+    ScatterEvent
 } from './picture_event.js';
+
+import { serializeToString } from './serialization.js';
 
 import { BaseRasterizer } from './rasterize.js';
 
@@ -57,7 +60,7 @@ var Picture = function(id, name, boundsRect, bitmapScale, renderer) {
     this.currentEventAttachment = -1;
     this.currentEvent = null;
     this.currentEventUntilCoord = undefined;
-    this.currentEventMode = PictureEvent.Mode.normal;
+    this.currentEventMode = BlendingMode.normal;
     this.currentEventColor = [255, 255, 255];
 
     this.pictureTransform = new AffineTransform();
@@ -291,9 +294,9 @@ Picture.prototype.updateCurrentEventMode = function() {
         this.currentEventColor = this.currentEvent.color;
         var buffer = this.findBuffer(this.currentEventAttachment);
         // TODO: assert(buffer !== null)
-        if (this.currentEventMode === PictureEvent.Mode.erase &&
+        if (this.currentEventMode === BlendingMode.erase &&
             !buffer.hasAlpha) {
-            this.currentEventMode = PictureEvent.Mode.normal;
+            this.currentEventMode = BlendingMode.normal;
             this.currentEventColor = buffer.events[0].clearColor;
         }
     }
@@ -620,7 +623,7 @@ Picture.prototype.setActiveSession = function(sid) {
  * @param {number} radius The stroke radius in pixels.
  * @param {number} textureId Id of the brush tip shape texture. 0 is a circle, others are bitmap textures.
  * @param {number} softness Value controlling the softness. Range 0 to 1. Only applies to circles.
- * @param {PictureEvent.Mode} mode Blending mode to use.
+ * @param {BlendingMode} mode Blending mode to use.
  * @return {BrushEvent} The created brush event.
  */
 Picture.prototype.createBrushEvent = function(color, flow, opacity, radius,
@@ -644,7 +647,7 @@ Picture.prototype.createBrushEvent = function(color, flow, opacity, radius,
  * @param {number} radius The circle radius in pixels.
  * @param {number} textureId Id of the brush tip shape texture. 0 is a circle, others are bitmap textures.
  * @param {number} softness Value controlling the softness. Range 0 to 1. Only applies to circles.
- * @param {PictureEvent.Mode} mode Blending mode to use.
+ * @param {BlendingMode} mode Blending mode to use.
  * @return {ScatterEvent} The created scatter event.
  */
 Picture.prototype.createScatterEvent = function(color, flow, opacity, radius,
@@ -663,7 +666,7 @@ Picture.prototype.createScatterEvent = function(color, flow, opacity, radius,
  * Channel values are between 0-255.
  * @param {number} opacity Alpha value controlling blending the rasterized
  * gradient to the target buffer. Range 0 to 1.
- * @param {PictureEvent.Mode} mode Blending mode to use.
+ * @param {BlendingMode} mode Blending mode to use.
  * @return {GradientEvent} The created gradient event.
  */
 Picture.prototype.createGradientEvent = function(color, opacity, mode) {

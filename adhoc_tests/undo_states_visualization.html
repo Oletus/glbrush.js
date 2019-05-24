@@ -7,7 +7,7 @@
 
 import { Rect } from '../util2d.js';
 
-import { PictureEvent } from '../picture_event.js'
+import { BlendingMode } from '../blending_mode.js'
 
 import { Picture } from '../picture.js';
 
@@ -27,7 +27,7 @@ var runTest = function() {
     var opacity = 1.0;
     var radius = 10;
     var softness = 0.0;
-    var mode = PictureEvent.Mode.normal;
+    var mode = BlendingMode.normal;
     var event;
 
     var parent = document.getElementById('parent');

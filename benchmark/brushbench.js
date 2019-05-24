@@ -4,7 +4,9 @@
 
 import { Rect, Vec2 } from '../util2d.js';
 
-import { PictureEvent } from '../picture_event.js'
+import { BlendingMode } from '../blending_mode.js';
+
+import { PictureEvent } from '../picture_event.js';
 
 import { Picture } from '../picture.js';
 
@@ -41,7 +43,7 @@ var testLog = function(message) {
  * @return {number} time spent in milliseconds.
  */
 var measureBrushStrokeTime = function(testPic, eventCount, radius, textureId, softness, blendId, report) {
-    var bMode = PictureEvent.Mode[blendId];
+    var bMode = BlendingMode[blendId];
     var w = testPic.bitmapWidth();
     var color = [39, 95, 188];
     var flow = 0.5;
@@ -137,8 +139,8 @@ var init = function() {
     document.body.appendChild(p);
     selection('texId', textureIds);
     var blendModes = [];
-    for (var m in PictureEvent.Mode) {
-        if (PictureEvent.Mode.hasOwnProperty(m)) {
+    for (var m in BlendingMode) {
+        if (BlendingMode.hasOwnProperty(m)) {
             blendModes.push(m);
         }
     }

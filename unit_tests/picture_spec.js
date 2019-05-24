@@ -8,7 +8,11 @@ import { colorUtil, Rect, Vec2 } from '../util2d.js';
 
 import { glUtils } from '../utilgl.js';
 
-import { PictureEvent, serializeToString } from '../picture_event.js';
+import { BlendingMode } from '../blending_mode.js';
+
+import { PictureEvent } from '../picture_event.js';
+
+import { serializeToString } from '../serialization.js';
 
 import { PictureUpdate } from '../picture_update.js';
 
@@ -80,7 +84,7 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         pic.addBuffer(123, clearColor, false);
         pic.addBuffer(9001, clearColor, false);
         var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 1, 0, 0,
-                                              PictureEvent.Mode.normal);
+                                              BlendingMode.normal);
         brushEvent.pushCoordTriplet(0, 0, 1.0);
         brushEvent.pushCoordTriplet(width, height, 1.0);
         pic.pushEvent(123, brushEvent);
@@ -92,7 +96,7 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         pic.addBuffer(1337, clearColor, false);
         expect(pic.getEventCount()).toBe(1);
         var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 1, 0, 0,
-                                              PictureEvent.Mode.normal);
+                                              BlendingMode.normal);
         brushEvent.pushCoordTriplet(0, 0, 1.0);
         brushEvent.pushCoordTriplet(width, height, 1.0);
         pic.pushEvent(1337, brushEvent);
@@ -139,7 +143,7 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         var clearColor = [12, 23, 34];
         pic.addBuffer(1337, clearColor, false);
         var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 10, 0, 0,
-                                              PictureEvent.Mode.normal);
+                                              BlendingMode.normal);
         brushEvent.pushCoordTriplet(0, 0, 1.0);
         brushEvent.pushCoordTriplet(width, height, 1.0);
         pic.setCurrentEventAttachment(1337);
@@ -161,7 +165,7 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         var clearColor = [12, 23, 34];
         pic.addBuffer(1337, clearColor, false);
         var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 0.5, 10, 0, 0,
-                                              PictureEvent.Mode.normal);
+                                              BlendingMode.normal);
         brushEvent.pushCoordTriplet(0, 0, 1.0);
         brushEvent.pushCoordTriplet(width, height, 1.0);
         pic.setCurrentEventAttachment(1337);
@@ -182,7 +186,7 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         clearColor = [0, 0, 0, 0];
         pic.addBuffer(1337, clearColor, true);
         var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 0.0, 10, 0, 0,
-                                              PictureEvent.Mode.normal);
+                                              BlendingMode.normal);
         brushEvent.pushCoordTriplet(0, 0, 1.0);
         brushEvent.pushCoordTriplet(width, height, 1.0);
         pic.setCurrentEventAttachment(1337);
@@ -301,7 +305,7 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         var clearColor = [12, 23, 34];
         pic.addBuffer(1337, clearColor, false);
         var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 10, 0, 0,
-                                              PictureEvent.Mode.normal);
+                                              BlendingMode.normal);
         brushEvent.pushCoordTriplet(0, 0, 1.0);
         brushEvent.pushCoordTriplet(pic.width(), pic.height(), 1.0);
         var update = new PictureUpdate('add_picture_event');
@@ -387,7 +391,7 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         var clearColor = [12, 23, 34];
         pic.addBuffer(1337, clearColor, false);
         var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 10, 0, 0,
-                                              PictureEvent.Mode.normal);
+                                              BlendingMode.normal);
         brushEvent.pushCoordTriplet(0, 0, 1.0);
         brushEvent.pushCoordTriplet(pic.width(), pic.height(), 1.0);
         pic.pushEvent(1337, brushEvent);
@@ -404,7 +408,7 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         var clearColor = [12, 23, 34];
         pic.addBuffer(1337, clearColor, false);
         var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 10, 0, 0,
-                                              PictureEvent.Mode.normal);
+                                              BlendingMode.normal);
         brushEvent.pushCoordTriplet(0, 0, 1.0);
         brushEvent.pushCoordTriplet(pic.width(), pic.height(), 1.0);
         pic.pushEvent(1337, brushEvent);
@@ -419,7 +423,7 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         var clearColor = [12, 23, 34];
         pic.addBuffer(1337, clearColor, false);
         var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 10, 0, 0,
-                                              PictureEvent.Mode.normal);
+                                              BlendingMode.normal);
         brushEvent.pushCoordTriplet(0, 0, 1.0);
         brushEvent.pushCoordTriplet(pic.width(), pic.height(), 1.0);
         pic.pushEvent(1337, brushEvent);
@@ -618,7 +622,7 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         expect(pic.memoryUse).toBe(memoryUseBeforeBuffers);
         // Freed buffers' contents may still be changed, test that:
         var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 10, 0, 0,
-                                              PictureEvent.Mode.normal);
+                                              BlendingMode.normal);
         brushEvent.pushCoordTriplet(0, 0, 1.0);
         brushEvent.pushCoordTriplet(pic.width(), pic.height(), 1.0);
         pic.pushEvent(1337, brushEvent);
@@ -637,7 +641,7 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         pic.addBuffer(1337, clearColor, false);
         pic.addBuffer(9001, clearColor, false);
         var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 5, 0, 0,
-                                              PictureEvent.Mode.normal);
+                                              BlendingMode.normal);
         brushEvent.pushCoordTriplet(0, 0, 1.0);
         brushEvent.pushCoordTriplet(5, 5, 1.0);
         pic.pushEvent(9001, brushEvent);
@@ -694,7 +698,7 @@ var doPictureTestWithCleanup = function(mode, width, height, testPicture) {
         var clearColor = [12, 23, 34];
         pic.addBuffer(1337, clearColor, false);
         var brushEvent = pic.createBrushEvent([56, 67, 78], 1.0, 1.0, 5, 0, 0,
-                                              PictureEvent.Mode.normal);
+                                              BlendingMode.normal);
         brushEvent.pushCoordTriplet(0, 0, 1.0);
         brushEvent.pushCoordTriplet(5, 5, 1.0);
         pic.insertEvent(1337, brushEvent);
@@ -903,7 +907,7 @@ describe('Picture', function() {
             expect(event.opacity).toBe(0.9);
             expect(event.radius).toBe(1.93);
             expect(event.textureId).toBe(0);
-            expect(event.mode).toBe(PictureEvent.Mode.multiply);
+            expect(event.mode).toBe(BlendingMode.multiply);
             expect(event.coords.length).toBe(5 * 3);
 
             event = pic.buffers[0].events[2];
@@ -915,7 +919,7 @@ describe('Picture', function() {
             expect(event.color[1]).toBe(198);
             expect(event.color[2]).toBe(255);
             expect(event.opacity).toBe(0.875);
-            expect(event.mode).toBe(PictureEvent.Mode.normal);
+            expect(event.mode).toBe(BlendingMode.normal);
             expect(event.coords0.x).toBe(523);
             expect(event.coords0.y).toBe(986);
             expect(event.coords1.x).toBe(575);
@@ -965,7 +969,7 @@ describe('Picture', function() {
             expect(event.radius).toBe(1.93);
             expect(event.textureId).toBe(0);
             expect(event.soft).toBe(false);
-            expect(event.mode).toBe(PictureEvent.Mode.multiply);
+            expect(event.mode).toBe(BlendingMode.multiply);
             expect(event.coords.length).toBe(6 * 3);
 
             event = pic.buffers[0].events[2];
@@ -977,7 +981,7 @@ describe('Picture', function() {
             expect(event.color[1]).toBe(68);
             expect(event.color[2]).toBe(34);
             expect(event.opacity).toBe(0.75);
-            expect(event.mode).toBe(PictureEvent.Mode.normal);
+            expect(event.mode).toBe(BlendingMode.normal);
             expect(event.coords0.x).toBe(406);
             expect(event.coords0.y).toBe(695);
             expect(event.coords1.x).toBe(405);
@@ -996,7 +1000,7 @@ describe('Picture', function() {
             expect(event.radius).toBe(0);
             expect(event.textureId).toBe(0);
             expect(event.soft).toBe(true);
-            expect(event.mode).toBe(PictureEvent.Mode.screen);
+            expect(event.mode).toBe(BlendingMode.screen);
             expect(event.coords.length).toBe(5);
 
             event = pic.buffers[0].events[4];

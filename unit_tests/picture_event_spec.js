@@ -11,6 +11,8 @@ import {
     Vec2
 } from '../util2d.js';
 
+import { BlendingMode } from '../blending_mode.js';
+
 import {
     BrushEvent,
     BufferAddEvent,
@@ -21,9 +23,10 @@ import {
     GradientEvent,
     PictureEvent,
     RasterImportEvent,
-    ScatterEvent,
-    serializeToString
+    ScatterEvent
 } from '../picture_event.js';
+
+import { serializeToString } from '../serialization.js';
 
 import {
     BrushTipMover

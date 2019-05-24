@@ -18,6 +18,8 @@ import {
     PictureEvent
 } from './picture_event.js';
 
+import { BlendingMode } from './blending_mode.js';
+
 import {
     CanvasUndoState,
     GLUndoState
@@ -978,13 +980,13 @@ CanvasBuffer.prototype.getPixelRGBA = function(coords) {
  * @param {number} opacity Opacity to use when drawing the rasterization result.
  * Opacity for each individual pixel is its rasterized opacity times this
  * opacity value.
- * @param {PictureEvent.Mode} mode Blending mode to use for drawing.
+ * @param {BlendingMode} mode Blending mode to use for drawing.
  * @protected
  */
 CanvasBuffer.prototype.drawRasterizerWithColor = function(raster, color,
                                                           opacity, mode) {
-    if (mode === PictureEvent.Mode.erase && !this.hasAlpha) {
-        mode = PictureEvent.Mode.normal;
+    if (mode === BlendingMode.erase && !this.hasAlpha) {
+        mode = BlendingMode.normal;
         color = this.events[0].clearColor;
     }
     CanvasBuffer.drawRasterizer(this.ctx, this.ctx, raster,
@@ -1010,7 +1012,7 @@ CanvasBuffer.prototype.drawRasterizerWithColor = function(raster, color,
  * @param {number} opacity Opacity to use when drawing the rasterization result.
  * Opacity for each individual pixel is its rasterized opacity times this
  * opacity value.
- * @param {PictureEvent.Mode} mode Blending mode to use for drawing.
+ * @param {BlendingMode} mode Blending mode to use for drawing.
  */
 CanvasBuffer.drawRasterizer = function(dataCtx, targetCtx, raster, clipRect,
                                        opaque, color, opacity, mode) {
@@ -1022,64 +1024,64 @@ CanvasBuffer.drawRasterizer = function(dataCtx, targetCtx, raster, clipRect,
     // br.y + br.h <= this.height);
     var targetData = dataCtx.getImageData(br.x, br.y, br.w, br.h);
     if (opaque &&
-        (mode === PictureEvent.Mode.normal ||
-         mode === PictureEvent.Mode.erase)) {
+        (mode === BlendingMode.normal ||
+         mode === BlendingMode.erase)) {
         raster.drawWithColorToOpaque(targetData, color, opacity,
                                      br.x, br.y, br.w, br.h);
-    } else if (mode === PictureEvent.Mode.normal) {
+    } else if (mode === BlendingMode.normal) {
         raster.drawWithColor(targetData, color, opacity,
                              br.x, br.y, br.w, br.h);
-    } else if (mode === PictureEvent.Mode.erase) {
+    } else if (mode === BlendingMode.erase) {
         raster.erase(targetData, opacity, br.x, br.y, br.w, br.h);
     } else {
         var blendFunction = null;
         switch (mode) {
-            case PictureEvent.Mode.multiply:
+            case BlendingMode.multiply:
                 blendFunction = colorUtil.blendMultiply;
                 break;
-            case PictureEvent.Mode.screen:
+            case BlendingMode.screen:
                 blendFunction = colorUtil.blendScreen;
                 break;
-            case PictureEvent.Mode.overlay:
+            case BlendingMode.overlay:
                 blendFunction = colorUtil.blendOverlay;
                 break;
-            case PictureEvent.Mode.darken:
+            case BlendingMode.darken:
                 blendFunction = colorUtil.blendDarken;
                 break;
-            case PictureEvent.Mode.lighten:
+            case BlendingMode.lighten:
                 blendFunction = colorUtil.blendLighten;
                 break;
-            case PictureEvent.Mode.difference:
+            case BlendingMode.difference:
                 blendFunction = colorUtil.blendDifference;
                 break;
-            case PictureEvent.Mode.exclusion:
+            case BlendingMode.exclusion:
                 blendFunction = colorUtil.blendExclusion;
                 break;
-            case PictureEvent.Mode.hardlight:
+            case BlendingMode.hardlight:
                 blendFunction = colorUtil.blendHardLight;
                 break;
-            case PictureEvent.Mode.softlight:
+            case BlendingMode.softlight:
                 blendFunction = colorUtil.blendSoftLight;
                 break;
-            case PictureEvent.Mode.colorburn:
+            case BlendingMode.colorburn:
                 blendFunction = colorUtil.blendColorBurn;
                 break;
-            case PictureEvent.Mode.linearburn:
+            case BlendingMode.linearburn:
                 blendFunction = colorUtil.blendLinearBurn;
                 break;
-            case PictureEvent.Mode.vividlight:
+            case BlendingMode.vividlight:
                 blendFunction = colorUtil.blendVividLight;
                 break;
-            case PictureEvent.Mode.linearlight:
+            case BlendingMode.linearlight:
                 blendFunction = colorUtil.blendLinearLight;
                 break;
-            case PictureEvent.Mode.pinlight:
+            case BlendingMode.pinlight:
                 blendFunction = colorUtil.blendPinLight;
                 break;
-            case PictureEvent.Mode.colordodge:
+            case BlendingMode.colordodge:
                 blendFunction = colorUtil.blendColorDodge;
                 break;
-            case PictureEvent.Mode.lineardodge:
+            case BlendingMode.lineardodge:
                 blendFunction = colorUtil.blendLinearDodge;
                 break;
         }
@@ -1264,15 +1266,15 @@ GLBuffer.prototype.updateClip = function() {
  * @param {number} opacity Opacity to use when drawing the rasterization result.
  * Opacity for each individual pixel is its rasterized opacity times this
  * opacity value.
- * @param {PictureEvent.Mode} mode Blending mode to use for drawing.
+ * @param {BlendingMode} mode Blending mode to use for drawing.
  * @protected
  */
 GLBuffer.prototype.drawRasterizerWithColor = function(raster, color, opacity,
                                                       mode) {
     this.gl.viewport(0, 0, this.width(), this.height());
     this.updateClip();
-    if (!this.hasAlpha && mode === PictureEvent.Mode.erase) {
-        mode = PictureEvent.Mode.normal;
+    if (!this.hasAlpha && mode === BlendingMode.erase) {
+        mode = BlendingMode.normal;
         color = this.events[0].clearColor;
     }
     // Copy into helper texture from this.tex, then use compositor to render

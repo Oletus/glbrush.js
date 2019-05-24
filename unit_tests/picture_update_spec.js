@@ -4,7 +4,7 @@
 
 'use strict';
 
-import { serializeToString } from '../picture_event.js';
+import { serializeToString } from '../serialization.js';
 
 import { PictureUpdate } from '../picture_update.js';
 

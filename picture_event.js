@@ -12,6 +12,8 @@ import {
 
 import './util2d_painting.js';
 
+import { serializeToString } from './serialization.js';
+
 import { BrushTipMover } from './brush_tip_mover.js';
 
 /**
@@ -185,30 +187,6 @@ PictureEvent.prototype.isBufferStackChange = function() {
 PictureEvent.prototype.scale = function(scale) {};
 
 /**
- * @enum {number}
- */
-PictureEvent.Mode = {
-    erase: 0,
-    normal: 1,
-    multiply: 2,
-    screen: 3,
-    overlay: 4,
-    hardlight: 5,
-    softlight: 6,
-    darken: 7,
-    lighten: 8,
-    difference: 9,
-    exclusion: 10,
-    colorburn: 11,
-    linearburn: 12,
-    vividlight: 13,
-    linearlight: 14,
-    pinlight: 15,
-    colordodge: 16,
-    lineardodge: 17
-};
-
-/**
  * A PictureEvent representing a brush stroke.
  * @constructor
  */
@@ -236,7 +214,7 @@ BrushEvent.prototype = new PictureEvent('brush');
  * @param {number} radius The stroke radius in pixels.
  * @param {number} textureId Id of the brush tip shape texture. 0 is a circle, others are bitmap textures.
  * @param {number} softness Value controlling the softness. Range 0 to 1.
- * @param {PictureEvent.Mode} mode Blending mode to use.
+ * @param {BlendingMode} mode Blending mode to use.
  */
 BrushEvent.prototype.init = function(sid, sessionEventId, undone, color, flow, opacity, radius, textureId, softness,
                                      mode) {
@@ -760,7 +738,7 @@ ScatterEvent.prototype.fillCircle = function(x, y, radius, flow, rotation) {
  * Channel values are between 0-255.
  * @param {number} opacity Alpha value controlling blending the rasterizer
  * stroke to the target buffer. Range 0 to 1.
- * @param {PictureEvent.Mode} mode Blending mode to use.
+ * @param {BlendingMode} mode Blending mode to use.
  */
 var GradientEvent = function(sid, sessionEventId, undone, color, opacity,
                              mode) {
@@ -1521,17 +1499,6 @@ EventHideEvent.prototype.getBoundingBox = function(clipRect) {
                     clipRect.top, clipRect.bottom);
 };
 
-/**
- * Convert object with serialize(json) support to a string.
- * @param {Object} obj
- * @return {string} String JSON representation of the object.
- */
-var serializeToString = function(obj) {
-    var json = {};
-    obj.serialize(json);
-    return JSON.stringify(json);
-};
-
 export {
     BrushEvent,
     BufferAddEvent,
@@ -1542,6 +1509,5 @@ export {
     GradientEvent,
     PictureEvent,
     RasterImportEvent,
-    ScatterEvent,
-    serializeToString
+    ScatterEvent
 };
