@@ -401,7 +401,7 @@ describe('Rasterizing system', function() {
             rasterizer.linearGradient(coords1, coords0);
             for (var i = 0.1; i < 1.0; i += 0.1) {
                 var samplePoint = new Vec2(rasterizer.width, rasterizer.height);
-                samplePoint.scale(i);
+                samplePoint.multiplyScalar(i);
                 expect(rasterizer.getPixel(samplePoint)).toBeNear(i, 0.05);
             }
 
@@ -415,7 +415,7 @@ describe('Rasterizing system', function() {
             rasterizer.linearGradient(coords1, coords0);
             for (var i = 0.1; i < 1.0; i += 0.1) {
                 var samplePoint = new Vec2(0, rasterizer.height);
-                samplePoint.scale(i);
+                samplePoint.multiplyScalar(i);
                 expect(rasterizer.getPixel(samplePoint)).toBeNear(i, 0.05);
             }
 
@@ -434,10 +434,10 @@ describe('Rasterizing system', function() {
             rasterizer.linearGradient(coords1, coords0);
             for (var i = 0.1; i < 1.0; i += 0.1) {
                 var samplePoint = new Vec2(0, rasterizer.height);
-                samplePoint.scale(i);
+                samplePoint.multiplyScalar(i);
                 expect(rasterizer.getPixel(samplePoint)).toBe(0.0);
                 samplePoint = new Vec2(rasterizer.width, rasterizer.height);
-                samplePoint.scale(i);
+                samplePoint.multiplyScalar(i);
                 expect(rasterizer.getPixel(samplePoint)).toBe(0.0);
             }
             expect(rasterizer.getPixel(clipPoint)).not.toBe(0.0);

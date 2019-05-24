@@ -2,40 +2,16 @@
  * Copyright Olli Etuaho 2019.
  */
 
-/**
- * @constructor
- * @param {number} x Horizontal component of the vector.
- * @param {number} y Vertical component of the vector.
- */
-var Vec2 = function(x, y) {
-    this.x = x;
-    this.y = y;
-};
+import { Vector2 } from './lib/Vector2.js';
+
+var Vec2 = Vector2;
 
 /**
  * Copy vec2 coordinates from another vec2.
  * @param {Vec2} vec Another vector.
  */
 Vec2.prototype.setVec2 = function(vec) {
-    this.x = vec.x;
-    this.y = vec.y;
-};
-
-/**
- * Round the coordinates of this vector to the closest integers.
- */
-Vec2.prototype.round = function() {
-    this.x = Math.round(this.x);
-    this.y = Math.round(this.y);
-};
-
-/**
- * Normalize this vector.
- */
-Vec2.prototype.normalize = function() {
-    var len = this.length();
-    this.x /= len;
-    this.y /= len;
+    this.copy(vec);
 };
 
 /**
@@ -44,15 +20,7 @@ Vec2.prototype.normalize = function() {
  * @return {number} The distance.
  */
 Vec2.prototype.distance = function(vec) {
-    return Math.sqrt(Math.pow(this.x - vec.x, 2) + Math.pow(this.y - vec.y, 2));
-};
-
-/**
- * Calculate length.
- * @return {number} The length of the vector.
- */
-Vec2.prototype.length = function() {
-    return Math.sqrt(Math.pow(this.x, 2) + Math.pow(this.y, 2));
+    return this.distanceTo(vec);
 };
 
 /**
@@ -60,8 +28,7 @@ Vec2.prototype.length = function() {
  * @param {number} mult Multiplier to scale with.
  */
 Vec2.prototype.scale = function(mult) {
-    this.x *= mult;
-    this.y *= mult;
+    this.multiplyScalar(mult);
 };
 
 /**
@@ -70,7 +37,7 @@ Vec2.prototype.scale = function(mult) {
  * @return {number} The dot product.
  */
 Vec2.prototype.dotProduct = function(vec) {
-    return this.x * vec.x + this.y * vec.y;
+    return this.dot(vec);
 };
 
 /**
@@ -162,8 +129,7 @@ Vec2.prototype.distanceToLine = function(lineA, lineB) {
  * @param {Vec2} vec Vector to translate with.
  */
 Vec2.prototype.translate = function(vec) {
-    this.x += vec.x;
-    this.y += vec.y;
+    this.add(vec);
 };
 
 /**

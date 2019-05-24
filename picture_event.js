@@ -844,8 +844,8 @@ GradientEvent.prototype.getBoundingBox = function(clipRect, transform) {
                                clipRect.top, clipRect.bottom);
     var coords0 = new Vec2();
     var coords1 = new Vec2();
-    coords0.setVec2(this.coords0);
-    coords1.setVec2(this.coords1);
+    coords0.copy(this.coords0);
+    coords1.copy(this.coords1);
     transform.transform(coords0);
     transform.transform(coords1);
     if (coords0.y === coords1.y) {
@@ -914,8 +914,8 @@ GradientEvent.prototype.drawTo = function(rasterizer, transform) {
     }
     var coords0 = new Vec2();
     var coords1 = new Vec2();
-    coords0.setVec2(this.coords0);
-    coords1.setVec2(this.coords1);
+    coords0.copy(this.coords0);
+    coords1.copy(this.coords1);
     transform.transform(coords0);
     transform.transform(coords1);
     rasterizer.linearGradient(coords1, coords0);

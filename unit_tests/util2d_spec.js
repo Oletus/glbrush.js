@@ -247,7 +247,7 @@ describe('util2d', function() {
         it('can be set from another Vec2', function() {
             var vecA = new Vec2(1, 2);
             var vecB = new Vec2(3, 4);
-            vecA.setVec2(vecB);
+            vecA.copy(vecB);
             expect(vecA.x).toBe(3);
             expect(vecA.y).toBe(4);
         });
@@ -279,13 +279,13 @@ describe('util2d', function() {
         it('calculates a dot product', function() {
             var vecA = new Vec2(1.2, 3.4);
             var vecB = new Vec2(8.7, 6.5);
-            expect(vecA.dotProduct(vecB)).toBeNear(1.2 * 8.7 + 3.4 * 6.5,
+            expect(vecA.dot(vecB)).toBeNear(1.2 * 8.7 + 3.4 * 6.5,
                                                    0.001);
         });
 
         it('scales', function() {
             var vec = new Vec2(1, 2);
-            vec.scale(3.4);
+            vec.multiplyScalar(3.4);
             expect(vec.x).toBeNear(3.4, 0.00001);
             expect(vec.y).toBeNear(6.8, 0.00001);
         });
@@ -293,7 +293,7 @@ describe('util2d', function() {
         it('translates', function() {
                 var vecA = new Vec2(1, 3);
                 var vecB = new Vec2(5, 7);
-                vecA.translate(vecB);
+                vecA.add(vecB);
                 expect(vecA.x).toBe(6);
                 expect(vecA.y).toBe(10);
         });
