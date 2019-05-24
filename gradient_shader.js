@@ -6,7 +6,7 @@
 
 import { GLRasterizerFormat } from './rasterize.js';
 
-import { ShaderGenerator } from './rasterize_shader.js';
+import { ShaderGenerator } from './shader_generator.js';
 
 /**
  * A shader program for drawing a gradient.
