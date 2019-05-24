@@ -158,16 +158,6 @@ Vec2.prototype.distanceToLine = function(lineA, lineB) {
 };
 
 /**
- * Transform this vector with a 3x3 SVG matrix.
- * @param {SVGMatrix} svgMatrix Matrix to transform with.
- */
-Vec2.prototype.transformSvg = function(svgMatrix) {
-    var x = svgMatrix.a * this.x + svgMatrix.c * this.y + svgMatrix.e;
-    this.y = svgMatrix.b * this.x + svgMatrix.d * this.y + svgMatrix.f;
-    this.x = x;
-};
-
-/**
  * Translate this vector with another vector.
  * @param {Vec2} vec Vector to translate with.
  */
