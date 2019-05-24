@@ -4,10 +4,9 @@
 
 'use strict';
 
-import {
-    Rect,
-    Vec2
-} from '../util2d.js';
+import { Rect } from '../util2d.js';
+
+import { Vec2 } from '../vec2.js';
 
 import { BlendingMode } from '../blending_mode.js';
 

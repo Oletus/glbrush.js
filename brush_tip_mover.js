@@ -5,10 +5,11 @@
 'use strict';
 
 import {
-	colorUtil,
-	mathUtil,
-	Vec2
+    colorUtil,
+    mathUtil
 } from './util2d.js';
+
+import { Vec2 } from './vec2.js';
 
 /**
  * Utility for generating a series of individual tip sample positions from

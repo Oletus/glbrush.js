@@ -7,9 +7,10 @@
 import {
     colorUtil,
     AffineTransform,
-    Rect,
-    Vec2
+    Rect
 } from '../util2d.js';
+
+import { Vec2 } from '../vec2.js';
 
 import {
     glStateManager

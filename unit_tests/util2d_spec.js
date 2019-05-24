@@ -10,9 +10,10 @@ import {
     colorUtil,
     cssUtil,
     mathUtil,
-    Rect,
-    Vec2
+    Rect
 } from "../util2d.js";
+
+import { Vec2 } from '../vec2.js';
 
 import "../util2d_painting.js";
 

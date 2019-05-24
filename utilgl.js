@@ -4,7 +4,7 @@
 
 'use strict';
 
-import { Vec2 } from './util2d.js';
+import { Vec2 } from './vec2.js';
 
 var glUtils = {
     createTexture: null,
