@@ -7,19 +7,6 @@ import { Vector2 } from './lib/Vector2.js';
 var Vec2 = Vector2;
 
 /**
- * Calculate the angle of this vector compared to the positive x axis, so that
- * the angle is < PI when y < 0 and > PI when y < 0.
- * @return {number} The angle.
- */
-Vec2.prototype.angle = function() {
-    var angle = Math.acos(this.x / this.length());
-    if (this.y < 0) {
-        angle = Math.PI * 2 - angle;
-    }
-    return angle;
-};
-
-/**
  * Calculate the angle difference between two vectors, with both vectors'
  * angles calculated from the positive x axis.
  * @param {Vec2} vec The other vector.
@@ -88,14 +75,6 @@ Vec2.prototype.distanceToLine = function(lineA, lineB) {
     var projection = new Vec2(this.x, this.y);
     projection.projectToLine(lineA, lineB);
     return this.distanceTo(projection);
-};
-
-/**
- * Translate this vector with another vector.
- * @param {Vec2} vec Vector to translate with.
- */
-Vec2.prototype.translate = function(vec) {
-    this.add(vec);
 };
 
 /**
