@@ -3,11 +3,9 @@
  */
 
 // This file contains following utilities:
-// cssUtil: Utilities for working with CSS
 // colorUtil: Utilities for working with RGB colors represented as arrays of numbers, including blending
 // AffineTransform: A scale/translate transform.
 // Rect: A class for storing a two-dimensional rectangle.
-// canvasUtil: Utilities for drawing to a 2D canvas.
 
 'use strict';
 
@@ -15,32 +13,7 @@ import { hslToRgb, rgbToHsl } from './lib/hsl.js';
 
 import { Vec2 } from './vec2.js';
 
-var cssUtil = {
-    rgbString: null,
-    rgbaString: null
-};
-
-/**
- * Create a CSS RGB color based on the input array.
- * @param {Array.<number>|Uint8Array} rgbArray Unpremultiplied color value.
- * Channel values should be 0-255.
- * @return {string} CSS color.
- */
-cssUtil.rgbString = function(rgbArray) {
-    return 'rgb(' + Math.floor(rgbArray[0]) + ',' + Math.floor(rgbArray[1]) +
-    ',' + Math.floor(rgbArray[2]) + ')';
-};
-
-/**
- * Create a CSS RGBA color based on the input array.
- * @param {Array.<number>|Uint8Array} rgbaArray Unpremultiplied color value.
- * Channel values should be 0-255.
- * @return {string} CSS color.
- */
-cssUtil.rgbaString = function(rgbaArray) {
-    return 'rgba(' + Math.floor(rgbaArray[0]) + ',' + Math.floor(rgbaArray[1]) +
-    ',' + Math.floor(rgbaArray[2]) + ',' + (rgbaArray[3] / 255) + ')';
-};
+import { clamp } from './math_util.js';
 
 var colorUtil = {
     unpremultiply: null,
@@ -301,7 +274,7 @@ colorUtil.blendColorBurn = function(a, b) {
         return 255;
     if (b === 0)
         return 0;
-    return mathUtil.clamp(0, 255, 255 - (255 - a) / b * 255);
+    return clamp(0, 255, 255 - (255 - a) / b * 255);
 };
 
 /**
@@ -311,7 +284,7 @@ colorUtil.blendColorBurn = function(a, b) {
  * @return {number} Blended value between/or 0 and 255
  */
 colorUtil.blendLinearBurn = function(a, b) {
-    return mathUtil.clamp(0, 255, a + b - 255.);
+    return clamp(0, 255, a + b - 255.);
 };
 
 /**
@@ -327,7 +300,7 @@ colorUtil.blendVividLight = function(a, b) {
         return 255;
     a /= 255;
     b /= 255;
-    return mathUtil.clamp(0, 255, 255 * (b <= .5 ?
+    return clamp(0, 255, 255 * (b <= .5 ?
             1 - (1 - a) / (2 * b) :
             a / (2 * (1 - b))));
 };
@@ -341,7 +314,7 @@ colorUtil.blendVividLight = function(a, b) {
 colorUtil.blendLinearLight = function(a, b) {
     a /= 255;
     b /= 255;
-    return mathUtil.clamp(0, 255, 255 * (b <= .5 ?
+    return clamp(0, 255, 255 * (b <= .5 ?
             (a + 2 * b - 1) :
             (a + 2 * (b - 0.5))));
 };
@@ -371,7 +344,7 @@ colorUtil.blendColorDodge = function(a, b) {
         return 0;
     if (b === 255)
         return 255;
-    return mathUtil.clamp(0, 255, 255. * a / (255 - b));
+    return clamp(0, 255, 255. * a / (255 - b));
 };
 
 /**
@@ -381,156 +354,7 @@ colorUtil.blendColorDodge = function(a, b) {
  * @return {number} Blended value between/or 0 and 255
  */
 colorUtil.blendLinearDodge = function(a, b) {
-    return mathUtil.clamp(0, 255, a + b);
-};
-
-var mathUtil = {
-    mix: null,
-    fmod: null,
-    mixAngles: null,
-    angleDifference: null,
-    angleGreater: null,
-    ease: null,
-    clamp: null,
-    bezierLength: null
-};
-
-/**
- * Linear interpolation of a and b by weight f
- * @param {number} a Value a, if f == 0.0, a is returned
- * @param {number} b Value b, if f == 1.0, b is returned
- * @param {number} f Interpolation weight
- * @return {number} Interpolated value between a and b
- */
-mathUtil.mix = function(a, b, f) {
-    return a + f * (b - a);
-};
-
-/**
- * Modulus for floating point numbers.
- * @param {number} a Dividend
- * @param {number} b Divisor
- * @return {number} Float remainder of a / b
- */
-mathUtil.fmod = function(a, b) {
-    return Number((a - (Math.floor(a / b) * b)).toPrecision(8));
-};
-
-/**
- * Mix numbers by weight a and b, wrapping back to 0 at w.
- * @param {number} a Number a, if f == 0.0, a + n * w is returned.
- * @param {number} b Number b, if f == 1.0, b + n * w is returned.
- * @param {number} f Interpolation weight.
- * @param {number} w Number to wrap around at.
- * @return {number} Interpolated value between a and b.
- */
-mathUtil.mixWithWrap = function(a, b, f, w) {
-    a = mathUtil.fmod(a, w);
-    b = mathUtil.fmod(b, w);
-    if (Math.abs(a - b) > w * 0.5) {
-        if (a > b) {
-            b += w;
-        } else {
-            a += w;
-        }
-    }
-    return mathUtil.fmod(mathUtil.mix(a, b, f), w);
-};
-
-/**
- * Linear interpolation of angles a and b in radians by weight f
- * @param {number} a Angle a, if f == 0.0, a + n * PI * 2 is returned.
- * @param {number} b Angle b, if f == 1.0, b + n * PI * 2 is returned.
- * @param {number} f Interpolation weight.
- * @return {number} Interpolated value between a and b.
- */
-mathUtil.mixAngles = function(a, b, f) {
-    return mathUtil.mixWithWrap(a, b, f, 2 * Math.PI);
-};
-
-/**
- * @param {number} a Angle a.
- * @param {number} b Angle b.
- * @return {number} Smallest difference of the angles a + n * PI * 2 and b in radians.
- */
-mathUtil.angleDifference = function(a, b) {
-    a = mathUtil.fmod(a, Math.PI * 2);
-    b = mathUtil.fmod(b, Math.PI * 2);
-    if (Math.abs(a - b) > Math.PI) {
-        if (a > b) {
-            b += Math.PI * 2;
-        } else {
-            a += Math.PI * 2;
-        }
-    }
-    return Math.abs(a - b);
-};
-
-/**
- * @param {number} a Angle a.
- * @param {number} b Angle b.
- * @return {boolean} True if the angle a + n * PI * 2 that is closest to b is greater than b.
- */
-mathUtil.angleGreater = function(a, b) {
-    a = mathUtil.fmod(a, Math.PI * 2);
-    b = mathUtil.fmod(b, Math.PI * 2);
-    if (Math.abs(a - b) > Math.PI) {
-        if (a > b) {
-            return false;
-        } else {
-            return true;
-        }
-    }
-    return (a > b);
-};
-
-/**
- * Smooth interpolation of a and b by transition value f. Starts off quickly but eases towards the end.
- * @param {number} a Value a, if f == 0.0, a is returned
- * @param {number} b Value b, if f == 1.0, b is returned
- * @param {number} f Interpolation transition value
- * @return {number} Interpolated value between a and b
- */
-mathUtil.ease = function(a, b, f) {
-    return a + Math.sin(f * Math.PI * 0.5) * (b - a);
-};
-
-/**
- * Clamps value to range.
- * @param {number} min Minimum bound
- * @param {number} max Maximum bound
- * @param {number} value Value to be clamped
- * @return {number} Clamped value
- */
-mathUtil.clamp = function(min, max, value) {
-    return value < min ? min : (value > max ? max : value);
-};
-
-/**
- * @param {number} x0 Start point x.
- * @param {number} y0 Start point y.
- * @param {number} x1 Control point x.
- * @param {number} y1 Control point y.
- * @param {number} x2 End point x.
- * @param {number} y2 End point y.
- * @param {number} steps How many segments to split the bezier curve to.
- * @return {number} Approximate length of the quadratic bezier curve.
- */
-mathUtil.bezierLength = function(x0, y0, x1, y1, x2, y2, steps) {
-    var len = 0;
-    var prevX = x0;
-    var prevY = y0;
-    var t = 0;
-    var xd, yd;
-    for (var i = 0; i < steps; ++i) {
-        t += 1.0 / steps;
-        xd = x0 * Math.pow(1.0 - t, 2) + x1 * t * (1.0 - t) * 2 + x2 * Math.pow(t, 2);
-        yd = y0 * Math.pow(1.0 - t, 2) + y1 * t * (1.0 - t) * 2 + y2 * Math.pow(t, 2);
-        len += Math.sqrt(Math.pow(xd - prevX, 2) + Math.pow(yd - prevY, 2));
-        prevX = xd;
-        prevY = yd;
-    }
-    return len;
+    return clamp(0, 255, a + b);
 };
 
 /**
@@ -876,80 +700,8 @@ Rect.prototype.translate = function(offset) {
     this.bottom += offset.y;
 };
 
-
-var canvasUtil = {
-    dummySvg: document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-};
-
-/**
- * Draw an outlined stroke using the current path.
- * @param {CanvasRenderingContext2D} ctx The canvas rendering context.
- * @param {number} alpha Alpha multiplier for the drawing.
- */
-canvasUtil.dualStroke = function(ctx, alpha) {
-    if (alpha === undefined) {
-        alpha = 1.0;
-    }
-    ctx.globalAlpha = 0.5 * alpha;
-    ctx.lineWidth = 4.5;
-    ctx.strokeStyle = '#fff';
-    ctx.stroke();
-    ctx.globalAlpha = 1.0 * alpha;
-    ctx.lineWidth = 1.5;
-    ctx.strokeStyle = '#000';
-    ctx.stroke();
-};
-
-/**
- * Draw a light stroke using the current path.
- * @param {CanvasRenderingContext2D} ctx The canvas rendering context.
- */
-canvasUtil.lightStroke = function(ctx) {
-    ctx.globalAlpha = 0.3;
-    ctx.lineWidth = 1.0;
-    ctx.strokeStyle = '#000';
-    ctx.stroke();
-    ctx.globalAlpha = 1.0;
-};
-
-/**
- * NOTE: Didn't work on released browsers other than Firefox yet on 2014-01-24.
- * @param {CanvasRenderingContext2D} ctx The canvas rendering context.
- * @return {SVGMatrix} The current transform of the canvas rendering context.
- */
-canvasUtil.getCurrentTransform = function(ctx) {
-    var t = null;
-    if (ctx.mozCurrentTransform) {
-        t = canvasUtil.dummySvg.createSVGMatrix();
-        t.a = ctx.mozCurrentTransform[0];
-        t.b = ctx.mozCurrentTransform[1];
-        t.c = ctx.mozCurrentTransform[2];
-        t.d = ctx.mozCurrentTransform[3];
-        t.e = ctx.mozCurrentTransform[4];
-        t.f = ctx.mozCurrentTransform[5];
-    } else {
-        t = ctx.currentTransform.scale(1);
-    }
-    return t;
-};
-
-/**
- * Set the canvas clip rectangle.
- * @param {CanvasRenderingContext2D} ctx Context to set the rectangle to.
- * @param {Rect} rect Rectangle to set as canvas clip rectangle.
- */
-canvasUtil.clipRect = function(ctx, rect) {
-    var xywh = rect.getXYWHRoundedOut();
-    ctx.beginPath();
-    ctx.rect(xywh.x, xywh.y, xywh.w, xywh.h);
-    ctx.clip();
-};
-
 export {
     AffineTransform,
-    canvasUtil,
     colorUtil,
-    cssUtil,
-    mathUtil,
     Rect
 };

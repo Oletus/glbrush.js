@@ -5,9 +5,10 @@
 'use strict';
 
 import {
-    colorUtil,
-    mathUtil
+    colorUtil
 } from './util2d.js';
+
+import * as mathUtil from './math_util.js';
 
 import { Vec2 } from './vec2.js';
 

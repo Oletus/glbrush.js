@@ -6,9 +6,13 @@
 
 import {
     Rect,
-    colorUtil,
-    cssUtil
+    colorUtil
 } from './util2d.js';
+
+import {
+    rgbString,
+    rgbaString
+} from './css_util.js';
 
 import {
     glUtils
@@ -952,11 +956,11 @@ CanvasBuffer.prototype.clear = function(clearColor) {
     }
     if (clearColor.length === 4) {
         if (clearColor[3] !== 0) {
-            this.ctx.fillStyle = cssUtil.rgbaString(clearColor);
+            this.ctx.fillStyle = rgbaString(clearColor);
             this.ctx.fillRect(br.x, br.y, br.w, br.h);
         }
     } else {
-        this.ctx.fillStyle = cssUtil.rgbString(clearColor);
+        this.ctx.fillStyle = rgbString(clearColor);
         this.ctx.fillRect(br.x, br.y, br.w, br.h);
     }
 };
