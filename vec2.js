@@ -77,14 +77,14 @@ Vec2.prototype.distanceToLine = function(lineA, lineB) {
     return this.distanceTo(projection);
 };
 
+var zeroVec = new Vec2(0, 0);
+
 /**
  * Rotate this vector with a given angle.
  * @param {number} angle Angle to rotate with.
  */
 Vec2.prototype.rotate = function(angle) {
-    var x = Math.cos(angle) * this.x - Math.sin(angle) * this.y;
-    this.y = Math.sin(angle) * this.x + Math.cos(angle) * this.y;
-    this.x = x;
+    this.rotateAround(zeroVec, angle);
 };
 
 export { Vec2 };
