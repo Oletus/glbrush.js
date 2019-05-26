@@ -4,7 +4,7 @@
 
 'use strict';
 
-import { Rect } from './util2d.js';
+import { Rect } from './rect.js';
 
 import { Vec2 } from './vec2.js';
 

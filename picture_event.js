@@ -4,13 +4,11 @@
 
 'use strict';
 
-import { Rect } from './util2d.js';
+import { Rect } from './rect.js';
 
 import { Vec2 } from './vec2.js';
 
 import * as colorUtil from './color_util.js';
-
-import './util2d_painting.js';
 
 import { serializeToString } from './serialization.js';
 

@@ -4,10 +4,9 @@
 
 'use strict';
 
-import {
-    AffineTransform,
-    Rect
-} from '../util2d.js';
+import { Rect } from '../rect.js';
+
+import { AffineTransform } from '../affine_transform.js';
 
 import * as colorUtil from '../color_util.js';
 

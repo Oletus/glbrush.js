@@ -6,7 +6,7 @@
 
 import { CanvasBuffer } from './picture_buffer.js';
 
-import { Rect } from './util2d.js';
+import { Rect } from './rect.js';
 
 import { compositingShader } from './compositing_shader.js';
 

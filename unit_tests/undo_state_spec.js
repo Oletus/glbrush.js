@@ -2,9 +2,7 @@
  * Copyright Olli Etuaho 2013.
  */
 
-import {
-    Rect
-} from '../util2d.js';
+import { Rect } from '../rect.js';
 
 import {
     glStateManager,
