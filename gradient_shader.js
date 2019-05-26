@@ -17,7 +17,6 @@ import { ShaderGenerator } from './shader_generator.js';
  */
 var GradientShader = function(format) {
     this.format = format;
-    this.initShaderGenerator();
 };
 
 GradientShader.prototype = new ShaderGenerator();

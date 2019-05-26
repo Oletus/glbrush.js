@@ -38,7 +38,6 @@ var RasterizeShader = function(format, soft, texturized, circles, dynamicCircles
     this.dynamicCircles = dynamicCircles;
     this.texturized = texturized;
     this.unroll = unroll;
-    this.initShaderGenerator();
 };
 
 RasterizeShader.prototype = new ShaderGenerator();

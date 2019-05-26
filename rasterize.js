@@ -790,7 +790,7 @@ GLDoubleBufferedRasterizer.prototype.init = function(gl, glManager, width, heigh
                                 GLDoubleBufferedRasterizer.nSoftShader,
                                 GLDoubleBufferedRasterizer.nTexShader);
 
-    this.linearGradientProgram = GLDoubleBufferedRasterizer.linearGradientShader.programInstance(this.gl);
+    this.linearGradientProgram = GLDoubleBufferedRasterizer.linearGradientShader.programInstance(this.glManager);
     this.gradientUniformParameters =
         GLDoubleBufferedRasterizer.linearGradientShader.uniformParameters(this.width, this.height);
 
@@ -880,9 +880,9 @@ GLDoubleBufferedRasterizer.prototype.generateShaderPrograms = function(nFillShad
 
     // TODO: assert(nFillShader.length == nSoftShader.length);
     for (var i = 0; i < nFillShader.length; ++i) {
-        this.nFillCircleProgram.push(nFillShader[i].programInstance(this.gl));
-        this.nSoftCircleProgram.push(nSoftShader[i].programInstance(this.gl));
-        this.nTexCircleProgram.push(nTexShader[i].programInstance(this.gl));
+        this.nFillCircleProgram.push(nFillShader[i].programInstance(this.glManager));
+        this.nSoftCircleProgram.push(nSoftShader[i].programInstance(this.glManager));
+        this.nTexCircleProgram.push(nTexShader[i].programInstance(this.glManager));
         // The uniforms are the same for the soft and fill shaders
         this.fillUniformParameters.push(nFillShader[i].uniformParameters(this.width, this.height));
         this.texUniformParameters.push(nTexShader[i].uniformParameters(this.width, this.height));
@@ -1198,11 +1198,11 @@ GLFloatRasterizer.prototype.init = function(gl, glManager, width, height, brushT
                                     GLFloatRasterizer.dynamicMaxCircles, true, false);
         }
         this.fillCircleProgram =
-            GLFloatRasterizer.dynamicFillShader.programInstance(this.gl);
+            GLFloatRasterizer.dynamicFillShader.programInstance(this.glManager);
         this.softCircleProgram =
-            GLFloatRasterizer.dynamicSoftShader.programInstance(this.gl);
+            GLFloatRasterizer.dynamicSoftShader.programInstance(this.glManager);
         this.texCircleProgram =
-            GLFloatRasterizer.dynamicTexShader.programInstance(this.gl);
+            GLFloatRasterizer.dynamicTexShader.programInstance(this.glManager);
         // The uniforms are the same for the soft and fill shaders
         this.fillUniformParameters =
             GLFloatRasterizer.dynamicFillShader.uniformParameters(width, height);
@@ -1239,7 +1239,7 @@ GLFloatRasterizer.prototype.init = function(gl, glManager, width, height, brushT
         GLFloatRasterizer.linearGradientShader = new GradientShader(GLRasterizerFormat.alpha);
     }
     this.linearGradientProgram =
-        GLFloatRasterizer.linearGradientShader.programInstance(this.gl);
+        GLFloatRasterizer.linearGradientShader.programInstance(this.glManager);
     this.gradientUniformParameters =
         GLFloatRasterizer.linearGradientShader.uniformParameters(this.width,
                                                                  this.height);

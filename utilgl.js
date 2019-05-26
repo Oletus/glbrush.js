@@ -168,8 +168,7 @@ var shaderProgramCache = function(gl) {
                 return shaders[i];
             }
         }
-        var shader = new ShaderProgram(gl, fragmentSource, vertexSource,
-                                       uniforms);
+        var shader = new ShaderProgram(gl, fragmentSource, vertexSource, uniforms);
         shader.fragmentSource = fragmentSource;
         shader.vertexSource = vertexSource;
         shaders.push(shader);

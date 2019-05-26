@@ -17,14 +17,6 @@ var ShaderGenerator = function() {
 };
 
 /**
- * Initialize the shader generator.
- */
-ShaderGenerator.prototype.initShaderGenerator = function() {
-    this.cachedGl = null;
-    this.cachedProgram = null;
-};
-
-/**
  * Computes the types of uniforms used in the shader program.
  * @return {Object.<string, string>} Map from uniform name to uniform short type
  * to be used as postfix to gl.uniform* function call.
@@ -39,20 +31,11 @@ ShaderGenerator.prototype.uniformTypes = function() {
 };
 
 /**
- * @param {WebGLRenderingContext} gl The context to place the shader program in.
- * Note that this function only acts as an efficient cache for one gl context at
- * a time.
- * @return {ShaderProgram} Shader program for rasterizing circles.
+ * @param {glStateManager} glManager The gl state manager.
+ * @return {ShaderProgram} The Shader program.
  */
-ShaderGenerator.prototype.programInstance = function(gl) {
-    // TODO: Limitation: can only work with one context at a time
-    if (this.cachedGl !== gl) {
-        this.cachedProgram =
-            new ShaderProgram(gl, this.fragmentSource(),
-                              this.vertexSource(), this.uniformTypes());
-        this.cachedGl = gl;
-    }
-    return this.cachedProgram;
+ShaderGenerator.prototype.programInstance = function(glManager) {
+    return glManager.shaderProgram(this.fragmentSource(), this.vertexSource(), this.uniformTypes());
 };
 
 /**
