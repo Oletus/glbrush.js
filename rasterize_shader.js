@@ -23,13 +23,12 @@ import { ShaderGenerator } from './shader_generator.js';
  * can be set at run-time using an uniform.
  * @param {boolean=} unroll Unroll the loop. True by default.
  */
-var RasterizeShader = function(format, soft, texturized, circles, dynamicCircles,
-                               unroll) {
+var RasterizeShaderGenerator = function(format, soft, texturized, circles, dynamicCircles, unroll) {
     if (unroll === undefined) {
         unroll = true;
     }
     if (circles + 4 > glUtils.maxUniformVectors) {
-        console.log('Invalid RasterizeShader requested! Too many circles.');
+        console.log('Invalid RasterizeShaderGenerator requested! Too many circles.');
         return;
     }
     this.doubleBuffered = (format === GLRasterizerFormat.redGreen);
@@ -40,7 +39,7 @@ var RasterizeShader = function(format, soft, texturized, circles, dynamicCircles
     this.unroll = unroll;
 };
 
-RasterizeShader.prototype = new ShaderGenerator();
+RasterizeShaderGenerator.prototype = new ShaderGenerator();
 
 /**
  * Computes the uniforms used in the shader program.
@@ -51,7 +50,7 @@ RasterizeShader.prototype = new ShaderGenerator();
  * inFragment (whether it's used in fragment shader), defaultValue, arraySize
  * (how many items in the uniform array).
  */
-RasterizeShader.prototype.uniforms = function(width, height) {
+RasterizeShaderGenerator.prototype.uniforms = function(width, height) {
     var i;
     if (width === undefined || height === undefined) {
         width = 1.0;
@@ -110,7 +109,7 @@ RasterizeShader.prototype.uniforms = function(width, height) {
  * Computes the varying definition code for both vertex and fragment shader.
  * @return {Array<string>} Shader source code lines.
  */
-RasterizeShader.prototype.varyingSource = function() {
+RasterizeShaderGenerator.prototype.varyingSource = function() {
     var src = 'varying vec2 vPixelCoords; // in pixels\n';
     if (this.doubleBuffered) {
         src += 'varying vec2 vSrcTexCoord;\n';
@@ -122,7 +121,7 @@ RasterizeShader.prototype.varyingSource = function() {
  * Computes the minimum circle radius for rasterization purposes.
  * @return {number} Minimum circle radius.
  */
-RasterizeShader.prototype.minRadius = function() {
+RasterizeShaderGenerator.prototype.minRadius = function() {
     return (!this.texturized && this.soft) ? 1.0 : 0.5;
 };
 
@@ -132,7 +131,7 @@ RasterizeShader.prototype.minRadius = function() {
  * @param {string} indent Prefix for each line, intended for indentation.
  * @return {Array<string>} Shader source code lines.
  */
-RasterizeShader.prototype.fragmentAlphaSource = function(assignTo, indent) {
+RasterizeShaderGenerator.prototype.fragmentAlphaSource = function(assignTo, indent) {
     // Generated shader assumes that:
     // 1. circleRadius contains the intended perceived radius of the circle.
     // 1. circleFlowAlpha contains the intended perceived alpha of the circle.
@@ -176,7 +175,7 @@ ${ assignTo } =  flowAlpha * antialiasMult;`;
  * array. Does not matter if circle parameters are taken from a texture.
  * @return {Array<string>} Shader source code lines.
  */
-RasterizeShader.prototype.fragmentInnerLoopSource = function(index,
+RasterizeShaderGenerator.prototype.fragmentInnerLoopSource = function(index,
                                                              arrayIndex) {
     if (arrayIndex === undefined) {
         arrayIndex = `[${ index }]`;
@@ -211,7 +210,7 @@ ${ !evaluateCircleInsideIf ? ifCircleActive : '' } {
 /**
  * @return {string} Fragment shader source.
  */
-RasterizeShader.prototype.fragmentSource = function() {
+RasterizeShaderGenerator.prototype.fragmentSource = function() {
     var initSrcAlphaIfAny = '';
     if (this.doubleBuffered) {
         initSrcAlphaIfAny = `
@@ -257,14 +256,14 @@ void main(void) {
  * arrays. Does not matter if circle parameters are taken from a texture.
  * @return {Array<string>} Vertex shader inner loop lines.
  */
-RasterizeShader.prototype.vertexInnerLoopSource = function(index, arrayIndex) {
+RasterizeShaderGenerator.prototype.vertexInnerLoopSource = function(index, arrayIndex) {
     return '';
 };
 
 /**
  * @return {string} Vertex shader source.
  */
-RasterizeShader.prototype.vertexSource = function() {
+RasterizeShaderGenerator.prototype.vertexSource = function() {
     var src = `precision highp float;
 
 // expecting a vertex array with corners at -1 and 1 x and y coordinates
@@ -294,4 +293,4 @@ void main(void) {
     return src;
 };
 
-export { RasterizeShader };
+export { RasterizeShaderGenerator };

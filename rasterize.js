@@ -23,9 +23,9 @@ import {
 
 import { blitShader } from './blit_shader.js';
 
-import { GradientShader } from './gradient_shader.js';
+import { GradientShaderGenerator } from './gradient_shader.js';
 
-import { RasterizeShader } from './rasterize_shader.js';
+import { RasterizeShaderGenerator } from './rasterize_shader.js';
 
 /**
  * A base object for a rasterizer that can blend together monochrome circles and
@@ -771,28 +771,28 @@ GLDoubleBufferedRasterizer.prototype.init = function(gl, glManager, width, heigh
     if (!GLDoubleBufferedRasterizer.nFillShader) {
         // TODO: assert(!GLDoubleBufferedRasterizer.nSoftShader);
         // assert(!GLDoubleBufferedRasterizer.nTexShader);
-        // assert(!GLDoubleBufferedRasterizer.linearGradientShader);
+        // assert(!GLDoubleBufferedRasterizer.linearGradientShaderGenerator);
         GLDoubleBufferedRasterizer.nFillShader = [];
         GLDoubleBufferedRasterizer.nSoftShader = [];
         GLDoubleBufferedRasterizer.nTexShader = [];
         for (var i = 1; i <= GLDoubleBufferedRasterizer.maxCircles; ++i) {
             GLDoubleBufferedRasterizer.nFillShader.push(
-                new RasterizeShader(GLRasterizerFormat.redGreen, false, false, i, false, true));
+                new RasterizeShaderGenerator(GLRasterizerFormat.redGreen, false, false, i, false, true));
             GLDoubleBufferedRasterizer.nSoftShader.push(
-                new RasterizeShader(GLRasterizerFormat.redGreen, true, false, i, false, true));
+                new RasterizeShaderGenerator(GLRasterizerFormat.redGreen, true, false, i, false, true));
             GLDoubleBufferedRasterizer.nTexShader.push(
-                new RasterizeShader(GLRasterizerFormat.redGreen, false, true, i, false, true));
+                new RasterizeShaderGenerator(GLRasterizerFormat.redGreen, false, true, i, false, true));
         }
-        GLDoubleBufferedRasterizer.linearGradientShader = new GradientShader(GLRasterizerFormat.redGreen);
+        GLDoubleBufferedRasterizer.linearGradientShaderGenerator = new GradientShaderGenerator(GLRasterizerFormat.redGreen);
     }
 
     this.generateShaderPrograms(GLDoubleBufferedRasterizer.nFillShader,
                                 GLDoubleBufferedRasterizer.nSoftShader,
                                 GLDoubleBufferedRasterizer.nTexShader);
 
-    this.linearGradientProgram = GLDoubleBufferedRasterizer.linearGradientShader.programInstance(this.glManager);
+    this.linearGradientProgram = GLDoubleBufferedRasterizer.linearGradientShaderGenerator.programInstance(this.glManager);
     this.gradientUniformParameters =
-        GLDoubleBufferedRasterizer.linearGradientShader.uniformParameters(this.width, this.height);
+        GLDoubleBufferedRasterizer.linearGradientShaderGenerator.uniformParameters(this.width, this.height);
 
     this.convUniformParameters = new blitShader.ConversionUniformParameters();
     this.conversionProgram = this.glManager.shaderProgram(
@@ -804,19 +804,19 @@ GLDoubleBufferedRasterizer.prototype.init = function(gl, glManager, width, heigh
 GLDoubleBufferedRasterizer.maxCircles = 7;
 
 /**
- * RasterizeShaders for drawing filled circles. Amount of circles is determined
+ * RasterizeShaderGenerators for drawing filled circles. Amount of circles is determined
  * at compile-time, nFillShader[i] draws i+1 circles.
  * @protected
  */
 GLDoubleBufferedRasterizer.nFillShader = null;
 /**
- * RasterizeShaders for drawing soft circles. Amount of circles is determined
+ * RasterizeShaderGenerators for drawing soft circles. Amount of circles is determined
  * at compile-time, nSoftShader[i] draws i+1 circles.
  * @protected
  */
 GLDoubleBufferedRasterizer.nSoftShader = null;
 /**
-* RasterizeShaders for drawing texturized circles. Amount of circles is determined
+* RasterizeShaderGenerators for drawing texturized circles. Amount of circles is determined
 * at compile-time, nTexShader[i] draws i+1 circles.
 * @protected
 */
@@ -866,9 +866,9 @@ GLDoubleBufferedRasterizer.prototype.initGLRasterizer = function(gl, glManager, 
 
 /**
  * Generate shader programs for a WebGL-based rasterizer.
- * @param {Array.<RasterizeShader>} nFillShader Filled circle shaders.
- * @param {Array.<RasterizeShader>} nSoftShader Soft circle shaders.
- * @param {Array.<RasterizeShader>} nTexShader Texturized circle shaders.
+ * @param {Array.<RasterizeShaderGenerator>} nFillShader Filled circle shaders.
+ * @param {Array.<RasterizeShaderGenerator>} nSoftShader Soft circle shaders.
+ * @param {Array.<RasterizeShaderGenerator>} nTexShader Texturized circle shaders.
  * @protected
  */
 GLDoubleBufferedRasterizer.prototype.generateShaderPrograms = function(nFillShader, nSoftShader, nTexShader) {
@@ -1188,13 +1188,13 @@ GLFloatRasterizer.prototype.init = function(gl, glManager, width, height, brushT
     if (this.dynamic) {
         if (!GLFloatRasterizer.dynamicFillShader) {
             GLFloatRasterizer.dynamicFillShader =
-                new RasterizeShader(GLRasterizerFormat.alpha, false, false,
+                new RasterizeShaderGenerator(GLRasterizerFormat.alpha, false, false,
                                     GLFloatRasterizer.dynamicMaxCircles, true, false);
             GLFloatRasterizer.dynamicSoftShader =
-                new RasterizeShader(GLRasterizerFormat.alpha, true, false,
+                new RasterizeShaderGenerator(GLRasterizerFormat.alpha, true, false,
                                     GLFloatRasterizer.dynamicMaxCircles, true, false);
             GLFloatRasterizer.dynamicTexShader =
-                new RasterizeShader(GLRasterizerFormat.alpha, false, true,
+                new RasterizeShaderGenerator(GLRasterizerFormat.alpha, false, true,
                                     GLFloatRasterizer.dynamicMaxCircles, true, false);
         }
         this.fillCircleProgram =
@@ -1222,11 +1222,11 @@ GLFloatRasterizer.prototype.init = function(gl, glManager, width, height, brushT
             GLFloatRasterizer.nTexShader = [];
             for (var i = 1; i <= GLFloatRasterizer.maxCircles; ++i) {
                 GLFloatRasterizer.nFillShader.push(
-                    new RasterizeShader(GLRasterizerFormat.alpha, false, false, i, false, true));
+                    new RasterizeShaderGenerator(GLRasterizerFormat.alpha, false, false, i, false, true));
                 GLFloatRasterizer.nSoftShader.push(
-                    new RasterizeShader(GLRasterizerFormat.alpha, true, false, i, false, true));
+                    new RasterizeShaderGenerator(GLRasterizerFormat.alpha, true, false, i, false, true));
                 GLFloatRasterizer.nTexShader.push(
-                    new RasterizeShader(GLRasterizerFormat.alpha, false, true, i, false, true));
+                    new RasterizeShaderGenerator(GLRasterizerFormat.alpha, false, true, i, false, true));
             }
         }
 
@@ -1235,13 +1235,13 @@ GLFloatRasterizer.prototype.init = function(gl, glManager, width, height, brushT
                                     GLFloatRasterizer.nTexShader);
     }
 
-    if (!GLFloatRasterizer.linearGradientShader) {
-        GLFloatRasterizer.linearGradientShader = new GradientShader(GLRasterizerFormat.alpha);
+    if (!GLFloatRasterizer.linearGradientShaderGenerator) {
+        GLFloatRasterizer.linearGradientShaderGenerator = new GradientShaderGenerator(GLRasterizerFormat.alpha);
     }
     this.linearGradientProgram =
-        GLFloatRasterizer.linearGradientShader.programInstance(this.glManager);
+        GLFloatRasterizer.linearGradientShaderGenerator.programInstance(this.glManager);
     this.gradientUniformParameters =
-        GLFloatRasterizer.linearGradientShader.uniformParameters(this.width,
+        GLFloatRasterizer.linearGradientShaderGenerator.uniformParameters(this.width,
                                                                  this.height);
 
     this.convUniformParameters = new blitShader.ConversionUniformParameters();
@@ -1259,19 +1259,19 @@ GLFloatRasterizer.maxCircles = 7;
 GLFloatRasterizer.dynamicMaxCircles = 32;
 
 /**
- * RasterizeShaders for drawing filled circles. Amount of circles is determined
+ * RasterizeShaderGenerators for drawing filled circles. Amount of circles is determined
  * at compile-time, nFillShader[i] draws i+1 circles.
  * @protected
  */
 GLFloatRasterizer.nFillShader = null;
 /**
- * RasterizeShaders for drawing soft circles. Amount of circles is determined
+ * RasterizeShaderGenerators for drawing soft circles. Amount of circles is determined
  * at compile-time, nSoftShader[i] draws i+1 circles.
  * @protected
  */
 GLFloatRasterizer.nSoftShader = null;
 /**
- * RasterizeShaders for drawing texturized circles. Amount of circles is determined
+ * RasterizeShaderGenerators for drawing texturized circles. Amount of circles is determined
  * at compile-time, nTexShader[i] draws i+1 circles.
  * @protected
  */

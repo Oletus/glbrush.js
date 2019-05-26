@@ -15,11 +15,11 @@ import { ShaderGenerator } from './shader_generator.js';
  * Affects whether to blend with a UINT8 source texture or a floating point
  * framebuffer.
  */
-var GradientShader = function(format) {
+var GradientShaderGenerator = function(format) {
     this.format = format;
 };
 
-GradientShader.prototype = new ShaderGenerator();
+GradientShaderGenerator.prototype = new ShaderGenerator();
 
 
 /**
@@ -31,7 +31,7 @@ GradientShader.prototype = new ShaderGenerator();
  * inFragment (whether it's used in fragment shader), defaultValue, arraySize
  * (how many items in the uniform array).
  */
-GradientShader.prototype.uniforms = function(width, height) {
+GradientShaderGenerator.prototype.uniforms = function(width, height) {
     var i;
     if (width === undefined || height === undefined) {
         width = 1.0;
@@ -55,14 +55,14 @@ GradientShader.prototype.uniforms = function(width, height) {
  * Computes the varying definition code for both vertex and fragment shader.
  * @return {Array<string>} Shader source code lines.
  */
-GradientShader.prototype.varyingSource = function() {
+GradientShaderGenerator.prototype.varyingSource = function() {
     return 'varying float vGradientValue;';
 };
 
 /**
  * @return {string} Vertex shader source.
  */
-GradientShader.prototype.vertexSource = function() {
+GradientShaderGenerator.prototype.vertexSource = function() {
     return `
     attribute vec2 aVertexPosition; // expecting a vertex array with corners at -1 and 1 x and y coordinates
     ${ this.varyingSource() }
@@ -80,7 +80,7 @@ GradientShader.prototype.vertexSource = function() {
 /**
  * @return {string} Fragment shader source.
  */
-GradientShader.prototype.fragmentSource = function() {
+GradientShaderGenerator.prototype.fragmentSource = function() {
     var src = `
     precision highp float;
     ${ ShaderGenerator.commonGLSLHelpers }
@@ -98,4 +98,4 @@ GradientShader.prototype.fragmentSource = function() {
     return src;
 };
 
-export { GradientShader };
+export { GradientShaderGenerator };
