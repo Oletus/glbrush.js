@@ -6,6 +6,8 @@
 
 import { Vec2 } from './vec2.js';
 
+import { ShaderProgram } from './shader_program.js';
+
 var glUtils = {
     createTexture: null,
     getShader: null,
@@ -147,147 +149,6 @@ glUtils.updateClip = function(gl, rect, fbHeight) {
     var br = rect.getXYWHRoundedOut();
     br.y = fbHeight - (br.y + br.h);
     gl.scissor(br.x, br.y, br.w, br.h);
-};
-
-
-/**
- * Uniform type and location information.
- * @constructor
- * @param {string} gltype Postfix to gl.uniform function name or 'tex2d' in case
- * of a texture.
- * @param {WebGLUniformLocation} location Location of the uniform.
- * @protected
- */
-var Uniform = function(gltype, location) {
-    this.gltype = gltype;
-    this.location = location;
-};
-
-
-/**
- * An object representing a shader program, tied to the specific gl context. The
- * vertex shader must have an 'aVertexPosition' attribute.
- * @constructor
- * @param {WebGLRenderingContext} gl The WebGL context.
- * @param {string} fragmentShaderSource GLSL source code for the fragment
- * shader.
- * @param {string} vertexShaderSource GLSL source code for the vertex shader.
- * @param {Object.<string, string>} uniforms Map from uniform names to uniform
- * types. Uniform type is specified as postfix to gl.uniform function name or
- * 'tex2d' in case of a texture.
- */
-var ShaderProgram = function(gl, fragmentShaderSource, vertexShaderSource,
-                             uniforms) {
-    this.gl = gl;
-    this.uniforms = {};
-
-    var vertexShader = glUtils.compileShaderSource(this.gl,
-                                                   this.gl.VERTEX_SHADER,
-                                                   vertexShaderSource);
-    var fragmentShader = glUtils.compileShaderSource(this.gl,
-                                                     this.gl.FRAGMENT_SHADER,
-                                                     fragmentShaderSource);
-
-    this.shaderProgram = this.gl.createProgram();
-    this.gl.attachShader(this.shaderProgram, vertexShader);
-    this.gl.attachShader(this.shaderProgram, fragmentShader);
-    this.gl.bindAttribLocation(this.shaderProgram, 0, 'aVertexPosition');
-    this.gl.linkProgram(this.shaderProgram);
-
-    if (!this.gl.getProgramParameter(this.shaderProgram, this.gl.LINK_STATUS)) {
-        console.log('Unable to initialize shader program from shaders:\nINFO:' +
-                    '\n' + this.gl.getProgramInfoLog(this.shaderProgram) +
-                    '\nVERTEX:\n' + vertexShaderSource +
-                    '\nFRAGMENT:\n' + fragmentShaderSource);
-    }
-    for (var key in uniforms) {
-        if (uniforms.hasOwnProperty(key)) {
-            var gltype = uniforms[key];
-            var location = this.gl.getUniformLocation(this.shaderProgram, key);
-            if (location === null) {
-                console.log('Could not locate uniform ' + key +
-                            ' in compiled shader');
-                console.log(fragmentShaderSource + '\n\n' + vertexShaderSource);
-            }
-            this.uniforms[key] = new Uniform(gltype, location);
-        }
-    }
-
-    var vertexPositionAttribLoc = this.gl.getAttribLocation(this.shaderProgram, 'aVertexPosition');
-    if (vertexPositionAttribLoc !== 0) {
-        console.log('Vertex position attribute location unexpected, ' + vertexPositionAttribLoc);
-    }
-};
-
-/**
- * @return {Object.<string,*>} Map from uniform names to uniform values that
- * should be filled in and passed to the shader program to draw.
- */
-ShaderProgram.prototype.uniformParameters = function() {
-    var uniformParams = {};
-    for (var key in this.uniforms) {
-        if (this.uniforms.hasOwnProperty(key)) {
-            uniformParams[key] = null;
-        }
-    }
-    return uniformParams;
-};
-
-/**
- * Set the ShaderProgram as active and set uniform values to use with it.
- * @param {Object.<string,*>} uniforms Map from uniform names to uniform values.
- * Single uniforms must not be passed in an array, vector uniforms must be
- * passed in an array. Texture uniforms must be passed as WebGLTexture.
- */
-ShaderProgram.prototype.use = function(uniforms) {
-    this.gl.useProgram(this.shaderProgram);
-    var texU = 0;
-    for (var key in uniforms) {
-        if (this.uniforms.hasOwnProperty(key)) {
-            var gltype = this.uniforms[key].gltype;
-            var location = this.uniforms[key].location;
-            if (gltype === 'tex2d') {
-                if (texU < glUtils.maxTextureUnits) {
-                    this.gl.activeTexture(glUtils.textureUnits[texU]);
-                } else {
-                    console.log('Too many textures in ShaderProgram.use');
-                    return;
-                }
-                this.gl.bindTexture(this.gl.TEXTURE_2D, uniforms[key]);
-                this.gl.uniform1i(location, texU);
-                ++texU;
-            } else if (gltype === '1i') {
-                this.gl.uniform1i(location, uniforms[key]);
-            } else if (gltype === '2iv') {
-                this.gl.uniform2iv(location, uniforms[key]);
-            } else if (gltype === '3iv') {
-                this.gl.uniform3iv(location, uniforms[key]);
-            } else if (gltype === '4iv') {
-                this.gl.uniform4iv(location, uniforms[key]);
-            } else if (gltype === '1f') {
-                this.gl.uniform1f(location, uniforms[key]);
-            } else if (gltype === '2fv') {
-                this.gl.uniform2fv(location, uniforms[key]);
-            } else if (gltype === '3fv') {
-                this.gl.uniform3fv(location, uniforms[key]);
-            } else if (gltype === '4fv') {
-                this.gl.uniform4fv(location, uniforms[key]);
-            } else if (gltype === 'Matrix2fv') {
-                this.gl.uniformMatrix2fv(location, false, uniforms[key]);
-            } else if (gltype === 'Matrix3fv') {
-                this.gl.uniformMatrix3fv(location, false, uniforms[key]);
-            } else if (gltype === 'Matrix4fv') {
-                this.gl.uniformMatrix4fv(location, false, uniforms[key]);
-            } else {
-                console.log('Unrecognized uniform type in ShaderProgram.use: ' +
-                            gltype);
-            }
-        } else if (uniforms.hasOwnProperty(key)) {
-            console.log('Invalid uniform name in ShaderProgram.use: ' + key +
-                        ' ' + uniforms[key]);
-        }
-    }
-    return;
 };
 
 /**
@@ -437,9 +298,6 @@ var glStateManager = function(gl) {
 })();
 
 export {
-    ShaderProgram,
-    Uniform,
     glStateManager,
-    glUtils,
-    shaderProgramCache
+    glUtils
 };

@@ -2,7 +2,7 @@
  * Copyright Olli Etuaho 2019.
  */
 
-import { ShaderProgram } from './utilgl.js';
+import { ShaderProgram } from './shader_program.js';
 
 /**
  * A shader program generator. Inherited objects must generate 1 shader program
@@ -78,25 +78,32 @@ ShaderGenerator.prototype.uniformParameters = function(width, height) {
     return parameters;
 };
 
+/**
+ * @param {Object} uniform With following keys: type (GLSL type), name, and optional arraySize and comment.
+ * @return {string} GLSL code for declaring the uniform.
+ */
+var getUniformDeclarationLine = function(uniform) {
+    var line = 'uniform ' + uniform.type + ' ' + uniform.name;
+    if (uniform.arraySize !== undefined) {
+        line += '[' + uniform.arraySize + ']';
+    }
+    line += ';';
+    if (uniform.comment !== undefined) {
+        line += ' // ' + uniform.comment;
+    }
+    return line;
+};
 
 /**
  * Computes the uniform definition code for the fragment shader.
  * @return {Array<string>} Shader source code lines.
  */
 ShaderGenerator.prototype.fragmentUniformSource = function() {
-    var us = this.uniforms();
+    var uniforms = this.uniforms();
     var src = [];
-    for (var i = 0; i < us.length; ++i) {
-        if (us[i].inFragment) {
-            var line = 'uniform ' + us[i].type + ' ' + us[i].name;
-            if (us[i].arraySize !== undefined) {
-                line += '[' + us[i].arraySize + ']';
-            }
-            line += ';';
-            if (us[i].comment !== undefined) {
-                line += ' // ' + us[i].comment;
-            }
-            src.push(line);
+    for (var i = 0; i < uniforms.length; ++i) {
+        if (uniforms[i].inFragment) {
+            src.push(getUniformDeclarationLine(uniforms[i]));
         }
     }
     return src;
@@ -107,19 +114,11 @@ ShaderGenerator.prototype.fragmentUniformSource = function() {
  * @return {Array<string>} Shader source code lines.
  */
 ShaderGenerator.prototype.vertexUniformSource = function() {
-    var us = this.uniforms();
+    var uniforms = this.uniforms();
     var src = [];
-    for (var i = 0; i < us.length; ++i) {
-        if (us[i].inVertex) {
-            var line = 'uniform ' + us[i].type + ' ' + us[i].name;
-            if (us[i].arraySize !== undefined) {
-                line += '[' + us[i].arraySize + ']';
-            }
-            line += ';';
-            if (us[i].comment !== undefined) {
-                line += ' // ' + us[i].comment;
-            }
-            src.push(line);
+    for (var i = 0; i < uniforms.length; ++i) {
+        if (uniforms[i].inVertex) {
+            src.push(getUniformDeclarationLine(uniforms[i]));
         }
     }
     return src;

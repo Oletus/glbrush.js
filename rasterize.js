@@ -11,11 +11,8 @@ import { Vec2 } from './vec2.js';
 import * as colorUtil from './color_util.js';
 
 import {
-    ShaderProgram,
-    Uniform,
     glStateManager,
-    glUtils,
-    shaderProgramCache
+    glUtils
 } from './utilgl.js';
 
 import {
