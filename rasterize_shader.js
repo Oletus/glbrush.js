@@ -23,7 +23,7 @@ import { ShaderGenerator } from './shader_generator.js';
  * can be set at run-time using an uniform.
  * @param {boolean=} unroll Unroll the loop. True by default.
  */
-var RasterizeShaderGenerator = function(format, soft, texturized, circles, dynamicCircles, unroll) {
+var RasterizeShaderGenerator = function(fbFormat, soft, texturized, circles, dynamicCircles, unroll) {
     if (unroll === undefined) {
         unroll = true;
     }
@@ -31,7 +31,8 @@ var RasterizeShaderGenerator = function(format, soft, texturized, circles, dynam
         console.log('Invalid RasterizeShaderGenerator requested! Too many circles.');
         return;
     }
-    this.doubleBuffered = (format === GLRasterizerFormat.redGreen);
+    this.fbFormat = fbFormat;
+    this.doubleBuffered = (fbFormat === GLRasterizerFormat.redGreen);
     this.soft = soft;
     this.circles = circles;
     this.dynamicCircles = dynamicCircles;
@@ -214,8 +215,14 @@ RasterizeShaderGenerator.prototype.fragmentSource = function() {
     var initSrcAlphaIfAny = '';
     if (this.doubleBuffered) {
         initSrcAlphaIfAny = `
-  vec4 src = texture2D(uSrcTex, vSrcTexCoord);
-  float srcAlpha = src.x + src.y / 256.0;`;
+  vec4 src = texture2D(uSrcTex, vSrcTexCoord);`
+        if (this.fbFormat === GLRasterizerFormat.redGreen) {
+            initSrcAlphaIfAny += `
+  float srcAlpha = src.r + src.g / 256.0;`;
+        } else {
+            initSrcAlphaIfAny += `
+  float srcAlpha = src.a;`;
+        }
     }
     var fragmentInnerLoop = '';
     if (this.unroll) {
@@ -228,11 +235,14 @@ RasterizeShaderGenerator.prototype.fragmentSource = function() {
     ${ this.fragmentInnerLoopSource('i') }
   }`;
     }
-    var writeFragColor = 'gl_FragColor = vec4(0.0, 0.0, 0.0, destAlpha);';
+
+    var computeOutputAlpha = 'float alpha = destAlpha;';
     if (this.doubleBuffered) {
-        writeFragColor = `
-  float alpha = destAlpha + (1.0 - destAlpha) * srcAlpha;
-  gl_FragColor = packNormFloatToRG(alpha);`;
+        computeOutputAlpha = 'float alpha = destAlpha + (1.0 - destAlpha) * srcAlpha;';
+    }
+    var writeFragColor = 'gl_FragColor = vec4(0.0, 0.0, 0.0, alpha);';
+    if (this.fbFormat === GLRasterizerFormat.redGreen) {
+        writeFragColor = 'gl_FragColor = packNormFloatToRG(alpha);';
     }
     return `
 precision highp float;
@@ -245,6 +255,7 @@ void main(void) {
   float destAlpha = 0.0;
   ${ initSrcAlphaIfAny }
   ${ fragmentInnerLoop }
+  ${ computeOutputAlpha }
   ${ writeFragColor }
 }`;
 };
