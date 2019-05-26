@@ -5,10 +5,9 @@
 <title>Plot of alpha resulting from repeated blending</title>
 <script type="module">
 
-import { colorUtil } from '../util2d.js';
-import '../util2d_painting.js';
+import * as colorUtil from '../color_util.js';
 
-colorUtil.alphaForNBlendsBisect = function(flow, n) {
+var alphaForNBlendsBisect = function(flow, n) {
     if (flow < 1.0) {
         var guess = colorUtil.approximateAlphaForNBlends(flow, n);
         var low = 0;
@@ -31,7 +30,7 @@ colorUtil.alphaForNBlendsBisect = function(flow, n) {
     }
 };
 
-colorUtil.alphaForNBlendsSecant = function(flow, n) {
+var alphaForNBlendsSecant = function(flow, n) {
     if (flow < 1.0) {
         var guess0 = colorUtil.approximateAlphaForNBlends(flow * 0.995, n);
         var blended0 = colorUtil.nBlends(guess0, n);
@@ -49,7 +48,7 @@ colorUtil.alphaForNBlendsSecant = function(flow, n) {
             guess0 = guess1;
             guess1 = newGuess;
         }
-        return colorUtil.alphaForNBlendsBisect(flow, n, true);
+        return alphaForNBlendsBisect(flow, n, true);
     } else {
         return 1.0;
     }
@@ -98,8 +97,8 @@ var plotAlphaForNBlends = function() {
         for (var n = 1; n < nMax; n += 0.25) {
             ctx.lineTo(n * c.width / nMax, (1.0 - colorUtil.alphaForNBlends(alpha, n)) * c.height);
             var alphaDefault = colorUtil.alphaForNBlends(alpha, n);
-            var alphaB = colorUtil.alphaForNBlendsBisect(alpha, n);
-            var alphaS = colorUtil.alphaForNBlendsSecant(alpha, n);
+            var alphaB = alphaForNBlendsBisect(alpha, n);
+            var alphaS = alphaForNBlendsSecant(alpha, n);
             if (Math.abs(colorUtil.nBlends(alphaDefault, n) - colorUtil.nBlends(alphaB, n)) > 0.001) {
                 throw "Mismatching results from alphaForNBlendsBisect!";
             }
@@ -127,7 +126,7 @@ var measureSecantTime = function() {
     var startTime = new Date().getTime();
     for (var alpha = 0.01; alpha <= 1.0; alpha += 0.002) {
         for (var n = 1; n < 200; n += 0.1) {
-            colorUtil.alphaForNBlendsSecant(alpha, n);
+            alphaForNBlendsSecant(alpha, n);
         }
     }
     logText('Time spent calculating alpha values with secant method: ' + (new Date().getTime() - startTime));
@@ -137,7 +136,7 @@ var measureBisectTime = function() {
     var startTime = new Date().getTime();
     for (var alpha = 0.01; alpha <= 1.0; alpha += 0.002) {
         for (var n = 1; n < 200; n += 0.1) {
-            colorUtil.alphaForNBlendsBisect(alpha, n);
+            alphaForNBlendsBisect(alpha, n);
         }
     }
     logText('Time spent calculating alpha values with bisection method: ' + (new Date().getTime() - startTime));

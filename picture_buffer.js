@@ -4,10 +4,11 @@
 
 'use strict';
 
-import {
-    Rect,
-    colorUtil
-} from './util2d.js';
+import { Rect } from './util2d.js';
+
+import * as colorUtil from './color_util.js';
+
+import * as blendFunctions from './blend_functions.js';
 
 import {
     rgbString,
@@ -1038,57 +1039,7 @@ CanvasBuffer.drawRasterizer = function(dataCtx, targetCtx, raster, clipRect,
     } else if (mode === BlendingMode.erase) {
         raster.erase(targetData, opacity, br.x, br.y, br.w, br.h);
     } else {
-        var blendFunction = null;
-        switch (mode) {
-            case BlendingMode.multiply:
-                blendFunction = colorUtil.blendMultiply;
-                break;
-            case BlendingMode.screen:
-                blendFunction = colorUtil.blendScreen;
-                break;
-            case BlendingMode.overlay:
-                blendFunction = colorUtil.blendOverlay;
-                break;
-            case BlendingMode.darken:
-                blendFunction = colorUtil.blendDarken;
-                break;
-            case BlendingMode.lighten:
-                blendFunction = colorUtil.blendLighten;
-                break;
-            case BlendingMode.difference:
-                blendFunction = colorUtil.blendDifference;
-                break;
-            case BlendingMode.exclusion:
-                blendFunction = colorUtil.blendExclusion;
-                break;
-            case BlendingMode.hardlight:
-                blendFunction = colorUtil.blendHardLight;
-                break;
-            case BlendingMode.softlight:
-                blendFunction = colorUtil.blendSoftLight;
-                break;
-            case BlendingMode.colorburn:
-                blendFunction = colorUtil.blendColorBurn;
-                break;
-            case BlendingMode.linearburn:
-                blendFunction = colorUtil.blendLinearBurn;
-                break;
-            case BlendingMode.vividlight:
-                blendFunction = colorUtil.blendVividLight;
-                break;
-            case BlendingMode.linearlight:
-                blendFunction = colorUtil.blendLinearLight;
-                break;
-            case BlendingMode.pinlight:
-                blendFunction = colorUtil.blendPinLight;
-                break;
-            case BlendingMode.colordodge:
-                blendFunction = colorUtil.blendColorDodge;
-                break;
-            case BlendingMode.lineardodge:
-                blendFunction = colorUtil.blendLinearDodge;
-                break;
-        }
+        var blendFunction = colorUtil.getBlendFunction(mode);
         if (blendFunction !== null) {
             raster.blendPerChannel(targetData, color, opacity, br.x, br.y, br.w, br.h, blendFunction);
         }

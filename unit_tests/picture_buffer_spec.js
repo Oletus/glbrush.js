@@ -5,12 +5,15 @@
 'use strict';
 
 import {
-    colorUtil,
     AffineTransform,
     Rect
 } from '../util2d.js';
 
 import { Vec2 } from '../vec2.js';
+
+import * as colorUtil from '../color_util.js';
+
+import * as blendFunctions from '../blend_functions.js';
 
 import {
     glStateManager
@@ -274,22 +277,22 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         });
     };
 
-    generalizedBlendModeTest('multiply', BlendingMode.multiply, colorUtil.blendMultiply);
-    generalizedBlendModeTest('screen', BlendingMode.screen, colorUtil.blendScreen);
-    generalizedBlendModeTest('overlay', BlendingMode.overlay, colorUtil.blendOverlay);
-    generalizedBlendModeTest('hardlight', BlendingMode.hardlight, colorUtil.blendHardLight);
-    generalizedBlendModeTest('softlight', BlendingMode.softlight, colorUtil.blendSoftLight);
-    generalizedBlendModeTest('darken', BlendingMode.darken, colorUtil.blendDarken);
-    generalizedBlendModeTest('lighten', BlendingMode.lighten, colorUtil.blendLighten);
-    generalizedBlendModeTest('difference', BlendingMode.difference, colorUtil.blendDifference);
-    generalizedBlendModeTest('exclusion', BlendingMode.exclusion, colorUtil.blendExclusion);
-    generalizedBlendModeTest('colorburn', BlendingMode.colorburn, colorUtil.blendColorBurn);
-    generalizedBlendModeTest('linearburn', BlendingMode.linearburn, colorUtil.blendLinearBurn);
-    generalizedBlendModeTest('vividlight', BlendingMode.vividlight, colorUtil.blendVividLight);
-    generalizedBlendModeTest('linearlight', BlendingMode.linearlight, colorUtil.blendLinearLight);
-    generalizedBlendModeTest('pinlight', BlendingMode.pinlight, colorUtil.blendPinLight);
-    generalizedBlendModeTest('colordodge', BlendingMode.colordodge, colorUtil.blendColorDodge);
-    generalizedBlendModeTest('lineardodge', BlendingMode.lineardodge, colorUtil.blendLinearDodge);
+    generalizedBlendModeTest('multiply', BlendingMode.multiply, blendFunctions.multiply);
+    generalizedBlendModeTest('screen', BlendingMode.screen, blendFunctions.screen);
+    generalizedBlendModeTest('overlay', BlendingMode.overlay, blendFunctions.overlay);
+    generalizedBlendModeTest('hardlight', BlendingMode.hardlight, blendFunctions.hardLight);
+    generalizedBlendModeTest('softlight', BlendingMode.softlight, blendFunctions.softLight);
+    generalizedBlendModeTest('darken', BlendingMode.darken, blendFunctions.darken);
+    generalizedBlendModeTest('lighten', BlendingMode.lighten, blendFunctions.lighten);
+    generalizedBlendModeTest('difference', BlendingMode.difference, blendFunctions.difference);
+    generalizedBlendModeTest('exclusion', BlendingMode.exclusion, blendFunctions.exclusion);
+    generalizedBlendModeTest('colorburn', BlendingMode.colorburn, blendFunctions.colorBurn);
+    generalizedBlendModeTest('linearburn', BlendingMode.linearburn, blendFunctions.linearBurn);
+    generalizedBlendModeTest('vividlight', BlendingMode.vividlight, blendFunctions.vividLight);
+    generalizedBlendModeTest('linearlight', BlendingMode.linearlight, blendFunctions.linearLight);
+    generalizedBlendModeTest('pinlight', BlendingMode.pinlight, blendFunctions.pinLight);
+    generalizedBlendModeTest('colordodge', BlendingMode.colordodge, blendFunctions.colorDodge);
+    generalizedBlendModeTest('lineardodge', BlendingMode.lineardodge, blendFunctions.linearDodge);
 
     it('erases from an opaque buffer', function() {
         initTestCanvas();

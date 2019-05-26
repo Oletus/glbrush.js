@@ -5,7 +5,6 @@
 'use strict';
 
 import {
-    colorUtil,
     AffineTransform,
     Rect
 } from '../util2d.js';

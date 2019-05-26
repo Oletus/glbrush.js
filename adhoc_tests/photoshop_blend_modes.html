@@ -6,7 +6,8 @@
         <title>Photoshop blend mode comparison</title>
         <script type="module">
 
-import { colorUtil } from '../util2d.js';
+import * as colorUtil from '../color_util.js';
+import * as blendFunctions from '../blend_functions.js';
 
             // Generate input values, these are the same values used in Photoshop layers, input1.png and input2.png
             var inputs = [];
@@ -81,9 +82,9 @@ import { colorUtil } from '../util2d.js';
             }
 
             var tests = [
-                "Multiply", "Screen", "Overlay", "HardLight", "SoftLight", "Darken", "Lighten", "Difference",
-                "Exclusion", "ColorBurn", "LinearBurn", "VividLight", "LinearLight", "PinLight", "ColorDodge",
-                "LinearDodge"
+                "multiply", "screen", "overlay", "hardLight", "softLight", "darken", "lighten", "difference",
+                "exclusion", "colorBurn", "linearBurn", "vividLight", "linearLight", "pinLight", "colorDodge",
+                "linearDodge"
             ];
 
             var testIndex = 0;
@@ -92,9 +93,9 @@ import { colorUtil } from '../util2d.js';
                 // run in the same order.
                 var test = tests[testIndex % tests.length];
                 if (testIndex < tests.length) {
-                    testBlendFunction(test.toLowerCase(), colorUtil['blend' + test], 100, runTest);
+                    testBlendFunction(test.toLowerCase(), blendFunctions[test], 100, runTest);
                 } else if (testIndex < tests.length + 12) {
-                    testBlendFunction(test.toLowerCase(), colorUtil['blend' + test], 50, runTest);
+                    testBlendFunction(test.toLowerCase(), blendFunctions[test], 50, runTest);
                 }
                 ++testIndex;
             }

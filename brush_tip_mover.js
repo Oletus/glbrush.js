@@ -4,9 +4,7 @@
 
 'use strict';
 
-import {
-    colorUtil
-} from './util2d.js';
+import * as colorUtil from './color_util.js';
 
 import * as mathUtil from './math_util.js';
 

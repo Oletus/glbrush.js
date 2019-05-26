@@ -4,7 +4,9 @@
 
 'use strict';
 
-import { colorUtil, Rect } from '../util2d.js';
+import { Rect } from '../util2d.js';
+
+import * as colorUtil from '../color_util.js';
 
 import { Vec2 } from '../vec2.js';
 
