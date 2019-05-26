@@ -16,28 +16,19 @@ import { ShaderGenerator } from './shader_generator.js';
  * @param {GLRasterizerFormat} format Format of the rasterizer's backing.
  * Affects whether to blend with a UINT8 source texture or a floating point
  * framebuffer.
- * @param {boolean} soft Use soft brush.
- * @param {boolean} texturized True if circles are texturized. Overrides the soft parameter.
- * @param {number} circles Amount of circles to draw in a single pass.
  * @param {boolean} dynamicCircles The amount of circles drawn in a single pass
  * can be set at run-time using an uniform.
  * @param {boolean=} unroll Unroll the loop. True by default.
  */
-var RasterizeShaderGenerator = function(fbFormat, soft, texturized, circles, dynamicCircles, unroll) {
-    if (unroll === undefined) {
-        unroll = true;
-    }
-    if (circles + 4 > glUtils.maxUniformVectors) {
-        console.log('Invalid RasterizeShaderGenerator requested! Too many circles.');
-        return;
-    }
+var RasterizeShaderGenerator = function(fbFormat, dynamicCircles, unroll) {
     this.fbFormat = fbFormat;
     this.doubleBuffered = (fbFormat === GLRasterizerFormat.redGreen);
-    this.soft = soft;
-    this.circles = circles;
     this.dynamicCircles = dynamicCircles;
-    this.texturized = texturized;
     this.unroll = unroll;
+
+    this.circles = 1;  // Amount of circles to draw in a single pass.
+    this.soft = false;  // Uses soft brush if true.
+    this.texturized = false;  // True if circles are texturized. Overrides the soft parameter.
 };
 
 RasterizeShaderGenerator.prototype = new ShaderGenerator();
@@ -52,6 +43,9 @@ RasterizeShaderGenerator.prototype = new ShaderGenerator();
  * (how many items in the uniform array).
  */
 RasterizeShaderGenerator.prototype.uniforms = function(width, height) {
+    if (this.circles + 4 > glUtils.maxUniformVectors) {
+        console.log('Invalid RasterizeShaderGenerator requested! Too many circles.');
+    }
     var i;
     if (width === undefined || height === undefined) {
         width = 1.0;
