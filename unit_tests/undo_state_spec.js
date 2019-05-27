@@ -126,7 +126,11 @@ describe('GLUndoState', function() {
         glManager = glStateManager(gl);
         glManager.useQuadVertexBuffer();
         compositor = new GLCompositor(glManager, gl, 8);
-        texBlitProgram = glManager.shaderProgram(blitShader.blitSrc, blitShader.blitVertSrc, {'uSrcTex': 'tex2d'});
+        texBlitProgram = glManager.shaderProgram({
+            fragmentSource: blitShader.blitSrc,
+            vertexSource: blitShader.blitVertSrc,
+            uniformTypes: {'uSrcTex': 'tex2d'}
+        });
         texBlitUniforms = {
             'uSrcTex': null
         };

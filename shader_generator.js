@@ -31,11 +31,14 @@ ShaderGenerator.prototype.uniformTypes = function() {
 };
 
 /**
- * @param {glStateManager} glManager The gl state manager.
- * @return {ShaderProgram} The Shader program.
+ * @return {Object} Program parameters suitable for ShaderProgram constructor, or glStateManager.shaderProgram().
  */
-ShaderGenerator.prototype.programInstance = function(glManager) {
-    return glManager.shaderProgram(this.fragmentSource(), this.vertexSource(), this.uniformTypes());
+ShaderGenerator.prototype.programParameters = function() {
+    return {
+        fragmentSource: this.fragmentSource(),
+        vertexSource: this.vertexSource(),
+        uniformTypes: this.uniformTypes()
+    };
 };
 
 /**

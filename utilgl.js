@@ -154,13 +154,14 @@ glUtils.updateClip = function(gl, rect, fbHeight) {
 /**
  * A shader program cache for a specific WebGL context.
  * @param {WebGLRenderingContext} gl The WebGL context.
- * @return {function(string, string, Object.<string, string>)} ShaderProgram
- * constructor wrapped in a caching closure.
+ * @return {function(Object)} ShaderProgram constructor wrapped in a caching closure, taking in a parameters object.
  */
 var shaderProgramCache = function(gl) {
     var shaders = [];
 
-    return function(fragmentSource, vertexSource, uniforms) {
+    return function(programParameters) {
+        var fragmentSource = programParameters.fragmentSource;
+        var vertexSource = programParameters.vertexSource;
         // No need to use object for storing this few variables
         for (var i = 0; i < shaders.length; ++i) {
             if (shaders[i].fragmentSource === fragmentSource &&
@@ -168,7 +169,7 @@ var shaderProgramCache = function(gl) {
                 return shaders[i];
             }
         }
-        var shader = new ShaderProgram(gl, fragmentSource, vertexSource, uniforms);
+        var shader = new ShaderProgram(gl, programParameters);
         shader.fragmentSource = fragmentSource;
         shader.vertexSource = vertexSource;
         shaders.push(shader);

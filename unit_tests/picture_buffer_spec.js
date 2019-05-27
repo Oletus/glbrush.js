@@ -1116,9 +1116,16 @@ describe('GLBuffer', function() {
         glManager = glStateManager(gl);
         glManager.useQuadVertexBuffer();
         compositor = new GLCompositor(glManager, gl, 8);
-        texBlitProgram = glManager.shaderProgram(blitShader.blitSrc, blitShader.blitVertSrc, {'uSrcTex': 'tex2d'});
-        rectBlitProgram = glManager.shaderProgram(blitShader.blitSrc, blitShader.blitScaledTranslatedVertSrc,
-                                                  {'uSrcTex': 'tex2d', 'uScale': '2fv', 'uTranslate': '2fv'});
+        texBlitProgram = glManager.shaderProgram({
+            fragmentSource: blitShader.blitSrc,
+            vertexSource: blitShader.blitVertSrc,
+            uniformTypes: {'uSrcTex': 'tex2d'}
+        });
+        rectBlitProgram = glManager.shaderProgram({
+            fragmentSource: blitShader.blitSrc,
+            vertexSource: blitShader.blitScaledTranslatedVertSrc,
+            uniformTypes: {'uSrcTex': 'tex2d', 'uScale': '2fv', 'uTranslate': '2fv'}
+        });
     };
 
     var resizeTestCanvas = function(width, height) {

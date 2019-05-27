@@ -22,24 +22,22 @@ var Uniform = function(gltype, location) {
  * vertex shader must have an 'aVertexPosition' attribute.
  * @constructor
  * @param {WebGLRenderingContext} gl The WebGL context.
- * @param {string} fragmentShaderSource GLSL source code for the fragment
- * shader.
- * @param {string} vertexShaderSource GLSL source code for the vertex shader.
- * @param {Object.<string, string>} uniforms Map from uniform names to uniform
- * types. Uniform type is specified as postfix to gl.uniform function name or
- * 'tex2d' in case of a texture.
+ * @param {Object} parameters Object with following properties:
+ *   fragmentSource (string) Full GLSL source code for the fragment shader.
+ *   vertexSource (string) Full GLSL source code for the vertex shader.
+ *   uniformTypes (Object.<string, string>) Map from uniform names to uniform types. Uniform type is specified as a
+ *     postfix to gl.uniform function name or 'tex2d' in case of a texture.
  */
-var ShaderProgram = function(gl, fragmentShaderSource, vertexShaderSource,
-                             uniforms) {
+var ShaderProgram = function(gl, parameters) {
     this.gl = gl;
     this.uniforms = {};
 
     var vertexShader = glUtils.compileShaderSource(this.gl,
                                                    this.gl.VERTEX_SHADER,
-                                                   vertexShaderSource);
+                                                   parameters.vertexSource);
     var fragmentShader = glUtils.compileShaderSource(this.gl,
                                                      this.gl.FRAGMENT_SHADER,
-                                                     fragmentShaderSource);
+                                                     parameters.fragmentSource);
 
     this.shaderProgram = this.gl.createProgram();
     this.gl.attachShader(this.shaderProgram, vertexShader);
@@ -50,17 +48,17 @@ var ShaderProgram = function(gl, fragmentShaderSource, vertexShaderSource,
     if (!this.gl.getProgramParameter(this.shaderProgram, this.gl.LINK_STATUS)) {
         console.log('Unable to initialize shader program from shaders:\nINFO:' +
                     '\n' + this.gl.getProgramInfoLog(this.shaderProgram) +
-                    '\nVERTEX:\n' + vertexShaderSource +
-                    '\nFRAGMENT:\n' + fragmentShaderSource);
+                    '\nVERTEX:\n' + parameters.vertexSource +
+                    '\nFRAGMENT:\n' + parameters.fragmentSource);
     }
-    for (var key in uniforms) {
-        if (uniforms.hasOwnProperty(key)) {
-            var gltype = uniforms[key];
+    for (var key in parameters.uniformTypes) {
+        if (parameters.uniformTypes.hasOwnProperty(key)) {
+            var gltype = parameters.uniformTypes[key];
             var location = this.gl.getUniformLocation(this.shaderProgram, key);
             if (location === null) {
                 console.log('Could not locate uniform ' + key +
                             ' in compiled shader');
-                console.log(fragmentShaderSource + '\n\n' + vertexShaderSource);
+                console.log(parameters.fragmentSource + '\n\n' + parameters.vertexSource);
             }
             this.uniforms[key] = new Uniform(gltype, location);
         }

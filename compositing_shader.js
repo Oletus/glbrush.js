@@ -226,8 +226,11 @@ compositingShader.getShaderProgram = function(glManager, layers) {
             uniformTypes['uColor' + i] = '4fv';
         }
     }
-    return glManager.shaderProgram(fragSource, blitShader.blitVertSrc,
-                                   uniformTypes);
+    return glManager.shaderProgram({
+        fragmentSource: fragSource,
+        vertexSource: blitShader.blitVertSrc,
+        uniformTypes: uniformTypes
+    });
 };
 
 export { compositingShader };

@@ -773,13 +773,16 @@ GLDoubleBufferedRasterizer.prototype.init = function(gl, glManager, width, heigh
     var shaderGen = new RasterizeShaderGenerator(GLRasterizerFormat.redGreen, false, true);
     this.generateCircleShaderPrograms(shaderGen, GLDoubleBufferedRasterizer.maxCircles);
 
-    this.linearGradientProgram = doubleBufferedLinearGradientShaderGenerator.programInstance(this.glManager);
+    this.linearGradientProgram =
+        this.glManager.shaderProgram(doubleBufferedLinearGradientShaderGenerator.programParameters());
     this.gradientUniformParameters = doubleBufferedLinearGradientShaderGenerator.uniformParameters(this.width, this.height);
 
     this.convUniformParameters = new blitShader.ConversionUniformParameters();
-    this.conversionProgram = this.glManager.shaderProgram(
-        blitShader.convertRedGreenSrc, blitShader.blitVertSrc,
-        {'uSrcTex': 'tex2d', 'uColor': '4fv'});
+    this.conversionProgram = this.glManager.shaderProgram({
+        fragmentSource: blitShader.convertRedGreenSrc,
+        vertexSource: blitShader.blitVertSrc,
+        uniformTypes: {'uSrcTex': 'tex2d', 'uColor': '4fv'}
+    });
 };
 
 /** @const */
@@ -846,16 +849,16 @@ GLDoubleBufferedRasterizer.prototype.generateCircleShaderPrograms = function(sha
         shaderGen.circles = i;
         shaderGen.soft = false;
         shaderGen.texturized = false;
-        this.nFillCircleProgram.push(shaderGen.programInstance(this.glManager));
+        this.nFillCircleProgram.push(this.glManager.shaderProgram(shaderGen.programParameters()));
         shaderGen.soft = true;
-        this.nSoftCircleProgram.push(shaderGen.programInstance(this.glManager));
+        this.nSoftCircleProgram.push(this.glManager.shaderProgram(shaderGen.programParameters()));
 
         // The uniforms are the same for the soft and fill shaders
         this.fillUniformParameters.push(shaderGen.uniformParameters(this.width, this.height));
 
         shaderGen.soft = false;
         shaderGen.texturized = true;
-        this.nTexCircleProgram.push(shaderGen.programInstance(this.glManager));
+        this.nTexCircleProgram.push(this.glManager.shaderProgram(shaderGen.programParameters()));
         this.texUniformParameters.push(shaderGen.uniformParameters(this.width, this.height));
     }
 };
@@ -1164,20 +1167,17 @@ GLFloatRasterizer.prototype.init = function(gl, glManager, width, height, brushT
 
         shaderGen.soft = false;
         shaderGen.texturized = false;
-        this.fillCircleProgram =
-            shaderGen.programInstance(this.glManager);
+        this.fillCircleProgram = this.glManager.shaderProgram(shaderGen.programParameters());
 
         shaderGen.soft = true;
-        this.softCircleProgram =
-            shaderGen.programInstance(this.glManager);
+        this.softCircleProgram = this.glManager.shaderProgram(shaderGen.programParameters());
 
         // The uniforms are the same for the soft and fill shaders
         this.fillUniformParameters = shaderGen.uniformParameters(width, height);
 
         shaderGen.soft = false;
         shaderGen.texturized = true;
-        this.texCircleProgram =
-            shaderGen.programInstance(this.glManager);
+        this.texCircleProgram = this.glManager.shaderProgram(shaderGen.programParameters());
 
         this.texUniformParameters = shaderGen.uniformParameters(width, height);
         this.fillUniformParameters['uCircle'] = this.params;
@@ -1190,14 +1190,16 @@ GLFloatRasterizer.prototype.init = function(gl, glManager, width, height, brushT
         this.generateCircleShaderPrograms(shaderGen, GLFloatRasterizer.maxCircles);
     }
 
-    this.linearGradientProgram = floatLinearGradientShaderGenerator.programInstance(this.glManager);
+    this.linearGradientProgram = this.glManager.shaderProgram(floatLinearGradientShaderGenerator.programParameters());
     this.gradientUniformParameters = floatLinearGradientShaderGenerator.uniformParameters(this.width, this.height);
 
     this.convUniformParameters = new blitShader.ConversionUniformParameters();
     this.conversionProgram =
-        this.glManager.shaderProgram(blitShader.convertSimpleSrc,
-                                     blitShader.blitVertSrc,
-                                     {'uSrcTex': 'tex2d', 'uColor': '4fv'});
+        this.glManager.shaderProgram({
+            fragmentSource: blitShader.convertSimpleSrc,
+            vertexSource: blitShader.blitVertSrc,
+            uniformTypes: {'uSrcTex': 'tex2d', 'uColor': '4fv'}
+        });
 };
 
 

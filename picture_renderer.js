@@ -287,12 +287,16 @@ PictureRenderer.prototype.setupGLState = function() {
         };
     }
 
-    this.texBlitProgram = this.glManager.shaderProgram(blitShader.blitSrc,
-                                                       blitShader.blitVertSrc,
-                                                       {'uSrcTex': 'tex2d'});
-    this.rectBlitProgram = this.glManager.shaderProgram(blitShader.blitSrc,
-                                                        blitShader.blitScaledTranslatedVertSrc,
-                                                        {'uSrcTex': 'tex2d', 'uScale': '2fv', 'uTranslate': '2fv'});
+    this.texBlitProgram = this.glManager.shaderProgram({
+        fragmentSource: blitShader.blitSrc,
+        vertexSource: blitShader.blitVertSrc,
+        uniformTypes: {'uSrcTex': 'tex2d'}
+    });
+    this.rectBlitProgram = this.glManager.shaderProgram({
+        fragmentSource: blitShader.blitSrc,
+        vertexSource: blitShader.blitScaledTranslatedVertSrc,
+        uniformTypes: {'uSrcTex': 'tex2d', 'uScale': '2fv', 'uTranslate': '2fv'}
+    });
 
     this.compositor = new GLCompositor(this.glManager, this.gl, glUtils.maxTextureUnits);
 
