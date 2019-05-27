@@ -30,6 +30,10 @@ ShaderGenerator.prototype.uniformTypes = function() {
     return result;
 };
 
+ShaderGenerator.prototype.attributeLocations = function() {
+    return { 'aVertexPosition': 0 };
+};
+
 /**
  * @return {Object} Program parameters suitable for ShaderProgram constructor, or glStateManager.shaderProgram().
  */
@@ -37,7 +41,8 @@ ShaderGenerator.prototype.programParameters = function() {
     return {
         fragmentSource: this.fragmentSource(),
         vertexSource: this.vertexSource(),
-        uniformTypes: this.uniformTypes()
+        uniformTypes: this.uniformTypes(),
+        attributeLocations: this.attributeLocations()
     };
 };
 

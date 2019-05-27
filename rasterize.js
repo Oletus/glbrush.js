@@ -781,7 +781,8 @@ GLDoubleBufferedRasterizer.prototype.init = function(gl, glManager, width, heigh
     this.conversionProgram = this.glManager.shaderProgram({
         fragmentSource: blitShader.convertRedGreenSrc,
         vertexSource: blitShader.blitVertSrc,
-        uniformTypes: {'uSrcTex': 'tex2d', 'uColor': '4fv'}
+        uniformTypes: {'uSrcTex': 'tex2d', 'uColor': '4fv'},
+        attributeLocations: { 'aVertexPosition': 0 }
     });
 };
 
@@ -1198,7 +1199,8 @@ GLFloatRasterizer.prototype.init = function(gl, glManager, width, height, brushT
         this.glManager.shaderProgram({
             fragmentSource: blitShader.convertSimpleSrc,
             vertexSource: blitShader.blitVertSrc,
-            uniformTypes: {'uSrcTex': 'tex2d', 'uColor': '4fv'}
+            uniformTypes: {'uSrcTex': 'tex2d', 'uColor': '4fv'},
+            attributeLocations: { 'aVertexPosition': 0 }
         });
 };
 

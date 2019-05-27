@@ -27,6 +27,7 @@ var Uniform = function(gltype, location) {
  *   vertexSource (string) Full GLSL source code for the vertex shader.
  *   uniformTypes (Object.<string, string>) Map from uniform names to uniform types. Uniform type is specified as a
  *     postfix to gl.uniform function name or 'tex2d' in case of a texture.
+ *   attributeLocations (Object.<string, number>) Map from attribute names to locations.
  */
 var ShaderProgram = function(gl, parameters) {
     this.gl = gl;
@@ -42,7 +43,11 @@ var ShaderProgram = function(gl, parameters) {
     this.shaderProgram = this.gl.createProgram();
     this.gl.attachShader(this.shaderProgram, vertexShader);
     this.gl.attachShader(this.shaderProgram, fragmentShader);
-    this.gl.bindAttribLocation(this.shaderProgram, 0, 'aVertexPosition');
+    for (var attribName in parameters.attributeLocations) {
+        if (parameters.attributeLocations.hasOwnProperty(attribName)) {
+            this.gl.bindAttribLocation(this.shaderProgram, parameters.attributeLocations[attribName], attribName);
+        }
+    }
     this.gl.linkProgram(this.shaderProgram);
 
     if (!this.gl.getProgramParameter(this.shaderProgram, this.gl.LINK_STATUS)) {
@@ -64,9 +69,13 @@ var ShaderProgram = function(gl, parameters) {
         }
     }
 
-    var vertexPositionAttribLoc = this.gl.getAttribLocation(this.shaderProgram, 'aVertexPosition');
-    if (vertexPositionAttribLoc !== 0) {
-        console.log('Vertex position attribute location unexpected, ' + vertexPositionAttribLoc);
+    for (var attribName in parameters.attributeLocations) {
+        if (parameters.attributeLocations.hasOwnProperty(attribName)) {
+            var vertexPositionAttribLoc = this.gl.getAttribLocation(this.shaderProgram, attribName);
+            if (vertexPositionAttribLoc !== parameters.attributeLocations[attribName]) {
+                console.log('Vertex position attribute location unexpected, ' + attribName);
+            }
+        }
     }
 };
 

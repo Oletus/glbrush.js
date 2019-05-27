@@ -229,7 +229,8 @@ compositingShader.getShaderProgram = function(glManager, layers) {
     return glManager.shaderProgram({
         fragmentSource: fragSource,
         vertexSource: blitShader.blitVertSrc,
-        uniformTypes: uniformTypes
+        uniformTypes: uniformTypes,
+        attributeLocations: { 'aVertexPosition': 0 }
     });
 };
 

@@ -290,12 +290,14 @@ PictureRenderer.prototype.setupGLState = function() {
     this.texBlitProgram = this.glManager.shaderProgram({
         fragmentSource: blitShader.blitSrc,
         vertexSource: blitShader.blitVertSrc,
-        uniformTypes: {'uSrcTex': 'tex2d'}
+        uniformTypes: {'uSrcTex': 'tex2d'},
+        attributeLocations: { 'aVertexPosition': 0 }
     });
     this.rectBlitProgram = this.glManager.shaderProgram({
         fragmentSource: blitShader.blitSrc,
         vertexSource: blitShader.blitScaledTranslatedVertSrc,
-        uniformTypes: {'uSrcTex': 'tex2d', 'uScale': '2fv', 'uTranslate': '2fv'}
+        uniformTypes: {'uSrcTex': 'tex2d', 'uScale': '2fv', 'uTranslate': '2fv'},
+        attributeLocations: { 'aVertexPosition': 0 }
     });
 
     this.compositor = new GLCompositor(this.glManager, this.gl, glUtils.maxTextureUnits);

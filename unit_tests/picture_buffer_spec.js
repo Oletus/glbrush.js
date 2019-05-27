@@ -1119,12 +1119,14 @@ describe('GLBuffer', function() {
         texBlitProgram = glManager.shaderProgram({
             fragmentSource: blitShader.blitSrc,
             vertexSource: blitShader.blitVertSrc,
-            uniformTypes: {'uSrcTex': 'tex2d'}
+            uniformTypes: {'uSrcTex': 'tex2d'},
+            attributeLocations: { 'aVertexPosition': 0 }
         });
         rectBlitProgram = glManager.shaderProgram({
             fragmentSource: blitShader.blitSrc,
             vertexSource: blitShader.blitScaledTranslatedVertSrc,
-            uniformTypes: {'uSrcTex': 'tex2d', 'uScale': '2fv', 'uTranslate': '2fv'}
+            uniformTypes: {'uSrcTex': 'tex2d', 'uScale': '2fv', 'uTranslate': '2fv'},
+            attributeLocations: { 'aVertexPosition': 0 }
         });
     };
 

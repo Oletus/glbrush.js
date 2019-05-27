@@ -129,7 +129,8 @@ describe('GLUndoState', function() {
         texBlitProgram = glManager.shaderProgram({
             fragmentSource: blitShader.blitSrc,
             vertexSource: blitShader.blitVertSrc,
-            uniformTypes: {'uSrcTex': 'tex2d'}
+            uniformTypes: {'uSrcTex': 'tex2d'},
+            attributeLocations: { 'aVertexPosition': 0 }
         });
         texBlitUniforms = {
             'uSrcTex': null
