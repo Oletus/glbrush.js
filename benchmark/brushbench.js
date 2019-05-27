@@ -2,17 +2,17 @@
  * Copyright Olli Etuaho 2014-2019.
  */
 
-import { Rect } from '../rect.js';
+import { Rect } from '../src/math/rect.js';
 
-import { Vec2 } from '../vec2.js';
+import { Vec2 } from '../src/math/vec2.js';
 
-import { BlendingMode } from '../blending_mode.js';
+import { BlendingMode } from '../src/util/blending_mode.js';
 
-import { PictureEvent } from '../picture_event.js';
+import { PictureEvent } from '../src/picture_event.js';
 
-import { Picture } from '../picture.js';
+import { Picture } from '../src/picture.js';
 
-import { PictureRenderer } from '../picture_renderer.js';
+import { PictureRenderer } from '../src/picture_renderer.js';
 
 var testTextureCanvas = function() {
     var image = document.createElement('canvas');

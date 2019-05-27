@@ -2,7 +2,7 @@
  * Copyright Olli Etuaho 2019.
  */
 
-import * as cssUtil from '../css_util.js';
+import * as cssUtil from '../src/util/css_util.js';
 
 describe('cssUtil', function() {
 	it('converts arrays of values to CSS RGB colors', function() {

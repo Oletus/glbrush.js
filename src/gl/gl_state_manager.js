@@ -2,7 +2,7 @@
  * Copyright Olli Etuaho 2019.
  */
 
-import { Vec2 } from './vec2.js';
+import { Vec2 } from '../math/vec2.js';
 
 import { ShaderProgram } from './shader_program.js';
 

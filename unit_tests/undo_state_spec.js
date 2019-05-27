@@ -2,21 +2,21 @@
  * Copyright Olli Etuaho 2013.
  */
 
-import { Rect } from '../rect.js';
+import { Rect } from '../src/math/rect.js';
 
-import { glUtils } from '../utilgl.js';
+import { glUtils } from '../src/gl/utilgl.js';
 
-import { glStateManager } from '../gl_state_manager.js';
+import { glStateManager } from '../src/gl/gl_state_manager.js';
 
 import {
     blitShader
-} from '../blit_shader.js';
+} from '../src/glsl/blit_shader.js';
 
-import { CanvasUndoState, GLUndoState } from '../undo_state.js';
+import { CanvasUndoState, GLUndoState } from '../src/undo_state.js';
 
-import { GLCompositor } from '../compositor.js';
+import { GLCompositor } from '../src/compositor.js';
 
-import { PictureRenderer } from '../picture_renderer.js';
+import { PictureRenderer } from '../src/picture_renderer.js';
 
 import { expectArrayCorrect } from './test_util.js';
 

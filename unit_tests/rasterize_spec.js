@@ -4,38 +4,38 @@
 
 'use strict';
 
-import { Rect } from '../rect.js';
+import { Rect } from '../src/math/rect.js';
 
-import { AffineTransform } from '../affine_transform.js';
+import { AffineTransform } from '../src/math/affine_transform.js';
 
-import { Vec2 } from '../vec2.js';
+import { Vec2 } from '../src/math/vec2.js';
 
 import {
     BrushTipMover
-} from '../brush_tip_mover.js';
+} from '../src/brush_tip_mover.js';
 
 import {
     SWMipmap,
     CanvasBrushTextures,
     GLBrushTextures
-} from '../brush_textures.js';
+} from '../src/brush_textures.js';
 
 import {
     BaseRasterizer,
     Rasterizer,
     GLDoubleBufferedRasterizer,
     GLFloatRasterizer
-} from '../rasterize.js';
+} from '../src/rasterize.js';
 
 import {
     PictureRenderer
-} from '../picture_renderer.js';
+} from '../src/picture_renderer.js';
 
 import {
     debugGLSettingFromURL
 } from './test_util.js';
 
-import { glStateManager } from '../gl_state_manager.js';
+import { glStateManager } from '../src/gl/gl_state_manager.js';
 
 describe('SWMipmap', function() {
     var canvas = document.createElement('canvas');

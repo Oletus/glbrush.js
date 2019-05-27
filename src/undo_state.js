@@ -4,11 +4,9 @@
 
 'use strict';
 
-import { Rect } from './rect.js';
+import { Rect } from './math/rect.js';
 
-import {
-    glUtils
-} from './utilgl.js';
+import { glUtils } from './gl/utilgl.js';
 
 /**
  * Storage for bitmap data from a past PictureBuffer state.

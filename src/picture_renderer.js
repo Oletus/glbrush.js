@@ -1,12 +1,12 @@
 'use strict';
 
-import { glUtils } from './utilgl.js';
+import { glUtils } from './gl/utilgl.js';
 
-import { glStateManager } from './gl_state_manager.js';
+import { glStateManager } from './gl/gl_state_manager.js';
 
 import { CanvasBrushTextures, GLBrushTextures } from './brush_textures.js';
 
-import { blitShader } from './blit_shader.js';
+import { blitShader } from './glsl/blit_shader.js';
 
 import { CanvasCompositor, GLCompositor } from './compositor.js';
 

@@ -4,27 +4,27 @@
 
 'use strict';
 
-import { Rect } from '../rect.js';
+import { Rect } from '../src/math/rect.js';
 
-import * as colorUtil from '../color_util.js';
+import * as colorUtil from '../src/util/color_util.js';
 
-import { Vec2 } from '../vec2.js';
+import { Vec2 } from '../src/math/vec2.js';
 
-import { glUtils } from '../utilgl.js';
+import { glUtils } from '../src/gl/utilgl.js';
 
-import { BlendingMode } from '../blending_mode.js';
+import { BlendingMode } from '../src/util/blending_mode.js';
 
-import { PictureEvent } from '../picture_event.js';
+import { PictureEvent } from '../src/picture_event.js';
 
-import { serializeToString } from '../serialization.js';
+import { serializeToString } from '../src/util/serialization.js';
 
-import { PictureUpdate } from '../picture_update.js';
+import { PictureUpdate } from '../src/picture_update.js';
 
-import { PictureRenderer } from '../picture_renderer.js';
+import { PictureRenderer } from '../src/picture_renderer.js';
 
-import { GLDoubleBufferedRasterizer, GLFloatRasterizer } from '../rasterize.js';
+import { GLDoubleBufferedRasterizer, GLFloatRasterizer } from '../src/rasterize.js';
 
-import { Picture } from '../picture.js';
+import { Picture } from '../src/picture.js';
 
 import {
     asyncTestExec,

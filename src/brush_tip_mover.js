@@ -4,11 +4,11 @@
 
 'use strict';
 
-import * as colorUtil from './color_util.js';
+import * as colorUtil from './util/color_util.js';
 
-import * as mathUtil from './math_util.js';
+import * as mathUtil from './math/math_util.js';
 
-import { Vec2 } from './vec2.js';
+import { Vec2 } from './math/vec2.js';
 
 /**
  * Utility for generating a series of individual tip sample positions from

@@ -2,7 +2,7 @@
  * Copyright Olli Etuaho 2019.
  */
 
-import * as mathUtil from '../math_util.js';
+import * as mathUtil from '../src/math/math_util.js';
 
 describe('mathUtil', function() {
 	it('interpolates linearly', function() {

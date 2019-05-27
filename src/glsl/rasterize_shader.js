@@ -4,9 +4,9 @@
 
 'use strict';
 
-import { glUtils } from './utilgl.js';
+import { glUtils } from '../gl/utilgl.js';
 
-import { GLRasterizerFormat } from './rasterize.js';
+import { GLRasterizerFormat } from '../rasterize.js';
 
 import { ShaderGenerator } from './shader_generator.js';
 

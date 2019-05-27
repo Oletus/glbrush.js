@@ -2,11 +2,11 @@
  * Copyright Olli Etuaho 2019.
  */
 
-import { Vec2 } from '../vec2.js';
+import { Vec2 } from '../src/math/vec2.js';
 
-import { AffineTransform } from '../affine_transform.js';
+import { AffineTransform } from '../src/math/affine_transform.js';
 
-import { Rect } from '../rect.js';
+import { Rect } from '../src/math/rect.js';
 
 describe('AffineTransform', function() {
     it('initializes', function() {

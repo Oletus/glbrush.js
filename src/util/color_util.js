@@ -2,7 +2,7 @@
  * Copyright Olli Etuaho 2019.
  */
 
-import { hslToRgb, rgbToHsl } from './lib/hsl.js';
+import { hslToRgb, rgbToHsl } from '../lib/hsl.js';
 
 import * as blendFunctions from './blend_functions.js';
 

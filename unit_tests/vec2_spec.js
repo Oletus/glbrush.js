@@ -4,7 +4,7 @@
 
 'use strict';
 
-import { Vec2 } from '../vec2.js';
+import { Vec2 } from '../src/math/vec2.js';
 
 beforeEach(function() {
   jasmine.addMatchers({

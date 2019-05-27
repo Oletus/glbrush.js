@@ -4,26 +4,26 @@
 
 'use strict';
 
-import { Rect } from './rect.js';
+import { Rect } from './math/rect.js';
 
-import * as colorUtil from './color_util.js';
+import * as colorUtil from './util/color_util.js';
 
-import * as blendFunctions from './blend_functions.js';
+import * as blendFunctions from './util/blend_functions.js';
 
 import {
     rgbString,
     rgbaString
-} from './css_util.js';
+} from './util/css_util.js';
 
 import {
     glUtils
-} from './utilgl.js';
+} from './gl/utilgl.js';
 
 import {
     PictureEvent
 } from './picture_event.js';
 
-import { BlendingMode } from './blending_mode.js';
+import { BlendingMode } from './util/blending_mode.js';
 
 import {
     CanvasUndoState,

@@ -4,9 +4,9 @@
 
 'use strict';
 
-import { serializeToString } from '../serialization.js';
+import { serializeToString } from '../src/util/serialization.js';
 
-import { PictureUpdate } from '../picture_update.js';
+import { PictureUpdate } from '../src/picture_update.js';
 
 import { testBrushEvent, expectTestBrushEvent } from './test_util.js';
 

@@ -4,15 +4,15 @@
 
 'use strict';
 
-import { Rect } from './rect.js';
+import { Rect } from './math/rect.js';
 
-import { Vec2 } from './vec2.js';
+import { Vec2 } from './math/vec2.js';
 
-import * as colorUtil from './color_util.js';
+import * as colorUtil from './util/color_util.js';
 
-import { glUtils } from './utilgl.js';
+import { glUtils } from './gl/utilgl.js';
 
-import { glStateManager } from './gl_state_manager.js';
+import { glStateManager } from './gl/gl_state_manager.js';
 
 import {
     SWMipmap,
@@ -20,11 +20,11 @@ import {
     GLBrushTextures
 } from './brush_textures.js';
 
-import { blitShader } from './blit_shader.js';
+import { blitShader } from './glsl/blit_shader.js';
 
-import { GradientShaderGenerator } from './gradient_shader.js';
+import { GradientShaderGenerator } from './glsl/gradient_shader.js';
 
-import { RasterizeShaderGenerator } from './rasterize_shader.js';
+import { RasterizeShaderGenerator } from './glsl/rasterize_shader.js';
 
 /**
  * A base object for a rasterizer that can blend together monochrome circles and

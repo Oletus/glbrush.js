@@ -4,13 +4,13 @@
 
 'use strict';
 
-import { Rect } from './rect.js';
+import { Rect } from './math/rect.js';
 
-import { AffineTransform } from './affine_transform.js';
+import { AffineTransform } from './math/affine_transform.js';
 
-import { BlendingMode } from './blending_mode.js';
+import { BlendingMode } from './util/blending_mode.js';
 
-import { glUtils } from './utilgl.js';
+import { glUtils } from './gl/utilgl.js';
 
 import {
     BrushEvent,
@@ -25,7 +25,7 @@ import {
     ScatterEvent
 } from './picture_event.js';
 
-import { serializeToString } from './serialization.js';
+import { serializeToString } from './util/serialization.js';
 
 import { BaseRasterizer } from './rasterize.js';
 

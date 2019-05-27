@@ -4,11 +4,11 @@
 
 'use strict';
 
-import { Rect } from '../rect.js';
+import { Rect } from '../src/math/rect.js';
 
-import { Vec2 } from '../vec2.js';
+import { Vec2 } from '../src/math/vec2.js';
 
-import { BlendingMode } from '../blending_mode.js';
+import { BlendingMode } from '../src/util/blending_mode.js';
 
 import {
     BrushEvent,
@@ -20,12 +20,12 @@ import {
     GradientEvent,
     RasterImportEvent,
     ScatterEvent
-} from '../picture_event.js';
+} from '../src/picture_event.js';
 
 import {
     CanvasUndoState,
     GLUndoState
-} from '../undo_state.js';
+} from '../src/undo_state.js';
 
 let asyncTestExec = function(condition, callbackOnConditionFulfilled) {
     let checkConditionAndCallback = function() {

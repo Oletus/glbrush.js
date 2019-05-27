@@ -4,13 +4,13 @@
 
 'use strict';
 
-import { Rect } from './rect.js';
+import { Rect } from './math/rect.js';
 
-import { Vec2 } from './vec2.js';
+import { Vec2 } from './math/vec2.js';
 
-import * as colorUtil from './color_util.js';
+import * as colorUtil from './util/color_util.js';
 
-import { serializeToString } from './serialization.js';
+import { serializeToString } from './util/serialization.js';
 
 import { BrushTipMover } from './brush_tip_mover.js';
 

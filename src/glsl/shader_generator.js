@@ -2,8 +2,6 @@
  * Copyright Olli Etuaho 2019.
  */
 
-import { ShaderProgram } from './shader_program.js';
-
 /**
  * A shader program generator. Inherited objects must generate 1 shader program
  * and implement uniforms(width, height), vertexSource(), and fragmentSource().

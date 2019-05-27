@@ -6,9 +6,9 @@
 
 import { CanvasBuffer } from './picture_buffer.js';
 
-import { Rect } from './rect.js';
+import { Rect } from './math/rect.js';
 
-import { compositingShader } from './compositing_shader.js';
+import { compositingShader } from './glsl/compositing_shader.js';
 
 /**
  * A compositor.

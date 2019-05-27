@@ -2,9 +2,9 @@
  * Copyright Olli Etuaho 2019.
  */
 
-import * as colorUtil from '../color_util.js';
+import * as colorUtil from '../src/util/color_util.js';
 
-import * as blendFunctions from '../blend_functions.js';
+import * as blendFunctions from '../src/util/blend_functions.js';
 
 describe('color', function() {
 

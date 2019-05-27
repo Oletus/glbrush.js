@@ -2,7 +2,7 @@
  * Copyright Olli Etuaho 2019.
  */
 
-import { Vector2 } from './lib/Vector2.js';
+import { Vector2 } from '../lib/Vector2.js';
 
 var Vec2 = Vector2;
 

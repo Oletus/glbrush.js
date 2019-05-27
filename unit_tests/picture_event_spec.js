@@ -4,15 +4,15 @@
 
 'use strict';
 
-import { Rect } from '../rect.js';
+import { Rect } from '../src/math/rect.js';
 
-import { AffineTransform } from '../affine_transform.js';
+import { AffineTransform } from '../src/math/affine_transform.js';
 
-import * as colorUtil from '../color_util.js';
+import * as colorUtil from '../src/util/color_util.js';
 
-import { Vec2 } from '../vec2.js';
+import { Vec2 } from '../src/math/vec2.js';
 
-import { BlendingMode } from '../blending_mode.js';
+import { BlendingMode } from '../src/util/blending_mode.js';
 
 import {
     BrushEvent,
@@ -25,13 +25,13 @@ import {
     PictureEvent,
     RasterImportEvent,
     ScatterEvent
-} from '../picture_event.js';
+} from '../src/picture_event.js';
 
-import { serializeToString } from '../serialization.js';
+import { serializeToString } from '../src/util/serialization.js';
 
 import {
     BrushTipMover
-} from '../brush_tip_mover.js';
+} from '../src/brush_tip_mover.js';
 
 import {
     dummyBufferMergeEvent,

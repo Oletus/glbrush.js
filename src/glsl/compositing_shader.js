@@ -4,15 +4,15 @@
 
 'use strict';
 
-import { glStateManager } from './gl_state_manager.js';
+import { blitShader } from '../glsl/blit_shader.js';
 
-import { blitShader } from './blit_shader.js';
+// TODO: Clean up the below imports.
 
-import { BlendingMode } from './blending_mode.js';
+import { BlendingMode } from '../util/blending_mode.js';
 
-import { CanvasCompositor } from './compositor.js';
+import { CanvasCompositor } from '../compositor.js';
 
-import { GLRasterizerFormat } from './rasterize.js';
+import { GLRasterizerFormat } from '../rasterize.js';
 
 /**
  * Generate shaders for compositing a linear stack of layers.

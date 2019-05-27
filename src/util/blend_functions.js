@@ -2,7 +2,7 @@
  * Copyright Olli Etuaho 2019.
  */
 
-import { clamp } from './math_util.js';
+import { clamp } from '../math/math_util.js';
 
 /**
  * Multiply blend mode.

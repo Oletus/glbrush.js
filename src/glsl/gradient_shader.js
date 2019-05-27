@@ -4,7 +4,7 @@
 
 'use strict';
 
-import { GLRasterizerFormat } from './rasterize.js';
+import { GLRasterizerFormat } from '../rasterize.js';
 
 import { ShaderGenerator } from './shader_generator.js';
 
