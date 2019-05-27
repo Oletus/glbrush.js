@@ -15,8 +15,11 @@ def glbrush_root_path():
 def lib_js():
     '''Returns a list of absolute paths to glbrush js files containing the library.'''
     glbrush_root = glbrush_root_path()
-    js_files = js_files_in(glbrush_root)
-    return js_files_in(os.path.join(glbrush_root, 'lib')) + js_files
+    src_root = os.path.join(glbrush_root, 'src')
+    js_files = []
+    for search_root, dirs, files in os.walk(src_root):
+        js_files += [os.path.join(search_root, file_name) for file_name in files]
+    return js_files
 
 def compile_with_online_compiler(js_code, compilation_level):
     import httplib, urllib
