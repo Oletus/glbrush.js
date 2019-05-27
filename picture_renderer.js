@@ -1,6 +1,8 @@
 'use strict';
 
-import { glUtils, glStateManager } from './utilgl.js';
+import { glUtils } from './utilgl.js';
+
+import { glStateManager } from './gl_state_manager.js';
 
 import { CanvasBrushTextures, GLBrushTextures } from './brush_textures.js';
 

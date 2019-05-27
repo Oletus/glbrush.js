@@ -4,7 +4,7 @@
 
 'use strict';
 
-import { glStateManager } from './utilgl.js';
+import { glStateManager } from './gl_state_manager.js';
 
 import { blitShader } from './blit_shader.js';
 

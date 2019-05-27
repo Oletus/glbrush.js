@@ -10,10 +10,9 @@ import { Vec2 } from './vec2.js';
 
 import * as colorUtil from './color_util.js';
 
-import {
-    glStateManager,
-    glUtils
-} from './utilgl.js';
+import { glUtils } from './utilgl.js';
+
+import { glStateManager } from './gl_state_manager.js';
 
 import {
     SWMipmap,

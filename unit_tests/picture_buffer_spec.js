@@ -14,9 +14,7 @@ import * as colorUtil from '../color_util.js';
 
 import * as blendFunctions from '../blend_functions.js';
 
-import {
-    glStateManager
-} from '../utilgl.js';
+import { glStateManager } from '../gl_state_manager.js';
 
 import {
     blitShader

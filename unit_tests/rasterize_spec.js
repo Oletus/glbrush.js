@@ -35,7 +35,7 @@ import {
     debugGLSettingFromURL
 } from './test_util.js';
 
-import { glStateManager } from '../utilgl.js';
+import { glStateManager } from '../gl_state_manager.js';
 
 describe('SWMipmap', function() {
     var canvas = document.createElement('canvas');
