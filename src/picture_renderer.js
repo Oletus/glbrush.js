@@ -10,7 +10,11 @@ import { blitShader } from './glsl/blit_shader.js';
 
 import { CanvasCompositor, GLCompositor } from './compositor.js';
 
-import { Rasterizer, GLDoubleBufferedRasterizer, GLFloatRasterizer } from './rasterize.js';
+import { Rasterizer } from './rasterize/rasterizer.js';
+
+import { GLDoubleBufferedRasterizer } from './rasterize/gl_double_buffered_rasterizer.js';
+
+import { GLFloatRasterizer } from './rasterize/gl_float_rasterizer.js';
 
 import { WebGLDebugUtils } from './lib/webgl-debug.js';
 

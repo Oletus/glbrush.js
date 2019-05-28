@@ -20,12 +20,13 @@ import {
     GLBrushTextures
 } from '../src/brush_textures.js';
 
-import {
-    BaseRasterizer,
-    Rasterizer,
-    GLDoubleBufferedRasterizer,
-    GLFloatRasterizer
-} from '../src/rasterize.js';
+import { BaseRasterizer } from '../src/rasterize/base_rasterizer.js';
+
+import { Rasterizer } from '../src/rasterize/rasterizer.js';
+
+import { GLDoubleBufferedRasterizer } from '../src/rasterize/gl_double_buffered_rasterizer.js';
+
+import { GLFloatRasterizer } from '../src/rasterize/gl_float_rasterizer.js';
 
 import {
     PictureRenderer

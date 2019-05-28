@@ -32,7 +32,7 @@ import {
 
 import {
     Rasterizer
-} from './rasterize.js';
+} from './rasterize/rasterizer.js';
 
 /**
  * A buffer for 2D picture data. Contains a series of picture events in back-

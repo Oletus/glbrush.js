@@ -33,7 +33,9 @@ import {
 
 import { BlendingMode } from '../src/util/blending_mode.js';
 
-import { Rasterizer, GLDoubleBufferedRasterizer } from '../src/rasterize.js';
+import { Rasterizer } from '../src/rasterize/rasterizer.js';
+
+import { GLDoubleBufferedRasterizer } from '../src/rasterize/gl_double_buffered_rasterizer.js';
 
 import { GLCompositor } from '../src/compositor.js';
 

@@ -22,7 +22,9 @@ import { PictureUpdate } from '../src/picture_update.js';
 
 import { PictureRenderer } from '../src/picture_renderer.js';
 
-import { GLDoubleBufferedRasterizer, GLFloatRasterizer } from '../src/rasterize.js';
+import { GLDoubleBufferedRasterizer } from '../src/rasterize/gl_double_buffered_rasterizer.js';
+
+import { GLFloatRasterizer } from '../src/rasterize/gl_float_rasterizer.js';
 
 import { Picture } from '../src/picture.js';
 
