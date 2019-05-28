@@ -8,6 +8,7 @@
   "author": "Olli Etuaho <olli.etuaho@gmail.com>",
   "license": "MIT",
   "devDependencies": {
-    "google-closure-compiler-java": "^20190513.0.0"
+    "google-closure-compiler-java": "^20190513.0.0",
+    "jasmine-core": "^3.4.0"
   }
 }
