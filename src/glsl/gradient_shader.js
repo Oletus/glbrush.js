@@ -4,14 +4,14 @@
 
 'use strict';
 
-import { GLRasterizerFormat } from '../rasterize.js';
+import { GLAlphaPackingFormat } from '../gl/gl_alpha_packing_format.js';
 
 import { ShaderGenerator } from './shader_generator.js';
 
 /**
  * A shader program for drawing a gradient.
  * @constructor
- * @param {GLRasterizerFormat} format Format of the rasterizer's backing.
+ * @param {GLAlphaPackingFormat} format Format of the rasterizer's backing.
  * Affects whether to blend with a UINT8 source texture or a floating point
  * framebuffer.
  */
@@ -88,7 +88,7 @@ GradientShaderGenerator.prototype.fragmentSource = function() {
     ${ this.vertexUniformSource().join('\n') }
     void main(void) {
 `;
-    if (this.format === GLRasterizerFormat.redGreen) {
+    if (this.format === GLAlphaPackingFormat.redGreen) {
         // NOTE: No blending done here.
         src += '      gl_FragColor = packNormFloatToRG(clamp(vGradientValue, 0.0, 1.0));\n';
     } else {

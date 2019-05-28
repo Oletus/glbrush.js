@@ -12,7 +12,7 @@ import { BlendingMode } from '../util/blending_mode.js';
 
 import { CanvasCompositor } from '../compositor.js';
 
-import { GLRasterizerFormat } from '../rasterize.js';
+import { GLAlphaPackingFormat } from '../gl/gl_alpha_packing_format.js';
 
 /**
  * Generate shaders for compositing a linear stack of layers.
@@ -112,7 +112,7 @@ void main(void) {
                 layers[i].type === CanvasCompositor.Element.rasterizer) {
             var tcScale = `uLayer${ i }Scale`;
             var scaledCoord = `vec2(vTexCoord.x * ${ tcScale }.x, 1.0 - (1.0 - vTexCoord.y) * ${ tcScale }.y)`;
-            if (layers[i].rasterizer.format === GLRasterizerFormat.alpha) {
+            if (layers[i].rasterizer.format === GLAlphaPackingFormat.alpha) {
                 src.push(`  float layer${ i }Alpha = texture2D(uLayer${ i }, ${ scaledCoord }).a;`);
             } else {
                 src.push(`

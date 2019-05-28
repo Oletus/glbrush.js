@@ -6,14 +6,14 @@
 
 import { glUtils } from '../gl/utilgl.js';
 
-import { GLRasterizerFormat } from '../rasterize.js';
+import { GLAlphaPackingFormat } from '../gl/gl_alpha_packing_format.js';
 
 import { ShaderGenerator } from './shader_generator.js';
 
 /**
  * A shader program for blending together a bunch of monochrome circles.
  * @constructor
- * @param {GLRasterizerFormat} format Format of the rasterizer's backing.
+ * @param {GLAlphaPackingFormat} format Format of the rasterizer's backing.
  * Affects whether to blend with a UINT8 source texture or a floating point
  * framebuffer.
  * @param {boolean} dynamicCircles The amount of circles drawn in a single pass
@@ -22,7 +22,7 @@ import { ShaderGenerator } from './shader_generator.js';
  */
 var RasterizeShaderGenerator = function(fbFormat, dynamicCircles, unroll) {
     this.fbFormat = fbFormat;
-    this.doubleBuffered = (fbFormat === GLRasterizerFormat.redGreen);
+    this.doubleBuffered = (fbFormat === GLAlphaPackingFormat.redGreen);
     this.dynamicCircles = dynamicCircles;
     this.unroll = unroll;
 
@@ -210,7 +210,7 @@ RasterizeShaderGenerator.prototype.fragmentSource = function() {
     if (this.doubleBuffered) {
         initSrcAlphaIfAny = `
   vec4 src = texture2D(uSrcTex, vSrcTexCoord);`
-        if (this.fbFormat === GLRasterizerFormat.redGreen) {
+        if (this.fbFormat === GLAlphaPackingFormat.redGreen) {
             initSrcAlphaIfAny += `
   float srcAlpha = src.r + src.g / 256.0;`;
         } else {
@@ -235,7 +235,7 @@ RasterizeShaderGenerator.prototype.fragmentSource = function() {
         computeOutputAlpha = 'float alpha = destAlpha + (1.0 - destAlpha) * srcAlpha;';
     }
     var writeFragColor = 'gl_FragColor = vec4(0.0, 0.0, 0.0, alpha);';
-    if (this.fbFormat === GLRasterizerFormat.redGreen) {
+    if (this.fbFormat === GLAlphaPackingFormat.redGreen) {
         writeFragColor = 'gl_FragColor = packNormFloatToRG(alpha);';
     }
     return `

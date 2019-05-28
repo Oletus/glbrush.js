@@ -14,6 +14,8 @@ import { glUtils } from './gl/utilgl.js';
 
 import { glStateManager } from './gl/gl_state_manager.js';
 
+import { GLAlphaPackingFormat } from './gl/gl_alpha_packing_format.js';
+
 import {
     SWMipmap,
     CanvasBrushTextures,
@@ -712,18 +714,6 @@ Rasterizer.prototype.linearGradient = function(coords1, coords0) {
 
 
 /**
- * 'redGreen' uses red and green channels of the UINT8 texture to store the high
- * and low bits of the alpha value. 'alpha' uses just the alpha channel, so that
- * normal built-in blends can be used.
- * @enum {number}
- */
-var GLRasterizerFormat = {
-    redGreen: 0,
-    alpha: 1
-};
-
-
-/**
  * A WebGL rasterizer using two RGB Uint8 buffers as backing for its bitmap.
  * Floating point support in the WebGL implementation is not required.
  * @constructor
@@ -748,7 +738,7 @@ GLDoubleBufferedRasterizer.create = function(gl, glManager, width, height, brush
     return rast;
 };
 
-var doubleBufferedLinearGradientShaderGenerator = new GradientShaderGenerator(GLRasterizerFormat.redGreen);
+var doubleBufferedLinearGradientShaderGenerator = new GradientShaderGenerator(GLAlphaPackingFormat.redGreen);
 
 /**
  * @param {WebGLRenderingContext} gl The rendering context.
@@ -760,7 +750,7 @@ var doubleBufferedLinearGradientShaderGenerator = new GradientShaderGenerator(GL
  */
 GLDoubleBufferedRasterizer.prototype.init = function(gl, glManager, width, height, brushTextures) {
     this.initBaseRasterizer(width, height, brushTextures);
-    this.initGLRasterizer(gl, glManager, GLRasterizerFormat.redGreen,
+    this.initGLRasterizer(gl, glManager, GLAlphaPackingFormat.redGreen,
                           GLDoubleBufferedRasterizer.maxCircles);
     // TODO: Move to gl.RG if EXT_texture_RG becomes available in WebGL
     this.tex0 = glUtils.createTexture(gl, width, height, gl.RGB);
@@ -769,7 +759,7 @@ GLDoubleBufferedRasterizer.prototype.init = function(gl, glManager, width, heigh
     this.tex1Inval = new Rect();
     this.currentTex = 0;
 
-    var shaderGen = new RasterizeShaderGenerator(GLRasterizerFormat.redGreen, false, true);
+    var shaderGen = new RasterizeShaderGenerator(GLAlphaPackingFormat.redGreen, false, true);
     this.generateCircleShaderPrograms(shaderGen, GLDoubleBufferedRasterizer.maxCircles);
 
     this.linearGradientProgram =
@@ -800,7 +790,7 @@ GLDoubleBufferedRasterizer.prototype.getMemoryBytes = function() {
  * @param {WebGLRenderingContext} gl The rendering context.
  * @param {Object} glManager The state manager returned by glStateManager() in
  * utilgl.
- * @param {GLRasterizerFormat} format Format of the rasterizers texture.
+ * @param {GLAlphaPackingFormat} format Format of the rasterizers texture.
  * @param {number} maxCircles The maximum amount of circles to render in one
  * pass. Must be an integer > 0.
  * @protected
@@ -1133,7 +1123,7 @@ GLFloatRasterizer.create = function(gl, glManager, width, height, brushTextures,
     return rast;
 };
 
-var floatLinearGradientShaderGenerator = new GradientShaderGenerator(GLRasterizerFormat.alpha);
+var floatLinearGradientShaderGenerator = new GradientShaderGenerator(GLAlphaPackingFormat.alpha);
 
 /**
  * @param {WebGLRenderingContext} gl The rendering context.
@@ -1158,11 +1148,11 @@ GLFloatRasterizer.prototype.init = function(gl, glManager, width, height, brushT
     if (this.dynamic) {
         maxCircles = GLFloatRasterizer.dynamicMaxCircles;
     }
-    this.initGLRasterizer(gl, glManager, GLRasterizerFormat.alpha, maxCircles);
+    this.initGLRasterizer(gl, glManager, GLAlphaPackingFormat.alpha, maxCircles);
     this.tex = glUtils.createTexture(gl, width, height, this.gl.RGBA, this.gl.FLOAT);
 
     if (this.dynamic) {
-        var shaderGen = new RasterizeShaderGenerator(GLRasterizerFormat.alpha, true, false);
+        var shaderGen = new RasterizeShaderGenerator(GLAlphaPackingFormat.alpha, true, false);
         shaderGen.circles = GLFloatRasterizer.dynamicMaxCircles;
 
         shaderGen.soft = false;
@@ -1186,7 +1176,7 @@ GLFloatRasterizer.prototype.init = function(gl, glManager, width, height, brushT
         this.texUniformParameters['uCircle'] = this.params;
         this.texUniformParameters['uCircleB'] = this.paramsB;
     } else {
-        var shaderGen = new RasterizeShaderGenerator(GLRasterizerFormat.alpha, false, true);
+        var shaderGen = new RasterizeShaderGenerator(GLAlphaPackingFormat.alpha, false, true);
         this.generateCircleShaderPrograms(shaderGen, GLFloatRasterizer.maxCircles);
     }
 
@@ -1344,6 +1334,5 @@ export {
     BaseRasterizer,
     GLDoubleBufferedRasterizer,
     GLFloatRasterizer,
-    Rasterizer,
-    GLRasterizerFormat
+    Rasterizer
 };
