@@ -10,7 +10,7 @@ import { blitShader } from '../glsl/blit_shader.js';
 
 import { BlendingMode } from '../util/blending_mode.js';
 
-import { CanvasCompositor } from '../compositor.js';
+import { CompositorElement } from '../util/compositor_element.js';
 
 import { GLAlphaPackingFormat } from '../gl/gl_alpha_packing_format.js';
 
@@ -30,7 +30,7 @@ compositingShader.getFragmentSource = function(layers) {
     var src = ['precision highp float;'];
     var i;
     for (i = 0; i < layers.length; ++i) {
-        if (layers[i].type === CanvasCompositor.Element.buffer) {
+        if (layers[i].type === CompositorElement.buffer) {
             // TODO: assert(layers[i].buffer.visible);
             src.push(`
 uniform sampler2D uLayer${ i };
@@ -102,14 +102,14 @@ void main(void) {
     };
     i = 0;
     while (i < layers.length) {
-        // TODO: assert(layers[i].type === CanvasCompositor.Element.buffer);
+        // TODO: assert(layers[i].type === CompositorElement.buffer);
         // TODO: assert(layers[i].buffer.visible);
         var bufferColor = `layer${ i }Color`;
         var bufferOpacity = 'uOpacity' + i;
         src.push(`  vec4 ${ bufferColor } = texture2D(uLayer${ i }, vTexCoord);`);
         ++i;
         while (i < layers.length &&
-                layers[i].type === CanvasCompositor.Element.rasterizer) {
+                layers[i].type === CompositorElement.rasterizer) {
             var tcScale = `uLayer${ i }Scale`;
             var scaledCoord = `vec2(vTexCoord.x * ${ tcScale }.x, 1.0 - (1.0 - vTexCoord.y) * ${ tcScale }.y)`;
             if (layers[i].rasterizer.format === GLAlphaPackingFormat.alpha) {
@@ -216,7 +216,7 @@ compositingShader.getShaderProgram = function(glManager, layers) {
     var fragSource = compositingShader.getFragmentSource(layers);
     var uniformTypes = {};
     for (var i = 0; i < layers.length; ++i) {
-        if (layers[i].type === CanvasCompositor.Element.buffer) {
+        if (layers[i].type === CompositorElement.buffer) {
             // TODO: assert(layers[i].buffer.visible);
             uniformTypes['uLayer' + i] = 'tex2d';
             uniformTypes['uOpacity' + i] = '1f';
