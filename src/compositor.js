@@ -4,7 +4,7 @@
 
 'use strict';
 
-import { CanvasBuffer } from './picture_buffer.js';
+import { CanvasBuffer } from './picture_buffer/canvas_buffer.js';
 
 import { Rect } from './math/rect.js';
 

@@ -12,7 +12,9 @@ import {
     blitShader
 } from '../src/glsl/blit_shader.js';
 
-import { CanvasUndoState, GLUndoState } from '../src/undo_state.js';
+import { CanvasUndoState } from '../src/picture_buffer/canvas_undo_state.js';
+
+import { GLUndoState } from '../src/picture_buffer/gl_undo_state.js';
 
 import { GLCompositor } from '../src/compositor.js';
 

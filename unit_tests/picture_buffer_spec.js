@@ -39,7 +39,11 @@ import { GLDoubleBufferedRasterizer } from '../src/rasterize/gl_double_buffered_
 
 import { GLCompositor } from '../src/compositor.js';
 
-import { PictureBuffer, CanvasBuffer, GLBuffer } from '../src/picture_buffer.js';
+import { PictureBuffer } from '../src/picture_buffer/picture_buffer.js';
+
+import { CanvasBuffer } from '../src/picture_buffer/canvas_buffer.js';
+
+import { GLBuffer } from '../src/picture_buffer/gl_buffer.js';
 
 import {
     asyncTestExec,

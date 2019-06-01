@@ -29,7 +29,9 @@ import { serializeToString } from './util/serialization.js';
 
 import { BaseRasterizer } from './rasterize/base_rasterizer.js';
 
-import { CanvasBuffer, GLBuffer } from './picture_buffer.js';
+import { CanvasBuffer } from './picture_buffer/canvas_buffer.js';
+
+import { GLBuffer } from './picture_buffer/gl_buffer.js';
 
 import { PictureUpdate } from './picture_update.js';
 

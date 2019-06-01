@@ -22,10 +22,9 @@ import {
     ScatterEvent
 } from '../src/picture_event.js';
 
-import {
-    CanvasUndoState,
-    GLUndoState
-} from '../src/undo_state.js';
+import { CanvasUndoState } from '../src/picture_buffer/canvas_undo_state.js';
+
+import { GLUndoState } from '../src/picture_buffer/gl_undo_state.js';
 
 let asyncTestExec = function(condition, callbackOnConditionFulfilled) {
     let checkConditionAndCallback = function() {
