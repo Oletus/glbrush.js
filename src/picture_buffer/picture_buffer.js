@@ -10,17 +10,11 @@ import { PictureEvent } from '../picture_event.js';
 
 import { Rasterizer } from '../rasterize/rasterizer.js';
 
-/**
- * A buffer for 2D picture data. Contains a series of picture events in back-
- * to-front order and a combined bitmap representation of them. Not to be
- * instanced directly.
- * @constructor
- * @protected
- */
-var PictureBuffer = function() {};
+import { BlendingMode } from '../util/blending_mode.js';
 
 /**
- * Initialize picture buffer data.
+ * A buffer for 2D picture data. Contains a series of picture events in back-
+ * to-front order and may have a combined bitmap representation of them.
  * @param {BufferAddEvent} createEvent Event that initializes the buffer.
  * @param {number} width Width of the buffer in pixels. Must be an integer.
  * @param {number} height Height of the buffer in pixels. Must be an integer.
@@ -28,10 +22,10 @@ var PictureBuffer = function() {};
  * @param {boolean} hasUndoStates Does this buffer store undo states? Defaults
  * to false.
  * @param {boolean} freed Should this buffer be left without bitmaps?
- * @protected
+ * @param {PictureRenderer} renderer Renderer to use to create bitmaps for this buffer.
+ * @constructor
  */
-PictureBuffer.prototype.initializePictureBuffer = function(createEvent, width, height, transform,
-                                                           hasUndoStates, freed) {
+var PictureBuffer = function(createEvent, width, height, transform, hasUndoStates, freed, renderer) {
     // TODO: assert(createEvent.hasAlpha || createEvent.clearColor[3] === 255);
     this.hasAlpha = createEvent.hasAlpha;
     this.id = createEvent.bufferId;
@@ -47,7 +41,7 @@ PictureBuffer.prototype.initializePictureBuffer = function(createEvent, width, h
     }
     if (hasUndoStates) {
         this.undoStates = [];
-        this.undoStateInterval = 16;
+        this.undoStateInterval = renderer.usesWebGl() ? 32 : 16;
         this.undoStateBudget = 5;
     } else {
         this.undoStates = null;
@@ -61,10 +55,52 @@ PictureBuffer.prototype.initializePictureBuffer = function(createEvent, width, h
 
     this.visible = true;
     this.insertionPoint = 0;
+    this.renderer = renderer;
+
     if (freed === undefined) {
         freed = false;
     }
+
     this.freed = createEvent.undone || freed;
+
+    this.bitmap = null;
+    if ( !this.freed ) {
+        this.bitmap = this.renderer.createBitmap( width, height, this.hasAlpha );
+    }
+
+    this.insertEvent(createEvent, null); // will clear the buffer
+};
+
+/**
+ * Clean up any allocated resources. To make the buffer usable again after this,
+ * call regenerate.
+ */
+PictureBuffer.prototype.free = function() {
+    this.freed = true;
+    if (this.bitmap !== null) {
+        this.bitmap.free();
+        this.bitmap = null;
+    }
+    if (this.undoStates !== null) {
+        for (var i = 0; i < this.undoStates.length; ++i) {
+            this.undoStates[i].free();
+        }
+    }
+};
+
+/**
+ * Call after freeing to restore bitmaps.
+ * @param {boolean} regenerateUndoStates Whether to regenerate undo states.
+ * @param {BaseRasterizer} rasterizer Rasterizer to use.
+ */
+PictureBuffer.prototype.regenerate = function(regenerateUndoStates, rasterizer) {
+    // TODO: assert(this.freed);
+    this.freed = false;
+    this.bitmap = this.renderer.createBitmap( this.width(), this.height(), this.hasAlpha );
+    if (!regenerateUndoStates) {
+        this.undoStates = [];
+    }
+    this.playbackAll(rasterizer);
 };
 
 /**
@@ -139,11 +175,11 @@ PictureBuffer.prototype.playbackStartingFrom = function(eventIndex,
             this.events[i].boundsIntersectRect(clipRect, this.transform)) {
             this.applyEvent(this.events[i], rasterizer);
         }
-        if (this.undoStates !== null && !this.freed &&
+        if (this.undoStates !== null && this.bitmap !== null &&
             nextUndoStateIndex < this.undoStates.length &&
             this.undoStates[nextUndoStateIndex].index === i + 1 &&
             this.undoStates[nextUndoStateIndex].invalid) {
-            this.repairUndoState(this.undoStates[nextUndoStateIndex]);
+            this.bitmap.repairUndoState(this.getCurrentClipRect(), this.undoStates[nextUndoStateIndex]);
             ++nextUndoStateIndex;
         }
     }
@@ -158,7 +194,7 @@ PictureBuffer.prototype.playbackStartingFrom = function(eventIndex,
  * @protected
  */
 PictureBuffer.prototype.applyEvent = function(event, rasterizer) {
-    if (this.freed) {
+    if (this.bitmap === null) {
         return;
     } else if (event.isRasterized()) {
         if (event.hideCount > 0) {
@@ -172,14 +208,20 @@ PictureBuffer.prototype.applyEvent = function(event, rasterizer) {
         }
         rasterizer.setClip(this.getCurrentClipRect());
         event.drawTo(rasterizer, this.transform);
-        this.drawRasterizerWithColor(rasterizer, event.color, event.opacity,
-                                     event.mode);
+        var mode = event.mode;
+        var color = event.color;
+        if (!this.hasAlpha && mode === BlendingMode.erase) {
+            mode = BlendingMode.normal;
+            color = this.events[0].clearColor;
+        }
+        this.bitmap.drawRasterizerWithColor(this.getCurrentClipRect(), rasterizer, color, event.opacity,
+                                            mode);
         this.popClip();
     } else if (event.eventType === 'rasterImport') {
         var transformedRect = new Rect();
         transformedRect.setRect(event.rect);
         this.transform.transformRect(transformedRect);
-        this.drawImage(event.importedImage, transformedRect);
+        this.bitmap.drawImage(this.getCurrentClipRect(), event.importedImage, transformedRect);
     } else if (event.eventType === 'bufferMerge') {
         // TODO: assert(event.mergedBuffer !== this);
         event.mergedBuffer.mergedTo = this;
@@ -189,10 +231,10 @@ PictureBuffer.prototype.applyEvent = function(event, rasterizer) {
                 event.mergedBuffer.regenerate(true, rasterizer);
             }
             // TODO: assert(!event.mergedBuffer.freed);
-            this.drawBuffer(event.mergedBuffer, event.opacity);
+            this.bitmap.drawBuffer(this.getCurrentClipRect(), event.mergedBuffer, event.opacity);
         }
     } else if (event.eventType === 'bufferAdd') {
-        this.clear(event.clearColor);
+        this.bitmap.clear(this.getCurrentClipRect(), event.clearColor);
     } // Nothing to be done on remove or eventHideEvent
 };
 
@@ -303,10 +345,14 @@ PictureBuffer.prototype.setInsertionPoint = function(insertionPoint) {
 PictureBuffer.prototype.replaceWithEvent = function(event, rasterizer) {
     // TODO: assert(this.clipStack.length === 0);
     if (this.events.length > 2) {
-        this.clear(this.events[0].clearColor);
+        if (this.bitmap !== null) {
+            this.bitmap.clear(this.getCurrentClipRect(), this.events[0].clearColor);
+        }
     } else if (this.events.length === 2) {
         this.pushClipRect(this.events[1].getBoundingBox(this.bitmapRect, this.transform));
-        this.clear(this.events[0].clearColor);
+        if (this.bitmap !== null) {
+            this.bitmap.clear(this.getCurrentClipRect(), this.events[0].clearColor);
+        }
         this.popClip();
     }
     this.events.splice(1, this.events.length);
@@ -423,24 +469,6 @@ PictureBuffer.prototype.findLatest = function(sid, canBeUndone) {
 };
 
 /**
- * Save an undo state.
- * @param {number} cost Regeneration cost of the undo state.
- * @return {Object} The undo state.
- */
-PictureBuffer.prototype.saveUndoState = function(cost) {
-    console.log('Unimplemented saveUndoState in PictureBuffer object');
-    return null;
-};
-
-/**
- * Repair an undo state using the current bitmap and clip rect.
- * @param {Object} undoState The state to repair.
- */
-PictureBuffer.prototype.repairUndoState = function(undoState) {
-    console.log('Unimplemented repairUndoState in PictureBuffer object');
-};
-
-/**
  * Remove a stored undo state.
  * @param {number} splicedIndex The index of the undo state in the undoStates
  * array.
@@ -541,7 +569,7 @@ PictureBuffer.prototype.lastEventChanged = function(rasterizer) {
             // amount of new events.
             // TODO: A cost measure that's relative to how much effort the
             // events really take to regenerate?
-            var newUndoState = this.saveUndoState(newEvents);
+            var newUndoState = this.bitmap.saveUndoState(this.events.length, newEvents);
             if (newUndoState !== null) {
                 this.undoStates.push(newUndoState);
                 this.stayWithinUndoStateBudget();
@@ -634,21 +662,9 @@ PictureBuffer.prototype.changeUndoStatesFrom = function(eventIndex, invalidate,
  * @protected
  */
 PictureBuffer.prototype.applyState = function(undoState) {
-    if (undoState.index !== 0 && !this.freed) {
-        this.applyStateObject(undoState);
+    if (undoState.index !== 0 && this.bitmap !== null) {
+        this.bitmap.applyStateObject(this.getCurrentClipRect(), undoState);
     }
-};
-
-/**
- * Apply the given undo state to the bitmap. Must be a real undo state. This
- * dummy implementation just falls back to a clear, meant to be overridden in
- * inheriting objects.
- * @param {Object} undoState The undo state to apply.
- * @protected
- */
-PictureBuffer.prototype.applyStateObject = function(undoState) {
-    console.log('Unimplemented applyStateObject in PictureBuffer object');
-    undoState.index = 0;
 };
 
 /**
@@ -827,6 +843,14 @@ PictureBuffer.prototype.isComposited = function() {
  */
 PictureBuffer.prototype.isListed = function() {
     return !this.isRemoved() && !this.isMerged();
+};
+
+/**
+ * @param {Vec2} coords Position of the pixel in bitmap coordinates.
+ * @return {Uint8ClampedArray} Unpremultiplied RGBA value.
+ */
+PictureBuffer.prototype.getPixelRGBA = function(coords) {
+    return this.bitmap.getPixelRGBA(coords);
 };
 
 export { PictureBuffer };

@@ -88,7 +88,7 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
 
         var buffer = createBuffer(params);
         expectBufferCorrect(buffer, null, 0);
-        buffer.clear(buffer.events[0].clearColor);
+        buffer.bitmap.clear(buffer.getCurrentClipRect(), buffer.events[0].clearColor);
         expectBufferCorrect(buffer, null, 0);
 
         buffer.free();
@@ -1084,12 +1084,12 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
 };
 
 describe('CanvasBuffer', function() {
+    var renderer = new PictureRenderer('canvas', null);
     var createBuffer = function(params) {
         var createEvent = new BufferAddEvent(-1, -1, false, params.id,
                                              params.hasAlpha, params.clearColor,
                                              1.0, 0);
-        return new CanvasBuffer(createEvent, params.width, params.height, new AffineTransform(),
-                                params.hasUndoStates);
+        return new PictureBuffer(createEvent, params.width, params.height, new AffineTransform(), params.hasUndoStates, false, renderer);
     };
     var createRasterizer = function(params) {
         return new Rasterizer(params.width, params.height, null);
@@ -1101,54 +1101,34 @@ describe('GLBuffer', function() {
     var testsInitialized = false;
     var params = testBufferParams;
 
-    var canvas;
-    var gl;
-    var glManager;
-    var compositor;
-    var texBlitProgram;
-    var rectBlitProgram;
+    var renderer;
     var initTestCanvas = function() {
         if (testsInitialized) {
             resizeTestCanvas(params.width, params.height);
             return;
         }
         testsInitialized = true;
-        canvas = document.createElement('canvas');
-        canvas.width = params.width;
-        canvas.height = params.height;
-        gl = PictureRenderer.initWebGL(canvas, debugGLSettingFromURL());
-        glManager = glStateManager(gl);
-        glManager.useQuadVertexBuffer();
-        compositor = new GLCompositor(glManager, gl, 8);
-        texBlitProgram = glManager.shaderProgram({
-            fragmentSource: blitShader.blitSrc,
-            vertexSource: blitShader.blitVertSrc,
-            uniformTypes: {'uSrcTex': 'tex2d'},
-            attributeLocations: { 'aVertexPosition': 0 }
-        });
-        rectBlitProgram = glManager.shaderProgram({
-            fragmentSource: blitShader.blitSrc,
-            vertexSource: blitShader.blitScaledTranslatedVertSrc,
-            uniformTypes: {'uSrcTex': 'tex2d', 'uScale': '2fv', 'uTranslate': '2fv'},
-            attributeLocations: { 'aVertexPosition': 0 }
-        });
+
+        renderer = new PictureRenderer('webgl', null);
+        renderer.gl.canvas.width = params.width;
+        renderer.gl.canvas.height = params.height;
+        renderer.gl.viewport(0, 0, params.width, params.height);
     };
 
     var resizeTestCanvas = function(width, height) {
-        canvas.width = width;
-        canvas.height = height;
-        gl.viewport(0, 0, width, height);
+        renderer.gl.canvas.width = params.width;
+        renderer.gl.canvas.height = params.height;
+        renderer.gl.viewport(0, 0, width, height);
     };
 
     var createBuffer = function(params) {
         var createEvent = new BufferAddEvent(-1, -1, false, params.id,
                                              params.hasAlpha, params.clearColor,
                                              1.0, 0);
-        return new GLBuffer(gl, glManager, compositor, texBlitProgram, rectBlitProgram,
-                            createEvent, params.width, params.height, new AffineTransform(), params.hasUndoStates);
+        return new PictureBuffer(createEvent, params.width, params.height, new AffineTransform(), params.hasUndoStates, false, renderer);
     };
     var createRasterizer = function(params) {
-        return GLDoubleBufferedRasterizer.create(gl, glManager, params.width, params.height, null);
+        return renderer.createRasterizer(params.width, params.height);
     };
 
     testBuffer(initTestCanvas, resizeTestCanvas, createBuffer, createRasterizer, params, false);

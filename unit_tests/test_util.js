@@ -246,7 +246,7 @@ function expectBufferCorrect(buffer, rasterizer, tolerance) {
     if (tolerance === undefined) {
         tolerance = 3;
     }
-    var state = buffer.saveUndoState(0);
+    var state = buffer.bitmap.saveUndoState(buffer.events.length, 0);
     var removeCount = buffer.removeCount;
     var i;
     var j;
@@ -290,7 +290,7 @@ function expectBufferCorrect(buffer, rasterizer, tolerance) {
     expect(removeCount).toBe(correctRemoveCount);
 
     // Check bitmap state
-    var correctState = buffer.saveUndoState(0);
+    var correctState = buffer.bitmap.saveUndoState(buffer.events.length, 0);
     var stateData;
     var correctData;
     if (state instanceof CanvasUndoState) {

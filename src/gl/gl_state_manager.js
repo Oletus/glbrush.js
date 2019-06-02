@@ -63,14 +63,14 @@ var glStateManager = function(gl) {
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     };
 
-    var drawRectInternal = function(program, uniformValues, rect, fbBitmapRect) {
+    var drawRectInternal = function(program, uniformValues, rect, fbWidth, fbHeight) {
         if (rect !== undefined) {
-            uniformValues['uScale'] = [rect.width() / fbBitmapRect.width(), rect.height() / fbBitmapRect.height()];
+            uniformValues['uScale'] = [rect.width() / fbWidth, rect.height() / fbHeight];
             // Without any translation, the scaled rect would be centered in the gl viewport.
             // uTranslate = rect center point in gl coordinates.
             var rectCenter = new Vec2(rect.left + rect.width() * 0.5, rect.top + rect.height() * 0.5);
-            rectCenter.x = (rectCenter.x / fbBitmapRect.width()) * 2 - 1;
-            rectCenter.y = (1 - rectCenter.y / fbBitmapRect.height()) * 2 - 1;
+            rectCenter.x = (rectCenter.x / fbWidth) * 2 - 1;
+            rectCenter.y = (1 - rectCenter.y / fbHeight) * 2 - 1;
             uniformValues['uTranslate'] = [rectCenter.x, rectCenter.y];
         }
         program.use(uniformValues);

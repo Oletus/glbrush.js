@@ -75,7 +75,7 @@ CanvasCompositor.prototype.prepare = function() {
 
 /**
  * Add a buffer to composit to the target context.
- * @param {CanvasBuffer} buffer Buffer to composit.
+ * @param {PictureBuffer} buffer Buffer to composit.
  */
 CanvasCompositor.prototype.pushBuffer = function(buffer) {
     // TODO: assert(buffer.visible);
@@ -131,15 +131,15 @@ CanvasCompositor.prototype.flush = function() {
         if (i + 1 === this.pending.length ||
             this.pending[i + 1].type === CompositorElement.buffer) {
             this.ctx.globalAlpha = this.pending[i].buffer.opacity();
-            this.ctx.drawImage(this.pending[i].buffer.canvas, 0, 0);
+            this.ctx.drawImage(this.pending[i].buffer.bitmap.canvas, 0, 0);
             ++i;
         } else {
-            if (this.pending[i].buffer.hasAlpha) {
+            if (this.pending[i].buffer.bitmap.hasAlpha) {
                 this.compositingCtx.clearRect(0, 0, width, height);
             }
             var opacity = this.pending[i].buffer.opacity();
-            this.compositingCtx.drawImage(this.pending[i].buffer.canvas, 0, 0);
-            var sourceCtx = this.pending[i].buffer.ctx;
+            this.compositingCtx.drawImage(this.pending[i].buffer.bitmap.canvas, 0, 0);
+            var sourceCtx = this.pending[i].buffer.bitmap.ctx;
             ++i;
             while (i < this.pending.length &&
                  this.pending[i].type === CompositorElement.rasterizer) {
@@ -193,11 +193,11 @@ GLCompositor.prototype.prepare = function() {
 
 /**
  * Add a buffer to composit to the framebuffer.
- * @param {GLBuffer} buffer Buffer to composit.
+ * @param {PictureBuffer} buffer Buffer to composit.
  */
 GLCompositor.prototype.pushBuffer = function(buffer) {
     // TODO: assert(buffer.visible);
-    this.pushBufferTex(buffer.tex, buffer.opacity(), buffer.isOpaque());
+    this.pushBufferTex(buffer.bitmap.tex, buffer.opacity(), buffer.isOpaque());
 };
 
 /**

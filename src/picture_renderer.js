@@ -10,6 +10,10 @@ import { blitShader } from './glsl/blit_shader.js';
 
 import { CanvasCompositor, GLCompositor } from './compositor.js';
 
+import { GLBuffer } from './picture_buffer/gl_buffer.js';
+
+import { CanvasBuffer } from './picture_buffer/canvas_buffer.js';
+
 import { Rasterizer } from './rasterize/rasterizer.js';
 
 import { GLDoubleBufferedRasterizer } from './rasterize/gl_double_buffered_rasterizer.js';
@@ -113,6 +117,19 @@ PictureRenderer.hasFailedWebGLSanity = false;
 PictureRenderer.prototype.usesWebGl = function() {
     return (this.mode === 'webgl' || this.mode === 'no-float-webgl' ||
             this.mode === 'no-dynamic-webgl');
+};
+
+/**
+ * @return {GLBuffer|CanvasBuffer} A bitmap suitable for backing a picture buffer.
+ */
+PictureRenderer.prototype.createBitmap = function(width, height, hasAlpha) {
+    if (this.usesWebGl()) {
+        return new GLBuffer(this.gl, this.glManager, this.compositor, this.texBlitProgram, this.rectBlitProgram,
+                            width, height, hasAlpha);
+    } else {
+        // TODO: assert(this.mode === 'canvas');
+        return new CanvasBuffer(width, height, hasAlpha);
+    }
 };
 
 /**

@@ -29,9 +29,7 @@ import { serializeToString } from './util/serialization.js';
 
 import { BaseRasterizer } from './rasterize/base_rasterizer.js';
 
-import { CanvasBuffer } from './picture_buffer/canvas_buffer.js';
-
-import { GLBuffer } from './picture_buffer/gl_buffer.js';
+import { PictureBuffer } from './picture_buffer/picture_buffer.js';
 
 import { PictureUpdate } from './picture_update.js';
 
@@ -904,17 +902,7 @@ Picture.prototype.regenerateBuffer = function(buffer) {
  * @protected
  */
 Picture.prototype.createBuffer = function(createEvent, hasUndoStates) {
-    var buffer;
-    if (this.renderer.usesWebGl()) {
-        buffer = new GLBuffer(this.gl, this.glManager, this.renderer.compositor,
-                              this.renderer.texBlitProgram, this.renderer.rectBlitProgram, createEvent,
-                              this.bitmapWidth(), this.bitmapHeight(), this.pictureTransform,
-                              hasUndoStates, this.freed);
-    } else {
-        // TODO: assert(this.renderer.mode === 'canvas');
-        buffer = new CanvasBuffer(createEvent, this.bitmapWidth(),
-                                  this.bitmapHeight(), this.pictureTransform, hasUndoStates, this.freed);
-    }
+    var buffer = new PictureBuffer(createEvent, this.bitmapWidth(), this.bitmapHeight(), this.pictureTransform, hasUndoStates, this.freed, this.renderer);
     if (hasUndoStates) {
         if (buffer.events[0].undone) {
             var avgBudget = this.averageUndoStateBudgetOfActiveBuffers();
