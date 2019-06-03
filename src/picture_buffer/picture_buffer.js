@@ -65,7 +65,7 @@ var PictureBuffer = function(createEvent, width, height, transform, hasUndoState
 
     this.bitmap = null;
     if ( !this.freed ) {
-        this.bitmap = this.renderer.createBitmap( width, height, this.hasAlpha );
+        this.bitmap = this.renderer.createBitmap( width, height, this.hasAlpha, {} );
     }
 
     this.insertEvent(createEvent, null); // will clear the buffer
@@ -84,6 +84,7 @@ PictureBuffer.prototype.free = function() {
     if (this.undoStates !== null) {
         for (var i = 0; i < this.undoStates.length; ++i) {
             this.undoStates[i].free();
+            this.undoStates[i].metadata.invalid = true;
         }
     }
 };
@@ -96,7 +97,7 @@ PictureBuffer.prototype.free = function() {
 PictureBuffer.prototype.regenerate = function(regenerateUndoStates, rasterizer) {
     // TODO: assert(this.freed);
     this.freed = false;
-    this.bitmap = this.renderer.createBitmap( this.width(), this.height(), this.hasAlpha );
+    this.bitmap = this.renderer.createBitmap( this.width(), this.height(), this.hasAlpha, {} );
     if (!regenerateUndoStates) {
         this.undoStates = [];
     }
@@ -177,9 +178,12 @@ PictureBuffer.prototype.playbackStartingFrom = function(eventIndex,
         }
         if (this.undoStates !== null && this.bitmap !== null &&
             nextUndoStateIndex < this.undoStates.length &&
-            this.undoStates[nextUndoStateIndex].index === i + 1 &&
-            this.undoStates[nextUndoStateIndex].invalid) {
-            this.bitmap.repairUndoState(this.getCurrentClipRect(), this.undoStates[nextUndoStateIndex]);
+            this.undoStates[nextUndoStateIndex].metadata.index === i + 1 &&
+            this.undoStates[nextUndoStateIndex].metadata.invalid) {
+            // Repair the undo state.
+            this.undoStates[nextUndoStateIndex].ensureNotFreed();
+            this.renderer.blitBitmap(this.getCurrentClipRect(), this.bitmap, this.undoStates[nextUndoStateIndex]);
+            this.undoStates[nextUndoStateIndex].metadata.invalid = false;
             ++nextUndoStateIndex;
         }
     }
@@ -470,15 +474,14 @@ PictureBuffer.prototype.findLatest = function(sid, canBeUndone) {
 
 /**
  * Remove a stored undo state.
- * @param {number} splicedIndex The index of the undo state in the undoStates
- * array.
+ * @param {number} splicedIndex The index of the undo state in the undoStates array.
  * @protected
  */
 PictureBuffer.prototype.spliceUndoState = function(splicedIndex) {
     // TODO: assert(splicedIndex < this.undoStates.length);
     if (splicedIndex + 1 < this.undoStates.length) {
-        this.undoStates[splicedIndex + 1].cost +=
-            this.undoStates[splicedIndex].cost;
+        this.undoStates[splicedIndex + 1].metadata.cost +=
+            this.undoStates[splicedIndex].metadata.cost;
     }
     this.undoStates[splicedIndex].free();
     this.undoStates.splice(splicedIndex, 1);
@@ -494,8 +497,8 @@ PictureBuffer.prototype.stayWithinUndoStateBudget = function() {
         var stateToRemoveWorth = (1 << 30);
         // Consider all states for removal except the last one.
         for (var i = 0; i < this.undoStates.length - 1; ++i) {
-            var distanceFromEnd = this.events.length - this.undoStates[i].index;
-            var worth = this.undoStates[i].cost / (distanceFromEnd + 1);
+            var distanceFromEnd = this.events.length - this.undoStates[i].metadata.index;
+            var worth = this.undoStates[i].metadata.cost / (distanceFromEnd + 1);
             if (worth < stateToRemoveWorth) {
                 stateToRemove = i;
                 stateToRemoveWorth = worth;
@@ -556,9 +559,9 @@ PictureBuffer.prototype.lastEventChanged = function(rasterizer) {
         var previousState = this.previousUndoState(this.events.length);
 
         // Find out how many new non-undone events are there?
-        var newEvents = this.events.length - previousState.index;
+        var newEvents = this.events.length - previousState.metadata.index;
         var i = this.events.length;
-        while (newEvents >= this.undoStateInterval && i > previousState.index) {
+        while (newEvents >= this.undoStateInterval && i > previousState.metadata.index) {
             --i;
             if (this.events[i].undone) {
                 --newEvents;
@@ -569,7 +572,7 @@ PictureBuffer.prototype.lastEventChanged = function(rasterizer) {
             // amount of new events.
             // TODO: A cost measure that's relative to how much effort the
             // events really take to regenerate?
-            var newUndoState = this.bitmap.saveUndoState(this.events.length, newEvents);
+            var newUndoState = this.bitmap.copy(this.renderer, {index: this.events.length, cost: newEvents, invalid: false});
             if (newUndoState !== null) {
                 this.undoStates.push(newUndoState);
                 this.stayWithinUndoStateBudget();
@@ -594,8 +597,8 @@ PictureBuffer.prototype.previousUndoStateIndex = function(eventIndex) {
     if (this.undoStates !== null) {
         var i = this.undoStates.length - 1;
         while (i >= 0) {
-            if (this.undoStates[i].index <= eventIndex &&
-                !this.undoStates[i].invalid) {
+            if (this.undoStates[i].metadata.index <= eventIndex &&
+                !this.undoStates[i].metadata.invalid) {
                 return i;
             }
             --i;
@@ -615,7 +618,7 @@ PictureBuffer.prototype.previousUndoState = function(eventIndex) {
     if (i >= 0) {
         return this.undoStates[i];
     } else {
-        return { index: 0 };
+        return { metadata: { index: 0 } };
     }
 };
 
@@ -635,17 +638,17 @@ PictureBuffer.prototype.changeUndoStatesFrom = function(eventIndex, invalidate,
         var i = 0;
         var changeCost = true;
         while (i < this.undoStates.length) {
-            if (this.undoStates[i].index > eventIndex) {
+            if (this.undoStates[i].metadata.index > eventIndex) {
                 if (invalidate) {
-                    this.undoStates[i].invalid = true;
+                    this.undoStates[i].metadata.invalid = true;
                 }
                 if (changeCost) {
-                    this.undoStates[i].cost += costChange;
+                    this.undoStates[i].metadata.cost += costChange;
                     changeCost = false; // only one undo state carries the cost
                 }
-                this.undoStates[i].index += indexMove;
+                this.undoStates[i].metadata.index += indexMove;
                 if (i > 0 &&
-                    this.undoStates[i].index === this.undoStates[i - 1].index) {
+                    this.undoStates[i].metadata.index === this.undoStates[i - 1].metadata.index) {
                     // This undo state is useless
                     this.spliceUndoState(i);
                 }
@@ -662,8 +665,8 @@ PictureBuffer.prototype.changeUndoStatesFrom = function(eventIndex, invalidate,
  * @protected
  */
 PictureBuffer.prototype.applyState = function(undoState) {
-    if (undoState.index !== 0 && this.bitmap !== null) {
-        this.bitmap.applyStateObject(this.getCurrentClipRect(), undoState);
+    if (undoState.metadata.index !== 0 && this.bitmap !== null) {
+        this.renderer.blitBitmap(this.getCurrentClipRect(), undoState, this.bitmap);
     }
 };
 
@@ -742,7 +745,7 @@ PictureBuffer.prototype.playbackAfterChange = function(eventIndex, rasterizer,
                                   followingStateMove);
         var undoState = this.previousUndoState(eventIndex);
         this.applyState(undoState);
-        this.playbackStartingFrom(undoState.index, rasterizer);
+        this.playbackStartingFrom(undoState.metadata.index, rasterizer);
         this.popClip();
     }
     if (this.isMerged()) {
@@ -766,8 +769,8 @@ PictureBuffer.prototype.redoEventIndex = function(eventIndex, rasterizer) {
     if (eventIndex === this.events.length - 1) {
         this.applyEvent(this.events[eventIndex], rasterizer);
         if (this.undoStates !== null && this.undoStates.length > 0 &&
-            this.undoStates[this.undoStates.length - 1].index > eventIndex) {
-            ++this.undoStates[this.undoStates.length - 1].cost;
+            this.undoStates[this.undoStates.length - 1].metadata.index > eventIndex) {
+            ++this.undoStates[this.undoStates.length - 1].metadata.cost;
         }
         this.lastEventChanged(rasterizer);
     } else {

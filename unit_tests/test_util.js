@@ -22,9 +22,9 @@ import {
     ScatterEvent
 } from '../src/picture_event.js';
 
-import { CanvasUndoState } from '../src/picture_buffer/canvas_undo_state.js';
+import { CanvasBitmap } from '../src/picture_buffer/canvas_bitmap.js';
 
-import { GLUndoState } from '../src/picture_buffer/gl_undo_state.js';
+import { GLBitmap } from '../src/picture_buffer/gl_bitmap.js';
 
 let asyncTestExec = function(condition, callbackOnConditionFulfilled) {
     let checkConditionAndCallback = function() {
@@ -242,11 +242,11 @@ function expectArrayCorrect(array, ref, tolerance) {
  * @param {number=} tolerance Tolerance for pixel values in the range 0-255.
  * Defaults to 3.
  */
-function expectBufferCorrect(buffer, rasterizer, tolerance) {
+function expectBufferCorrect(buffer, renderer, rasterizer, tolerance) {
     if (tolerance === undefined) {
         tolerance = 3;
     }
-    var state = buffer.bitmap.saveUndoState(buffer.events.length, 0);
+    var state = buffer.bitmap.copy(renderer, {});
     var removeCount = buffer.removeCount;
     var i;
     var j;
@@ -290,29 +290,17 @@ function expectBufferCorrect(buffer, rasterizer, tolerance) {
     expect(removeCount).toBe(correctRemoveCount);
 
     // Check bitmap state
-    var correctState = buffer.bitmap.saveUndoState(buffer.events.length, 0);
+    var correctState = buffer.bitmap.copy(renderer, {});
     var stateData;
     var correctData;
-    if (state instanceof CanvasUndoState) {
+    if (state instanceof CanvasBitmap) {
         stateData = state.ctx.getImageData(0, 0, buffer.width(),
                                                buffer.height()).data;
         correctData = correctState.ctx.getImageData(0, 0, buffer.width(),
                                                         buffer.height()).data;
-    } else if (state instanceof GLUndoState) {
-        stateData = new Uint8Array(buffer.width() * buffer.height() * 4);
-        correctData = new Uint8Array(buffer.width() * buffer.height() * 4);
-        var readState = function(s, toData) {
-            // Check to make sure that using default FBO is fine here.
-            expect(s.gl.canvas.width).toBe(buffer.width());
-            expect(s.gl.canvas.height).toBe(buffer.height());
-            s.glManager.useFbo(null);
-            var clipRect = new Rect(0, buffer.width(), 0, buffer.height());
-            s.draw(clipRect);
-            s.gl.readPixels(0, 0, buffer.width(), buffer.height(),
-                           s.gl.RGBA, s.gl.UNSIGNED_BYTE, toData);
-        };
-        readState(state, stateData);
-        readState(correctState, correctData);
+    } else if (state instanceof GLBitmap) {
+        stateData = state.readPixels();
+        correctData = correctState.readPixels();
     }
     expect(stateData.length).toBe(correctData.length);
     var incorrectPixels = expectArrayCorrect(stateData, correctData, tolerance);

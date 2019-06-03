@@ -64,7 +64,7 @@ var testBufferParams = {
     hasAlpha: true
 };
 
-var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, createRasterizer, params, premultiplied) {
+var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, createRasterizer, renderer, params, premultiplied) {
     it('initializes', function() {
         // This is a hacky way of doing global setup for this group of tests.
         // But just running global setup before any tests are run doesn't work
@@ -87,9 +87,9 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         initTestCanvas();
 
         var buffer = createBuffer(params);
-        expectBufferCorrect(buffer, null, 0);
+        expectBufferCorrect(buffer, renderer, null, 0);
         buffer.bitmap.clear(buffer.getCurrentClipRect(), buffer.events[0].clearColor);
-        expectBufferCorrect(buffer, null, 0);
+        expectBufferCorrect(buffer, renderer, null, 0);
 
         buffer.free();
     });
@@ -147,7 +147,7 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         brushEvent.pushCoordTriplet(0, 0, 1.0);
         brushEvent.pushCoordTriplet(buffer.width(), buffer.height(), 0.5);
         buffer.pushEvent(brushEvent, rasterizer);
-        expectBufferCorrect(buffer, rasterizer, 0);
+        expectBufferCorrect(buffer, renderer, rasterizer, 0);
 
         rasterizer.free();
         buffer.free();
@@ -430,7 +430,7 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         var buffer = createBuffer(params);
         var rasterizer = createRasterizer(params);
         fillBuffer(buffer, rasterizer, 10);
-        expectBufferCorrect(buffer, rasterizer, 0);
+        expectBufferCorrect(buffer, renderer, rasterizer, 0);
 
         rasterizer.free();
         buffer.free();
@@ -454,9 +454,9 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
 
             expect(buffer.undoStates).toEqual([]);
             buffer.undoEventIndex(undoIndex, rasterizer, true);
-            expectBufferCorrect(buffer, rasterizer, 3);
+            expectBufferCorrect(buffer, renderer, rasterizer, 3);
             buffer.events.splice(undoIndex, 1);
-            expectBufferCorrect(buffer, rasterizer, 3);
+            expectBufferCorrect(buffer, renderer, rasterizer, 3);
 
             rasterizer.free();
             buffer.free();
@@ -475,9 +475,9 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
             fillBuffer(buffer, rasterizer, buffer.undoStateInterval + 3);
             expect(buffer.undoStates.length).toBe(1);
             buffer.undoEventIndex(undoIndex, rasterizer, true);
-            expectBufferCorrect(buffer, rasterizer, 3);
+            expectBufferCorrect(buffer, renderer, rasterizer, 3);
             buffer.events.splice(undoIndex, 1);
-            expectBufferCorrect(buffer, rasterizer, 3);
+            expectBufferCorrect(buffer, renderer, rasterizer, 3);
 
             rasterizer.free();
             buffer.free();
@@ -499,7 +499,7 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
             }
             buffer.removeEventIndex(removeIndex, rasterizer);
             expect(buffer.events.length).toBe(buffer.undoStateInterval - 2);
-            expectBufferCorrect(buffer, rasterizer, 3);
+            expectBufferCorrect(buffer, renderer, rasterizer, 3);
 
             rasterizer.free();
             buffer.free();
@@ -520,7 +520,7 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
                 event = createSpecialEvent(buffer);
             }
             buffer.insertEvent(event, rasterizer);
-            expectBufferCorrect(buffer, rasterizer, 3);
+            expectBufferCorrect(buffer, renderer, rasterizer, 3);
 
             rasterizer.free();
             buffer.free();
@@ -564,10 +564,10 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         expect(buffer.undoStates.length).toBe(1);
         buffer.undoEventIndex(buffer.undoStateInterval - 2, rasterizer, true);
         buffer.undoEventIndex(buffer.events.length - 2, rasterizer, true);
-        expectBufferCorrect(buffer, rasterizer, 3);
+        expectBufferCorrect(buffer, renderer, rasterizer, 3);
         buffer.events.splice(buffer.undoStateInterval - 2, 1);
         buffer.events.splice(buffer.events.length - 2, 1);
-        expectBufferCorrect(buffer, rasterizer, 3);
+        expectBufferCorrect(buffer, renderer, rasterizer, 3);
 
         rasterizer.free();
         buffer.free();
@@ -581,7 +581,7 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         fillBuffer(buffer, rasterizer, buffer.undoStateInterval + 3);
         buffer.removeEventIndex(buffer.events.length - 2, rasterizer);
         expect(buffer.events.length).toBe(buffer.undoStateInterval + 2);
-        expectBufferCorrect(buffer, rasterizer, 3);
+        expectBufferCorrect(buffer, renderer, rasterizer, 3);
 
         rasterizer.free();
         buffer.free();
@@ -594,17 +594,17 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         var rasterizer = createRasterizer(params);
         fillBuffer(buffer, rasterizer, buffer.undoStateInterval + 3);
         var undoState = buffer.undoStates[0];
-        var undoStateStartIndex = undoState.index;
+        var undoStateStartIndex = undoState.metadata.index;
         buffer.removeEventIndex(5, rasterizer);
-        expect(undoState.index).toBe(undoStateStartIndex - 1);
+        expect(undoState.metadata.index).toBe(undoStateStartIndex - 1);
 
         // Corner cases: events near the state border
-        buffer.removeEventIndex(buffer.undoStates[0].index - 1, rasterizer);
-        expect(undoState.index).toBe(undoStateStartIndex - 2);
-        buffer.removeEventIndex(buffer.undoStates[0].index, rasterizer);
-        expect(undoState.index).toBe(undoStateStartIndex - 2);
+        buffer.removeEventIndex(buffer.undoStates[0].metadata.index - 1, rasterizer);
+        expect(undoState.metadata.index).toBe(undoStateStartIndex - 2);
+        buffer.removeEventIndex(buffer.undoStates[0].metadata.index, rasterizer);
+        expect(undoState.metadata.index).toBe(undoStateStartIndex - 2);
 
-        expectBufferCorrect(buffer, rasterizer, 3);
+        expectBufferCorrect(buffer, renderer, rasterizer, 3);
 
         rasterizer.free();
         buffer.free();
@@ -617,31 +617,31 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         var rasterizer = createRasterizer(params);
         fillBuffer(buffer, rasterizer, buffer.undoStateInterval + 3);
         var undoState = buffer.undoStates[0];
-        var undoStateStartIndex = undoState.index;
+        var undoStateStartIndex = undoState.metadata.index;
 
         var brushEvent = fillingBrushEvent(params.width, params.height,
                                            [0.2 * 255, 0.4 * 255, 0.8 * 255],
                                            0.5, BlendingMode.normal);
         buffer.setInsertionPoint(5);
         buffer.insertEvent(brushEvent, rasterizer);
-        expect(undoState.index).toBe(undoStateStartIndex + 1);
+        expect(undoState.metadata.index).toBe(undoStateStartIndex + 1);
 
         // Corner cases: events near the state border
-        buffer.setInsertionPoint(undoState.index - 1);
+        buffer.setInsertionPoint(undoState.metadata.index - 1);
         brushEvent = fillingBrushEvent(params.width, params.height,
                                        [0.2 * 255, 0.4 * 255, 0.8 * 255],
                                        0.5, BlendingMode.normal);
         buffer.insertEvent(brushEvent, rasterizer);
-        expect(undoState.index).toBe(undoStateStartIndex + 2);
+        expect(undoState.metadata.index).toBe(undoStateStartIndex + 2);
 
-        buffer.setInsertionPoint(undoState.index);
+        buffer.setInsertionPoint(undoState.metadata.index);
         brushEvent = fillingBrushEvent(params.width, params.height,
                                        [0.2 * 255, 0.4 * 255, 0.8 * 255],
                                        0.5, BlendingMode.normal);
         buffer.insertEvent(brushEvent, rasterizer);
-        expect(undoState.index).toBe(undoStateStartIndex + 2);
+        expect(undoState.metadata.index).toBe(undoStateStartIndex + 2);
 
-        expectBufferCorrect(buffer, rasterizer, 3);
+        expectBufferCorrect(buffer, renderer, rasterizer, 3);
 
         rasterizer.free();
         buffer.free();
@@ -655,32 +655,32 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         buffer.undoStateInterval = 8; // Reduce interval to make test faster
         fillBuffer(buffer, rasterizer, buffer.undoStateInterval * 2 + 3);
         var undoState = buffer.undoStates[0];
-        var undoStateStartCost = undoState.cost;
+        var undoStateStartCost = undoState.metadata.cost;
         var undoState2 = buffer.undoStates[1];
-        var undoState2StartCost = undoState2.cost;
+        var undoState2StartCost = undoState2.metadata.cost;
 
         // Non-corner cases
         buffer.undoEventIndex(4, rasterizer);
-        expect(undoState.cost).toBe(undoStateStartCost - 1);
-        expect(undoState2.cost).toBe(undoState2StartCost);
+        expect(undoState.metadata.cost).toBe(undoStateStartCost - 1);
+        expect(undoState2.metadata.cost).toBe(undoState2StartCost);
         buffer.removeEventIndex(5, rasterizer);
-        expect(undoState.cost).toBe(undoStateStartCost - 2);
-        expect(undoState2.cost).toBe(undoState2StartCost);
+        expect(undoState.metadata.cost).toBe(undoStateStartCost - 2);
+        expect(undoState2.metadata.cost).toBe(undoState2StartCost);
         buffer.redoEventIndex(4, rasterizer);
-        expect(undoState.cost).toBe(undoStateStartCost - 1);
-        expect(undoState2.cost).toBe(undoState2StartCost);
+        expect(undoState.metadata.cost).toBe(undoStateStartCost - 1);
+        expect(undoState2.metadata.cost).toBe(undoState2StartCost);
 
         // Corner cases: events near the state border
-        buffer.undoEventIndex(undoState.index - 1, rasterizer);
-        expect(undoState.cost).toBe(undoStateStartCost - 2);
-        expect(undoState2.cost).toBe(undoState2StartCost);
-        buffer.undoEventIndex(undoState.index, rasterizer);
-        expect(undoState.cost).toBe(undoStateStartCost - 2);
-        expect(undoState2.cost).toBe(undoState2StartCost - 1);
+        buffer.undoEventIndex(undoState.metadata.index - 1, rasterizer);
+        expect(undoState.metadata.cost).toBe(undoStateStartCost - 2);
+        expect(undoState2.metadata.cost).toBe(undoState2StartCost);
+        buffer.undoEventIndex(undoState.metadata.index, rasterizer);
+        expect(undoState.metadata.cost).toBe(undoStateStartCost - 2);
+        expect(undoState2.metadata.cost).toBe(undoState2StartCost - 1);
 
         // Remove an already undone event, should have no effect on cost
-        buffer.removeEventIndex(undoState.index - 1, rasterizer);
-        expect(undoState.cost).toBe(undoStateStartCost - 2);
+        buffer.removeEventIndex(undoState.metadata.index - 1, rasterizer);
+        expect(undoState.metadata.cost).toBe(undoStateStartCost - 2);
 
         rasterizer.free();
         buffer.free();
@@ -697,11 +697,11 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
             ++events;
         }
         var undoState = buffer.undoStates[0];
-        var undoStateStartCost = undoState.cost;
+        var undoStateStartCost = undoState.metadata.cost;
         buffer.undoEventIndex(buffer.events.length - 1, rasterizer);
-        expect(undoState.cost).toBe(undoStateStartCost - 1);
+        expect(undoState.metadata.cost).toBe(undoStateStartCost - 1);
         buffer.redoEventIndex(buffer.events.length - 1, rasterizer);
-        expect(undoState.cost).toBe(undoStateStartCost);
+        expect(undoState.metadata.cost).toBe(undoStateStartCost);
 
         rasterizer.free();
         buffer.free();
@@ -714,8 +714,8 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         var rasterizer = createRasterizer(params);
         fillBuffer(buffer, rasterizer, buffer.undoStateInterval + 3);
         var undoState = buffer.undoStates[0];
-        var undoStateStartIndex = undoState.index;
-        var undoStateStartCost = undoState.cost;
+        var undoStateStartIndex = undoState.metadata.index;
+        var undoStateStartCost = undoState.metadata.cost;
 
         var brushEvent = fillingBrushEvent(params.width, params.height,
                                            [0.2 * 255, 0.4 * 255, 0.8 * 255],
@@ -723,8 +723,8 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         brushEvent.undone = true;
         buffer.setInsertionPoint(5);
         buffer.insertEvent(brushEvent, rasterizer);
-        expect(undoState.index).toBe(undoStateStartIndex + 1);
-        expect(undoState.cost).toBe(undoStateStartCost);
+        expect(undoState.metadata.index).toBe(undoStateStartIndex + 1);
+        expect(undoState.metadata.cost).toBe(undoStateStartCost);
 
         rasterizer.free();
         buffer.free();
@@ -741,10 +741,10 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
             buffer.removeEventIndex(buffer.undoStateInterval, rasterizer);
         }
         expect(buffer.undoStates.length).toBe(2);
-        expect(buffer.undoStates[1].cost).toBe(1);
+        expect(buffer.undoStates[1].metadata.cost).toBe(1);
         buffer.removeEventIndex(buffer.undoStateInterval, rasterizer);
         expect(buffer.undoStates.length).toBe(1);
-        expect(buffer.undoStates[0].cost).toBeGreaterThan(1);
+        expect(buffer.undoStates[0].metadata.cost).toBeGreaterThan(1);
 
         rasterizer.free();
         buffer.free();
@@ -758,7 +758,7 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         fillBuffer(buffer, rasterizer, buffer.undoStateInterval + 1);
         var event = generateBrushEvent(9001, buffer.width(), buffer.height());
         buffer.replaceWithEvent(event, rasterizer);
-        expectBufferCorrect(buffer, rasterizer, 0);
+        expectBufferCorrect(buffer, renderer, rasterizer, 0);
         expect(buffer.events.length).toBe(2);
         if (buffer.undoStateInterval > 2) {
             expect(buffer.undoStates.length).toBe(0);
@@ -777,7 +777,7 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         buffer.pushEvent(mergeEvent);
         var event = generateBrushEvent(9001, params.width, params.height);
         mergeEvent.mergedBuffer.pushEvent(event, rasterizer);
-        expectBufferCorrect(buffer, rasterizer, 3);
+        expectBufferCorrect(buffer, renderer, rasterizer, 3);
 
         rasterizer.free();
         buffer.free();
@@ -793,7 +793,7 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         var event = generateBrushEvent(9001, params.width, params.height);
         mergeEvent.mergedBuffer.insertEvent(event, rasterizer);
         expect(mergeEvent.mergedBuffer.events[1]).toBe(event);
-        expectBufferCorrect(buffer, rasterizer, 3);
+        expectBufferCorrect(buffer, renderer, rasterizer, 3);
 
         rasterizer.free();
         buffer.free();
@@ -807,7 +807,7 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         var mergeEvent = createTestMergeEvent(buffer);
         buffer.pushEvent(mergeEvent);
         mergeEvent.mergedBuffer.undoEventIndex(1, rasterizer);
-        expectBufferCorrect(buffer, rasterizer, 3);
+        expectBufferCorrect(buffer, renderer, rasterizer, 3);
 
         rasterizer.free();
         buffer.free();
@@ -826,7 +826,7 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         expect(samplePixel[2]).not.toBeNear(180, 5);
         expect(samplePixel[3]).not.toBeNear(150, 5);
         mergeEvent.mergedBuffer.undoEventIndex(0, rasterizer);
-        expectBufferCorrect(buffer, rasterizer, 3);
+        expectBufferCorrect(buffer, renderer, rasterizer, 3);
         samplePixel = buffer.getPixelRGBA(new Vec2(0, 0));
         expect(samplePixel[0]).toBeNear(60, 5);
         expect(samplePixel[1]).toBeNear(120, 5);
@@ -937,10 +937,10 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
         var rasterizer = createRasterizer(params);
         fillBuffer(buffer, rasterizer, buffer.undoStateInterval + 1);
         buffer.free();
-        expect(buffer.undoStates[0].invalid).toBe(true);
+        expect(buffer.undoStates[0].metadata.invalid).toBe(true);
         buffer.regenerate(true, rasterizer);
-        expect(buffer.undoStates[0].invalid).toBe(false);
-        expectBufferCorrect(buffer, rasterizer, 3);
+        expect(buffer.undoStates[0].metadata.invalid).toBe(false);
+        expectBufferCorrect(buffer, renderer, rasterizer, 3);
 
         rasterizer.free();
         buffer.free();
@@ -1094,14 +1094,14 @@ describe('PictureBuffer with CanvasBitmap', function() {
     var createRasterizer = function(params) {
         return new Rasterizer(params.width, params.height, null);
     };
-    testBuffer(function() {}, function() {}, createBuffer, createRasterizer, testBufferParams, true);
+    testBuffer(function() {}, function() {}, createBuffer, createRasterizer, renderer, testBufferParams, true);
 });
 
 describe('PictureBuffer with GLBitmap', function() {
     var testsInitialized = false;
     var params = testBufferParams;
 
-    var renderer;
+    var renderer = new PictureRenderer('webgl', null);
     var initTestCanvas = function() {
         if (testsInitialized) {
             resizeTestCanvas(params.width, params.height);
@@ -1109,7 +1109,6 @@ describe('PictureBuffer with GLBitmap', function() {
         }
         testsInitialized = true;
 
-        renderer = new PictureRenderer('webgl', null);
         renderer.gl.canvas.width = params.width;
         renderer.gl.canvas.height = params.height;
         renderer.gl.viewport(0, 0, params.width, params.height);
@@ -1131,5 +1130,5 @@ describe('PictureBuffer with GLBitmap', function() {
         return renderer.createRasterizer(params.width, params.height);
     };
 
-    testBuffer(initTestCanvas, resizeTestCanvas, createBuffer, createRasterizer, params, false);
+    testBuffer(initTestCanvas, resizeTestCanvas, createBuffer, createRasterizer, renderer, params, false);
 });

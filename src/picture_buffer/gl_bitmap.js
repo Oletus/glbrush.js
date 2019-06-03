@@ -2,13 +2,13 @@
  * Copyright Olli Etuaho 2019.
  */
 
+import { Rect } from '../math/rect.js';
+
 import { PictureBuffer } from './picture_buffer.js';
 
 import { glUtils } from '../gl/utilgl.js';
 
 import { BlendingMode } from '../util/blending_mode.js';
-
-import { GLUndoState } from './gl_undo_state.js';
 
 /**
  * GL texture backing for a buffer bitmap.
@@ -26,8 +26,9 @@ import { GLUndoState } from './gl_undo_state.js';
  * @param {number} width Width of the buffer in pixels. Must be an integer.
  * @param {number} height Height of the buffer in pixels. Must be an integer.
  * @param {boolean} hasAlpha Whether the buffer has an alpha channel.
+ * @param {Object} metadata Metadata about the contents of the bitmap, not managed by this class.
  */
-var GLBitmap = function(gl, glManager, compositor, texBlitProgram, rectBlitProgram, width, height, hasAlpha) {
+var GLBitmap = function(gl, glManager, compositor, texBlitProgram, rectBlitProgram, width, height, hasAlpha, metadata) {
     this.texBlitProgram = texBlitProgram;
     this.texBlitUniforms = texBlitProgram.uniformParameters();
     this.rectBlitProgram = rectBlitProgram;
@@ -38,17 +39,32 @@ var GLBitmap = function(gl, glManager, compositor, texBlitProgram, rectBlitProgr
     this.width = width;
     this.height = height;
     this.hasAlpha = hasAlpha;
+    this.metadata = metadata;
 
     this.tex = null;
-    this.createTex();
+    this.ensureNotFreed();
+};
+
+/**
+ * Copy the contents of the bitmap into a new bitmap with different metadata.
+ * @param {PictureRenderer}
+ * @param {Object} metadata Metadata about the contents of the newly created bitmap, not managed by this class.
+ * @return {GLBitmap} The undo state.
+ */
+GLBitmap.prototype.copy = function(renderer, metadata) {
+    var bitmap = new GLBitmap(this.gl, this.glManager, this.compositor, this.texBlitProgram, this.rectBlitProgram, this.width, this.height, this.hasAlpha, metadata);
+    renderer.blitBitmap(new Rect(0, this.width, 0, this.height), this, bitmap);
+    return bitmap;
 };
 
 /**
  * Create a texture for storing this buffer's current state.
  * @protected
  */
-GLBitmap.prototype.createTex = function() {
-    // TODO: assert(!this.tex);
+GLBitmap.prototype.ensureNotFreed = function() {
+    if (this.tex !== null) {
+        return;
+    }
     var format = this.hasAlpha ? this.gl.RGBA : this.gl.RGB;
     this.tex = glUtils.createTexture(this.gl, this.width, this.height, format);
 };
@@ -59,6 +75,19 @@ GLBitmap.prototype.createTex = function() {
 GLBitmap.prototype.free = function() {
     this.gl.deleteTexture(this.tex);
     this.tex = null;
+};
+
+/**
+ * Set the bitmap dimensions of the bitmap. Can only be done while the bitmap is freed.
+ * @param {number} width The new width.
+ * @param {number} height The new height.
+ */
+GLBitmap.prototype.setDimensions = function(width, height) {
+    if (this.tex !== null) {
+        return;
+    }
+    this.width = width;
+    this.height = height;
 };
 
 /**
@@ -181,36 +210,13 @@ GLBitmap.prototype.drawBuffer = function(clipRect, buffer, opacity) {
 };
 
 /**
- * Save an undo state.
- * @param {number} index The index of the next event in the events array. The
- * last event that takes part in this undo state is events[index - 1].
- * @param {number} cost Regeneration cost of the undo state.
- * @return {GLUndoState} The undo state.
+ * @return {Uint8Array} Pixels.
  */
-GLBitmap.prototype.saveUndoState = function(index, cost) {
-    return new GLUndoState(index, cost, this.tex, this.gl,
-                           this.glManager, this.texBlitProgram,
-                           this.width, this.height, this.hasAlpha);
-};
-
-/**
- * Repair an undo state using the current bitmap and clip rect.
- * @param {Rect} clipRect Clipping rectangle.
- * @param {GLUndoState} undoState The state to repair.
- */
-GLBitmap.prototype.repairUndoState = function(clipRect, undoState) {
-    undoState.update(this.tex, clipRect);
-};
-
-/**
- * Apply the given undo state to the bitmap. Must be a real undo state.
- * @param {Rect} clipRect Clipping rectangle.
- * @param {GLUndoState} undoState The undo state to apply.
- * @protected
- */
-GLBitmap.prototype.applyStateObject = function(clipRect, undoState) {
+GLBitmap.prototype.readPixels = function() {
+    var pixels = new Uint8Array(this.width * this.height * 4);
     this.glManager.useFboTex(this.tex);
-    undoState.draw(clipRect);
+    this.gl.readPixels(0, 0, this.width, this.height, this.gl.RGBA, this.gl.UNSIGNED_BYTE, pixels);
+    return pixels;
 };
 
 /**

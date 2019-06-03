@@ -124,14 +124,40 @@ PictureRenderer.prototype.usesWebGl = function() {
  * @param {number} height Height of the bitmap in pixels. Must be an integer.
  * @param {boolean} hasAlpha True if the bitmap needs to have an alpha channel.
  * @return {GLBitmap|CanvasBitmap} A bitmap suitable for backing a picture buffer.
+ * @param {Object} metadata Metadata about the contents of the bitmap, not managed by the bitmap class.
  */
-PictureRenderer.prototype.createBitmap = function(width, height, hasAlpha) {
+PictureRenderer.prototype.createBitmap = function(width, height, hasAlpha, metadata) {
     if (this.usesWebGl()) {
         return new GLBitmap(this.gl, this.glManager, this.compositor, this.texBlitProgram, this.rectBlitProgram,
-                            width, height, hasAlpha);
+                            width, height, hasAlpha, metadata);
     } else {
         // TODO: assert(this.mode === 'canvas');
-        return new CanvasBitmap(width, height, hasAlpha);
+        return new CanvasBitmap(width, height, hasAlpha, metadata);
+    }
+};
+
+/**
+ * Copy the contents of one bitmap to another.
+ * @param {Rect} clipRect Rectangle to copy.
+ * @param {GLBitmap|CanvasBitmap} src Bitmap to copy from.
+ * @param {GLBitmap|CanvasBitmap} dest Bitmap to copy to.
+ */
+PictureRenderer.prototype.blitBitmap = function( clipRect, src, dest ) {
+    // TODO: Support blitting between CanvasBitmap and GLBitmap and do it automatically depending on types of src
+    // and dst.
+    if (this.usesWebGl()) {
+        this.glManager.useFboTex(dest.tex);
+        this.gl.viewport(0, 0, dest.width, dest.height);
+        this.texBlitUniforms['uSrcTex'] = src.tex;
+        glUtils.updateClip(this.gl, clipRect, dest.height);
+        this.gl.clearColor(0, 0, 0, 0);
+        this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+        this.glManager.drawFullscreenQuad(this.texBlitProgram, this.texBlitUniforms);
+    } else {
+        var br = clipRect.getXYWHRoundedOut();
+        dest.ctx.clearRect(br.x, br.y, br.w, br.h);
+        dest.ctx.drawImage(src.canvas, br.x, br.y, br.w, br.h,
+                           br.x, br.y, br.w, br.h);
     }
 };
 
@@ -319,6 +345,8 @@ PictureRenderer.prototype.setupGLState = function() {
         uniformTypes: {'uSrcTex': 'tex2d'},
         attributeLocations: { 'aVertexPosition': 0 }
     });
+    this.texBlitUniforms = this.texBlitProgram.uniformParameters();
+
     this.rectBlitProgram = this.glManager.shaderProgram({
         fragmentSource: blitShader.blitSrc,
         vertexSource: blitShader.blitScaledTranslatedVertSrc,
