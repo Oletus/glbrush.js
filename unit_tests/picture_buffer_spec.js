@@ -41,9 +41,9 @@ import { GLCompositor } from '../src/compositor.js';
 
 import { PictureBuffer } from '../src/picture_buffer/picture_buffer.js';
 
-import { CanvasBuffer } from '../src/picture_buffer/canvas_buffer.js';
+import { CanvasBitmap } from '../src/picture_buffer/canvas_bitmap.js';
 
-import { GLBuffer } from '../src/picture_buffer/gl_buffer.js';
+import { GLBitmap } from '../src/picture_buffer/gl_bitmap.js';
 
 import {
     asyncTestExec,
@@ -1083,7 +1083,7 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
     }
 };
 
-describe('CanvasBuffer', function() {
+describe('PictureBuffer with CanvasBitmap', function() {
     var renderer = new PictureRenderer('canvas', null);
     var createBuffer = function(params) {
         var createEvent = new BufferAddEvent(-1, -1, false, params.id,
@@ -1097,7 +1097,7 @@ describe('CanvasBuffer', function() {
     testBuffer(function() {}, function() {}, createBuffer, createRasterizer, testBufferParams, true);
 });
 
-describe('GLBuffer', function() {
+describe('PictureBuffer with GLBitmap', function() {
     var testsInitialized = false;
     var params = testBufferParams;
 

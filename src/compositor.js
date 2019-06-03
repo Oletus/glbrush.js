@@ -4,7 +4,7 @@
 
 'use strict';
 
-import { CanvasBuffer } from './picture_buffer/canvas_buffer.js';
+import { CanvasBitmap } from './picture_buffer/canvas_bitmap.js';
 
 import { Rect } from './math/rect.js';
 
@@ -145,7 +145,7 @@ CanvasCompositor.prototype.flush = function() {
                  this.pending[i].type === CompositorElement.rasterizer) {
                 var clipRect = new Rect(0, width, 0, height);
                 clipRect.intersectRect(this.pending[i].boundingBox);
-                CanvasBuffer.drawRasterizer(sourceCtx,
+                CanvasBitmap.drawRasterizer(sourceCtx,
                                             this.compositingCtx,
                                             this.pending[i].rasterizer,
                                             clipRect,

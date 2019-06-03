@@ -10,9 +10,9 @@ import { blitShader } from './glsl/blit_shader.js';
 
 import { CanvasCompositor, GLCompositor } from './compositor.js';
 
-import { GLBuffer } from './picture_buffer/gl_buffer.js';
+import { GLBitmap } from './picture_buffer/gl_bitmap.js';
 
-import { CanvasBuffer } from './picture_buffer/canvas_buffer.js';
+import { CanvasBitmap } from './picture_buffer/canvas_bitmap.js';
 
 import { Rasterizer } from './rasterize/rasterizer.js';
 
@@ -120,15 +120,18 @@ PictureRenderer.prototype.usesWebGl = function() {
 };
 
 /**
- * @return {GLBuffer|CanvasBuffer} A bitmap suitable for backing a picture buffer.
+ * @param {number} width Width of the bitmap in pixels. Must be an integer.
+ * @param {number} height Height of the bitmap in pixels. Must be an integer.
+ * @param {boolean} hasAlpha True if the bitmap needs to have an alpha channel.
+ * @return {GLBitmap|CanvasBitmap} A bitmap suitable for backing a picture buffer.
  */
 PictureRenderer.prototype.createBitmap = function(width, height, hasAlpha) {
     if (this.usesWebGl()) {
-        return new GLBuffer(this.gl, this.glManager, this.compositor, this.texBlitProgram, this.rectBlitProgram,
+        return new GLBitmap(this.gl, this.glManager, this.compositor, this.texBlitProgram, this.rectBlitProgram,
                             width, height, hasAlpha);
     } else {
         // TODO: assert(this.mode === 'canvas');
-        return new CanvasBuffer(width, height, hasAlpha);
+        return new CanvasBitmap(width, height, hasAlpha);
     }
 };
 

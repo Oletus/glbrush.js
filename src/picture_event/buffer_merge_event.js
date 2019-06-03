@@ -24,7 +24,7 @@ import { PictureEvent } from './picture_event.js';
  * @param {boolean} undone Whether this event is undone.
  * @param {number} opacity Alpha value controlling blending the merged buffer to
  * the target buffer. Range 0 to 1.
- * @param {CanvasBuffer|GLBuffer} mergedBuffer The merged buffer.
+ * @param {PictureBuffer} mergedBuffer The merged buffer.
  */
 var BufferMergeEvent = function(sid, sessionEventId, undone, opacity, mergedBuffer) {
     if (sid !== undefined) {

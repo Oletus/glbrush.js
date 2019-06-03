@@ -27,7 +27,7 @@ import { GLUndoState } from './gl_undo_state.js';
  * @param {number} height Height of the buffer in pixels. Must be an integer.
  * @param {boolean} hasAlpha Whether the buffer has an alpha channel.
  */
-var GLBuffer = function(gl, glManager, compositor, texBlitProgram, rectBlitProgram, width, height, hasAlpha) {
+var GLBitmap = function(gl, glManager, compositor, texBlitProgram, rectBlitProgram, width, height, hasAlpha) {
     this.texBlitProgram = texBlitProgram;
     this.texBlitUniforms = texBlitProgram.uniformParameters();
     this.rectBlitProgram = rectBlitProgram;
@@ -47,7 +47,7 @@ var GLBuffer = function(gl, glManager, compositor, texBlitProgram, rectBlitProgr
  * Create a texture for storing this buffer's current state.
  * @protected
  */
-GLBuffer.prototype.createTex = function() {
+GLBitmap.prototype.createTex = function() {
     // TODO: assert(!this.tex);
     var format = this.hasAlpha ? this.gl.RGBA : this.gl.RGB;
     this.tex = glUtils.createTexture(this.gl, this.width, this.height, format);
@@ -56,7 +56,7 @@ GLBuffer.prototype.createTex = function() {
 /**
  * Clean up any allocated resources.
  */
-GLBuffer.prototype.free = function() {
+GLBitmap.prototype.free = function() {
     this.gl.deleteTexture(this.tex);
     this.tex = null;
 };
@@ -69,7 +69,7 @@ GLBuffer.prototype.free = function() {
  * 0-255.
  * @protected
  */
-GLBuffer.prototype.clear = function(clipRect, unPremulClearColor) {
+GLBitmap.prototype.clear = function(clipRect, unPremulClearColor) {
     this.updateClip(clipRect);
     this.glManager.useFboTex(this.tex);
     if (unPremulClearColor.length === 3) {
@@ -91,7 +91,7 @@ GLBuffer.prototype.clear = function(clipRect, unPremulClearColor) {
  * @param {Rect} clipRect Clipping rectangle.
  * @protected
  */
-GLBuffer.prototype.updateClip = function(clipRect) {
+GLBitmap.prototype.updateClip = function(clipRect) {
     glUtils.updateClip(this.gl, clipRect, this.height);
 };
 
@@ -109,7 +109,7 @@ GLBuffer.prototype.updateClip = function(clipRect) {
  * @param {BlendingMode} mode Blending mode to use for drawing.
  * @protected
  */
-GLBuffer.prototype.drawRasterizerWithColor = function(clipRect, raster, color, opacity, mode) {
+GLBitmap.prototype.drawRasterizerWithColor = function(clipRect, raster, color, opacity, mode) {
     this.gl.viewport(0, 0, this.width, this.height);
     this.updateClip(clipRect);
     // Copy into helper texture from this.tex, then use compositor to render
@@ -135,7 +135,7 @@ GLBuffer.prototype.drawRasterizerWithColor = function(clipRect, raster, color, o
  * @param {HTMLImageElement} img Image to draw.
  * @param {Rect} rect The extents of the image in this buffer's coordinates.
  */
-GLBuffer.prototype.drawImage = function(clipRect, img, rect) {
+GLBitmap.prototype.drawImage = function(clipRect, img, rect) {
     this.gl.viewport(0, 0, this.width, this.height);
     var imageTex = this.gl.createTexture();
     this.gl.bindTexture(this.gl.TEXTURE_2D, imageTex);
@@ -158,11 +158,11 @@ GLBuffer.prototype.drawImage = function(clipRect, img, rect) {
 /**
  * Blend another buffer with this one.
  * @param {Rect} clipRect Clipping rectangle.
- * @param {GLBuffer} buffer Buffer to blend.
+ * @param {GLBitmap} buffer Buffer to blend.
  * @param {number} opacity Opacity to blend with.
  * @protected
  */
-GLBuffer.prototype.drawBuffer = function(clipRect, buffer, opacity) {
+GLBitmap.prototype.drawBuffer = function(clipRect, buffer, opacity) {
     this.gl.viewport(0, 0, this.width, this.height);
     this.updateClip(clipRect);
     // Copy into helper texture from this.tex, then use compositor to render
@@ -187,7 +187,7 @@ GLBuffer.prototype.drawBuffer = function(clipRect, buffer, opacity) {
  * @param {number} cost Regeneration cost of the undo state.
  * @return {GLUndoState} The undo state.
  */
-GLBuffer.prototype.saveUndoState = function(index, cost) {
+GLBitmap.prototype.saveUndoState = function(index, cost) {
     return new GLUndoState(index, cost, this.tex, this.gl,
                            this.glManager, this.texBlitProgram,
                            this.width, this.height, this.hasAlpha);
@@ -198,7 +198,7 @@ GLBuffer.prototype.saveUndoState = function(index, cost) {
  * @param {Rect} clipRect Clipping rectangle.
  * @param {GLUndoState} undoState The state to repair.
  */
-GLBuffer.prototype.repairUndoState = function(clipRect, undoState) {
+GLBitmap.prototype.repairUndoState = function(clipRect, undoState) {
     undoState.update(this.tex, clipRect);
 };
 
@@ -208,7 +208,7 @@ GLBuffer.prototype.repairUndoState = function(clipRect, undoState) {
  * @param {GLUndoState} undoState The undo state to apply.
  * @protected
  */
-GLBuffer.prototype.applyStateObject = function(clipRect, undoState) {
+GLBitmap.prototype.applyStateObject = function(clipRect, undoState) {
     this.glManager.useFboTex(this.tex);
     undoState.draw(clipRect);
 };
@@ -217,7 +217,7 @@ GLBuffer.prototype.applyStateObject = function(clipRect, undoState) {
  * @param {Vec2} coords Position of the pixel in bitmap coordinates.
  * @return {Uint8ClampedArray} Unpremultiplied RGBA value.
  */
-GLBuffer.prototype.getPixelRGBA = function(coords) {
+GLBitmap.prototype.getPixelRGBA = function(coords) {
     this.glManager.useFboTex(this.tex);
     var buffer = new ArrayBuffer(4);
     var pixelData = new Uint8Array(buffer);
@@ -227,4 +227,4 @@ GLBuffer.prototype.getPixelRGBA = function(coords) {
     return pixelData;
 };
 
-export { GLBuffer };
+export { GLBitmap };

@@ -9,7 +9,7 @@ import { Rect } from '../math/rect.js';
 import { glUtils } from '../gl/utilgl.js';
 
 /**
- * Storage for bitmap data from a past GLBuffer state.
+ * Storage for bitmap data from a past GLBitmap state.
  * @constructor
  * @param {number} index The index of the next event in the events array. The
  * last event that takes part in this undo state is events[index - 1].

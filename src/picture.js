@@ -797,7 +797,7 @@ Picture.prototype.initRasterizers = function() {
 };
 
 /**
- * @param {GLBuffer|CanvasBuffer} buffer The buffer to consider.
+ * @param {PictureBuffer} buffer The buffer to consider.
  * @return {number} The priority for selecting this buffer for reducing memory
  * budget. Higher priority means that the buffer's memory is more likely to be
  * reduced.
@@ -869,7 +869,7 @@ Picture.prototype.averageUndoStateBudgetOfActiveBuffers = function() {
 /**
  * Free a buffer and do the related memory accounting. Can be called on a buffer
  * that is already freed, in which case the function has no effect.
- * @param {CanvasBuffer|GLBuffer} buffer Buffer to regenerate.
+ * @param {PictureBuffer} buffer Buffer to regenerate.
  * @protected
  */
 Picture.prototype.freeBuffer = function(buffer) {
@@ -882,7 +882,7 @@ Picture.prototype.freeBuffer = function(buffer) {
 /**
  * Regenerate a buffer and do the related memory accounting. Can be called on a
  * buffer that is not freed, in which case the function has no effect.
- * @param {CanvasBuffer|GLBuffer} buffer Buffer to regenerate.
+ * @param {PictureBuffer} buffer Buffer to regenerate.
  * @protected
  */
 Picture.prototype.regenerateBuffer = function(buffer) {
@@ -898,7 +898,7 @@ Picture.prototype.regenerateBuffer = function(buffer) {
  * Create a single buffer using the mode specified for this picture.
  * @param {BufferAddEvent} createEvent Event that initializes the buffer.
  * @param {boolean} hasUndoStates Does the buffer store undo states?
- * @return {GLBuffer|CanvasBuffer} The buffer.
+ * @return {PictureBuffer} The buffer.
  * @protected
  */
 Picture.prototype.createBuffer = function(createEvent, hasUndoStates) {

@@ -24,7 +24,7 @@ import { CanvasUndoState } from './canvas_undo_state.js';
  * @param {number} height Height of the buffer in pixels. Must be an integer.
  * @param {boolean} hasAlpha Whether the buffer has an alpha channel.
  */
-var CanvasBuffer = function(width, height, hasAlpha) {
+var CanvasBitmap = function(width, height, hasAlpha) {
     this.canvas = null;
     this.ctx = null;
     this.width = width;
@@ -38,7 +38,7 @@ var CanvasBuffer = function(width, height, hasAlpha) {
  * Create a canvas for storing this buffer's current state.
  * @protected
  */
-CanvasBuffer.prototype.createCanvas = function() {
+CanvasBitmap.prototype.createCanvas = function() {
     // TODO: assert(!this.canvas);
     this.canvas = document.createElement('canvas');
     this.canvas.width = this.width;
@@ -50,7 +50,7 @@ CanvasBuffer.prototype.createCanvas = function() {
  * Clean up any allocated resources. To make the buffer usable again after this,
  * call regenerate.
  */
-CanvasBuffer.prototype.free = function() {
+CanvasBitmap.prototype.free = function() {
     this.ctx = null;
     this.canvas = null;
 };
@@ -62,7 +62,7 @@ CanvasBuffer.prototype.free = function() {
  * @param {number} cost Regeneration cost of the undo state.
  * @return {CanvasUndoState} The undo state.
  */
-CanvasBuffer.prototype.saveUndoState = function(index, cost) {
+CanvasBitmap.prototype.saveUndoState = function(index, cost) {
     return new CanvasUndoState(index, cost, this.width,
                                this.height, this.canvas);
 };
@@ -72,7 +72,7 @@ CanvasBuffer.prototype.saveUndoState = function(index, cost) {
  * @param {Rect} clipRect Clipping rectangle.
  * @param {CanvasUndoState} undoState The state to repair.
  */
-CanvasBuffer.prototype.repairUndoState = function(clipRect, undoState) {
+CanvasBitmap.prototype.repairUndoState = function(clipRect, undoState) {
     undoState.update(this.canvas, clipRect);
 };
 
@@ -82,7 +82,7 @@ CanvasBuffer.prototype.repairUndoState = function(clipRect, undoState) {
  * @param {CanvasUndoState} undoState The undo state to apply.
  * @protected
  */
-CanvasBuffer.prototype.applyStateObject = function(clipRect, undoState) {
+CanvasBitmap.prototype.applyStateObject = function(clipRect, undoState) {
     undoState.draw(this.ctx, clipRect);
 };
 
@@ -93,7 +93,7 @@ CanvasBuffer.prototype.applyStateObject = function(clipRect, undoState) {
  * clearing the buffer. Unpremultiplied and channel values are between 0-255.
  * @protected
  */
-CanvasBuffer.prototype.clear = function(clipRect, clearColor) {
+CanvasBitmap.prototype.clear = function(clipRect, clearColor) {
     var br = clipRect.getXYWHRoundedOut();
     if (clearColor.length === 4 && clearColor[3] < 255) {
         this.ctx.clearRect(br.x, br.y, br.w, br.h);
@@ -113,7 +113,7 @@ CanvasBuffer.prototype.clear = function(clipRect, clearColor) {
  * @param {Vec2} coords Position of the pixel in bitmap coordinates.
  * @return {Uint8ClampedArray} Unpremultiplied RGBA value.
  */
-CanvasBuffer.prototype.getPixelRGBA = function(coords) {
+CanvasBitmap.prototype.getPixelRGBA = function(coords) {
     var imageData = this.ctx.getImageData(coords.x, coords.y, 1, 1);
     return imageData.data;
 };
@@ -132,9 +132,9 @@ CanvasBuffer.prototype.getPixelRGBA = function(coords) {
  * @param {BlendingMode} mode Blending mode to use for drawing.
  * @protected
  */
-CanvasBuffer.prototype.drawRasterizerWithColor = function(clipRect, raster, color,
+CanvasBitmap.prototype.drawRasterizerWithColor = function(clipRect, raster, color,
                                                           opacity, mode) {
-    CanvasBuffer.drawRasterizer(this.ctx, this.ctx, raster,
+    CanvasBitmap.drawRasterizer(this.ctx, this.ctx, raster,
                                 clipRect, !this.hasAlpha, color, opacity, mode);
 };
 
@@ -158,7 +158,7 @@ CanvasBuffer.prototype.drawRasterizerWithColor = function(clipRect, raster, colo
  * opacity value.
  * @param {BlendingMode} mode Blending mode to use for drawing.
  */
-CanvasBuffer.drawRasterizer = function(dataCtx, targetCtx, raster, clipRect,
+CanvasBitmap.drawRasterizer = function(dataCtx, targetCtx, raster, clipRect,
                                        opaque, color, opacity, mode) {
     var br = clipRect.getXYWHRoundedOut();
     if (br.w === 0 || br.h === 0) {
@@ -192,7 +192,7 @@ CanvasBuffer.drawRasterizer = function(dataCtx, targetCtx, raster, clipRect,
  * @param {HTMLImageElement} img Image to draw.
  * @param {Rect} rect The extents of the image in this buffer's coordinates.
  */
-CanvasBuffer.prototype.drawImage = function(clipRect, img, rect) {
+CanvasBitmap.prototype.drawImage = function(clipRect, img, rect) {
     var br = clipRect.getXYWHRoundedOut();
     if (br.w === 0 || br.h === 0) {
         return;
@@ -208,11 +208,11 @@ CanvasBuffer.prototype.drawImage = function(clipRect, img, rect) {
 /**
  * Blend another buffer with this one.
  * @param {Rect} clipRect Clipping rectangle.
- * @param {CanvasBuffer} buffer Buffer to blend.
+ * @param {CanvasBitmap} buffer Buffer to blend.
  * @param {number} opacity Opacity to blend with.
  * @protected
  */
-CanvasBuffer.prototype.drawBuffer = function(clipRect, buffer, opacity) {
+CanvasBitmap.prototype.drawBuffer = function(clipRect, buffer, opacity) {
     // TODO: Should rather use the compositor for this, but it needs some API
     // changes.
     var br = clipRect.getXYWHRoundedOut();
@@ -230,8 +230,8 @@ CanvasBuffer.prototype.drawBuffer = function(clipRect, buffer, opacity) {
  * bitmap.
  * @protected
  */
-CanvasBuffer.prototype.bytesPerPixel = function() {
+CanvasBitmap.prototype.bytesPerPixel = function() {
     return 4;
 };
 
-export { CanvasBuffer };
+export { CanvasBitmap };
