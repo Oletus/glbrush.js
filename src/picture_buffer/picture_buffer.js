@@ -235,7 +235,7 @@ PictureBuffer.prototype.applyEvent = function(event, rasterizer) {
                 event.mergedBuffer.regenerate(true, rasterizer);
             }
             // TODO: assert(!event.mergedBuffer.freed);
-            this.bitmap.drawBuffer(this.getCurrentClipRect(), event.mergedBuffer, event.opacity);
+            this.bitmap.drawBitmap(this.getCurrentClipRect(), event.mergedBuffer.bitmap, event.opacity);
         }
     } else if (event.eventType === 'bufferAdd') {
         this.bitmap.clear(this.getCurrentClipRect(), event.clearColor);

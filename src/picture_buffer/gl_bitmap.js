@@ -4,14 +4,12 @@
 
 import { Rect } from '../math/rect.js';
 
-import { PictureBuffer } from './picture_buffer.js';
-
 import { glUtils } from '../gl/utilgl.js';
 
 import { BlendingMode } from '../util/blending_mode.js';
 
 /**
- * GL texture backing for a buffer bitmap.
+ * A bitmap stored in a GL texture.
  * @constructor
  * @param {WebGLRenderingContext} gl The rendering context.
  * @param {Object} glManager The state manager returned by glStateManager() in
@@ -23,9 +21,9 @@ import { BlendingMode } from '../util/blending_mode.js';
  * @param {ShaderProgram} rectBlitProgram Shader program to use for blits. Must
  * have uniform sampler uSrcTex for the source texture, and uScale and
  * uTranslate to control the positioning.
- * @param {number} width Width of the buffer in pixels. Must be an integer.
- * @param {number} height Height of the buffer in pixels. Must be an integer.
- * @param {boolean} hasAlpha Whether the buffer has an alpha channel.
+ * @param {number} width Width of the bitmap in pixels. Must be an integer.
+ * @param {number} height Height of the bitmap in pixels. Must be an integer.
+ * @param {boolean} hasAlpha Whether the bitmap has an alpha channel.
  * @param {Object} metadata Metadata about the contents of the bitmap, not managed by this class.
  */
 var GLBitmap = function(gl, glManager, compositor, texBlitProgram, rectBlitProgram, width, height, hasAlpha, metadata) {
@@ -58,8 +56,7 @@ GLBitmap.prototype.copy = function(renderer, metadata) {
 };
 
 /**
- * Create a texture for storing this buffer's current state.
- * @protected
+ * Create a texture for storing this bitmap.
  */
 GLBitmap.prototype.ensureNotFreed = function() {
     if (this.tex !== null) {
@@ -70,7 +67,7 @@ GLBitmap.prototype.ensureNotFreed = function() {
 };
 
 /**
- * Clean up any allocated resources.
+ * Clean up any allocated resources. To make the bitmap usable again after this, call ensureNotFreed.
  */
 GLBitmap.prototype.free = function() {
     this.gl.deleteTexture(this.tex);
@@ -125,9 +122,7 @@ GLBitmap.prototype.updateClip = function(clipRect) {
 };
 
 /**
- * Draw the given rasterizer's contents with the given color to the buffer's
- * bitmap. If the event would erase from a buffer with no alpha channel, draws
- * with the background color instead.
+ * Draw the given rasterizer's contents with the given color to the bitmap.
  * @param {Rect} clipRect Clipping rectangle.
  * @param {BaseRasterizer} raster The rasterizer to draw.
  * @param {Uint8Array|Array.<number>} color Color to use for drawing. Channel
@@ -159,10 +154,10 @@ GLBitmap.prototype.drawRasterizerWithColor = function(clipRect, raster, color, o
 };
 
 /**
- * Blend an image with this buffer.
+ * Blend an image with this bitmap.
  * @param {Rect} clipRect Clipping rectangle.
  * @param {HTMLImageElement} img Image to draw.
- * @param {Rect} rect The extents of the image in this buffer's coordinates.
+ * @param {Rect} rect The extents of the image in this bitmap's coordinates.
  */
 GLBitmap.prototype.drawImage = function(clipRect, img, rect) {
     this.gl.viewport(0, 0, this.width, this.height);
@@ -185,26 +180,25 @@ GLBitmap.prototype.drawImage = function(clipRect, img, rect) {
 };
 
 /**
- * Blend another buffer with this one.
+ * Blend another bitmap with this one.
  * @param {Rect} clipRect Clipping rectangle.
- * @param {GLBitmap} buffer Buffer to blend.
+ * @param {GLBitmap} bitmap Bitmap to blend.
  * @param {number} opacity Opacity to blend with.
  * @protected
  */
-GLBitmap.prototype.drawBuffer = function(clipRect, buffer, opacity) {
+GLBitmap.prototype.drawBitmap = function(clipRect, bitmap, opacity) {
     this.gl.viewport(0, 0, this.width, this.height);
     this.updateClip(clipRect);
     // Copy into helper texture from this.tex, then use compositor to render
-    // that blended with the contents of the buffer back to this.tex.
+    // that blended with the contents of the bitmap back to this.tex.
     var helper = glUtils.createTexture(this.gl, this.width, this.height);
     this.glManager.useFboTex(helper);
     this.texBlitUniforms['uSrcTex'] = this.tex;
-    this.glManager.drawFullscreenQuad(this.texBlitProgram,
-                                      this.texBlitUniforms);
+    this.glManager.drawFullscreenQuad(this.texBlitProgram, this.texBlitUniforms);
     this.glManager.useFboTex(this.tex);
     this.compositor.setTargetDimensions(this.width, this.height);
     this.compositor.pushBufferTex(helper, 1.0, false);
-    this.compositor.pushBufferTex(buffer.tex, opacity, false);
+    this.compositor.pushBufferTex(bitmap.tex, opacity, false);
     this.compositor.flush();
     this.gl.deleteTexture(helper);
 };

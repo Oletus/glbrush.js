@@ -4,8 +4,6 @@
 
 import { Rect } from '../math/rect.js';
 
-import { PictureBuffer } from './picture_buffer.js';
-
 import {
     rgbString,
     rgbaString
@@ -18,11 +16,11 @@ import { BlendingMode } from '../util/blending_mode.js';
 import * as blendFunctions from '../util/blend_functions.js';
 
 /**
- * A PictureBuffer implementation with a canvas backing for the bitmap.
+ * A bitmap stored in a 2D canvas.
  * @constructor
- * @param {number} width Width of the buffer in pixels. Must be an integer.
- * @param {number} height Height of the buffer in pixels. Must be an integer.
- * @param {boolean} hasAlpha Whether the buffer has an alpha channel.
+ * @param {number} width Width of the bitmap in pixels. Must be an integer.
+ * @param {number} height Height of the bitmap in pixels. Must be an integer.
+ * @param {boolean} hasAlpha Whether the bitmap has an alpha channel.
  * @param {Object} metadata Metadata about the contents of the bitmap, not managed by this class.
  */
 var CanvasBitmap = function(width, height, hasAlpha, metadata) {
@@ -49,8 +47,7 @@ CanvasBitmap.prototype.copy = function(renderer, metadata) {
 };
 
 /**
- * Create a canvas for storing this buffer's current state.
- * @protected
+ * Create a canvas for storing this bitmap.
  */
 CanvasBitmap.prototype.ensureNotFreed = function() {
     if (this.canvas !== null) {
@@ -63,8 +60,7 @@ CanvasBitmap.prototype.ensureNotFreed = function() {
 };
 
 /**
- * Clean up any allocated resources. To make the buffer usable again after this,
- * call regenerate.
+ * Clean up any allocated resources. To make the bitmap usable again after this, call ensureNotFreed.
  */
 CanvasBitmap.prototype.free = function() {
     this.ctx = null;
@@ -88,7 +84,7 @@ CanvasBitmap.prototype.setDimensions = function(width, height) {
  * Clear the bitmap. Subject to the current clipping rectangle.
  * @param {Rect} clipRect Clipping rectangle.
  * @param {Uint8Array|Array.<number>} clearColor The RGB(A) color to use when
- * clearing the buffer. Unpremultiplied and channel values are between 0-255.
+ * clearing the bitmap. Unpremultiplied and channel values are between 0-255.
  * @protected
  */
 CanvasBitmap.prototype.clear = function(clipRect, clearColor) {
@@ -117,9 +113,7 @@ CanvasBitmap.prototype.getPixelRGBA = function(coords) {
 };
 
 /**
- * Draw the given rasterizer's contents with the given color to the buffer's
- * bitmap. If the event would erase from a buffer with no alpha channel, draws
- * with the background color instead.
+ * Draw the given rasterizer's contents with the given color to the bitmap.
  * @param {Rect} clipRect Clipping rectangle.
  * @param {Rasterizer} raster The rasterizer to draw.
  * @param {Uint8Array|Array.<number>} color Color to use for drawing. Channel
@@ -147,7 +141,7 @@ CanvasBitmap.prototype.drawRasterizerWithColor = function(clipRect, raster, colo
  * @param {Rasterizer} raster The rasterizer to draw.
  * @param {Rect} clipRect Clipping rectangle to use for both dataCtx and
  * targetCtx.
- * @param {boolean} opaque Whether the target buffer should be treated as
+ * @param {boolean} opaque Whether the target bitmap should be treated as
  * opaque.
  * @param {Uint8Array|Array.<number>} color Color to use for drawing. Channel
  * values should be 0-255.
@@ -185,10 +179,10 @@ CanvasBitmap.drawRasterizer = function(dataCtx, targetCtx, raster, clipRect,
 };
 
 /**
- * Blend an image with this buffer.
+ * Blend an image with this bitmap.
  * @param {Rect} clipRect Clipping rectangle.
  * @param {HTMLImageElement} img Image to draw.
- * @param {Rect} rect The extents of the image in this buffer's coordinates.
+ * @param {Rect} rect The extents of the image in this bitmap's coordinates.
  */
 CanvasBitmap.prototype.drawImage = function(clipRect, img, rect) {
     var br = clipRect.getXYWHRoundedOut();
@@ -204,13 +198,13 @@ CanvasBitmap.prototype.drawImage = function(clipRect, img, rect) {
 };
 
 /**
- * Blend another buffer with this one.
+ * Blend another bitmap with this one.
  * @param {Rect} clipRect Clipping rectangle.
- * @param {CanvasBitmap} buffer Buffer to blend.
+ * @param {CanvasBitmap} bitmap Bitmap to blend.
  * @param {number} opacity Opacity to blend with.
  * @protected
  */
-CanvasBitmap.prototype.drawBuffer = function(clipRect, buffer, opacity) {
+CanvasBitmap.prototype.drawBitmap = function(clipRect, bitmap, opacity) {
     // TODO: Should rather use the compositor for this, but it needs some API
     // changes.
     var br = clipRect.getXYWHRoundedOut();
@@ -218,14 +212,13 @@ CanvasBitmap.prototype.drawBuffer = function(clipRect, buffer, opacity) {
         return;
     }
     this.ctx.globalAlpha = opacity;
-    this.ctx.drawImage(buffer.bitmap.canvas, br.x, br.y, br.w, br.h,
+    this.ctx.drawImage(bitmap.canvas, br.x, br.y, br.w, br.h,
                        br.x, br.y, br.w, br.h);
     this.ctx.globalAlpha = 1.0;
 };
 
 /**
- * @return {number} Bytes per pixel used for storing the state of this buffer's
- * bitmap.
+ * @return {number} Bytes per pixel used for storing this bitmap.
  * @protected
  */
 CanvasBitmap.prototype.bytesPerPixel = function() {
