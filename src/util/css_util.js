@@ -5,7 +5,7 @@
 /**
  * Create a CSS RGB color based on the input array.
  * @param {Array.<number>|Uint8Array} rgbArray Unpremultiplied color value.
- * Channel values should be 0-255.
+ * Channel values should be 0-255. Must contain at least 3 values.
  * @return {string} CSS color.
  */
 var rgbString = function(rgbArray) {
@@ -16,7 +16,7 @@ var rgbString = function(rgbArray) {
 /**
  * Create a CSS RGBA color based on the input array.
  * @param {Array.<number>|Uint8Array} rgbaArray Unpremultiplied color value.
- * Channel values should be 0-255.
+ * Channel values should be 0-255. Must contain 4 values.
  * @return {string} CSS color.
  */
 var rgbaString = function(rgbaArray) {

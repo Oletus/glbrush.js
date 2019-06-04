@@ -89,18 +89,18 @@ CanvasBitmap.prototype.setDimensions = function(width, height) {
  */
 CanvasBitmap.prototype.clear = function(clipRect, clearColor) {
     var br = clipRect.getXYWHRoundedOut();
-    if (clearColor.length === 4 && clearColor[3] < 255) {
-        this.ctx.clearRect(br.x, br.y, br.w, br.h);
-    }
-    if (clearColor.length === 4) {
+    if (this.hasAlpha && clearColor.length === 4) {
+        if (clearColor[3] < 255) {
+            this.ctx.clearRect(br.x, br.y, br.w, br.h);
+        }
         if (clearColor[3] !== 0) {
             this.ctx.fillStyle = rgbaString(clearColor);
             this.ctx.fillRect(br.x, br.y, br.w, br.h);
         }
-    } else {
-        this.ctx.fillStyle = rgbString(clearColor);
-        this.ctx.fillRect(br.x, br.y, br.w, br.h);
+        return;
     }
+    this.ctx.fillStyle = rgbString(clearColor);
+    this.ctx.fillRect(br.x, br.y, br.w, br.h);
 };
 
 /**
