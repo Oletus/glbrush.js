@@ -98,7 +98,7 @@ PictureBuffer.prototype.regenerate = function(regenerateUndoStates, rasterizer) 
     // TODO: assert(this.freed);
     this.freed = false;
     this.bitmap = this.renderer.createBitmap( this.width(), this.height(), this.hasAlpha, {} );
-    if (!regenerateUndoStates) {
+    if (!regenerateUndoStates && this.undoStates !== null) {
         this.undoStates = [];
     }
     this.playbackAll(rasterizer);
