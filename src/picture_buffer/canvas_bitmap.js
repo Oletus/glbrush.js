@@ -57,6 +57,9 @@ CanvasBitmap.prototype.ensureNotFreed = function() {
     this.canvas.width = this.width;
     this.canvas.height = this.height;
     this.ctx = this.canvas.getContext('2d');
+    if (!this.hasAlpha) {
+        this.clear(new Rect(0, this.width, 0, this.height), [0, 0, 0]);
+    }
 };
 
 /**
