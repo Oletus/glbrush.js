@@ -22,10 +22,6 @@ import {
     ScatterEvent
 } from '../src/picture_event.js';
 
-import { CanvasBitmap } from '../src/picture_buffer/canvas_bitmap.js';
-
-import { GLBitmap } from '../src/picture_buffer/gl_bitmap.js';
-
 let asyncTestExec = function(condition, callbackOnConditionFulfilled) {
     let checkConditionAndCallback = function() {
         if (condition()) {
@@ -246,7 +242,7 @@ function expectBufferCorrect(buffer, renderer, rasterizer, tolerance) {
     if (tolerance === undefined) {
         tolerance = 3;
     }
-    var state = buffer.bitmap.copy(renderer, {});
+    var stateData = buffer.bitmap.readPixels();
     var removeCount = buffer.removeCount;
     var i;
     var j;
@@ -290,18 +286,7 @@ function expectBufferCorrect(buffer, renderer, rasterizer, tolerance) {
     expect(removeCount).toBe(correctRemoveCount);
 
     // Check bitmap state
-    var correctState = buffer.bitmap.copy(renderer, {});
-    var stateData;
-    var correctData;
-    if (state instanceof CanvasBitmap) {
-        stateData = state.ctx.getImageData(0, 0, buffer.width(),
-                                               buffer.height()).data;
-        correctData = correctState.ctx.getImageData(0, 0, buffer.width(),
-                                                        buffer.height()).data;
-    } else if (state instanceof GLBitmap) {
-        stateData = state.readPixels();
-        correctData = correctState.readPixels();
-    }
+    var correctData = buffer.bitmap.readPixels();
     expect(stateData.length).toBe(correctData.length);
     var incorrectPixels = expectArrayCorrect(stateData, correctData, tolerance);
     if (incorrectPixels > 0) {

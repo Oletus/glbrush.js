@@ -104,15 +104,6 @@ CanvasBitmap.prototype.clear = function(clipRect, clearColor) {
 };
 
 /**
- * @param {Vec2} coords Position of the pixel in bitmap coordinates.
- * @return {Uint8ClampedArray} Unpremultiplied RGBA value.
- */
-CanvasBitmap.prototype.getPixelRGBA = function(coords) {
-    var imageData = this.ctx.getImageData(coords.x, coords.y, 1, 1);
-    return imageData.data;
-};
-
-/**
  * Draw the given rasterizer's contents with the given color to the bitmap.
  * @param {Rect} clipRect Clipping rectangle.
  * @param {Rasterizer} raster The rasterizer to draw.
@@ -223,6 +214,23 @@ CanvasBitmap.prototype.drawBitmap = function(clipRect, bitmap, opacity) {
  */
 CanvasBitmap.prototype.bytesPerPixel = function() {
     return 4;
+};
+
+/**
+ * @return {Uint8Array} Pixels.
+ */
+CanvasBitmap.prototype.readPixels = function() {
+    var imageData = this.ctx.getImageData(0, 0, this.width, this.height);
+    return imageData.data;
+};
+
+/**
+ * @param {Vec2} coords Position of the pixel in bitmap coordinates.
+ * @return {Uint8ClampedArray} Unpremultiplied RGBA value.
+ */
+CanvasBitmap.prototype.getPixelRGBA = function(coords) {
+    var imageData = this.ctx.getImageData(coords.x, coords.y, 1, 1);
+    return imageData.data;
 };
 
 export { CanvasBitmap };
