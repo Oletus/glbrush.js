@@ -14,12 +14,6 @@ import * as colorUtil from '../src/util/color_util.js';
 
 import * as blendFunctions from '../src/util/blend_functions.js';
 
-import { glStateManager } from '../src/gl/gl_state_manager.js';
-
-import {
-    blitShader
-} from '../src/glsl/blit_shader.js';
-
 import {
     PictureRenderer
 } from '../src/picture_renderer.js';
@@ -34,10 +28,6 @@ import {
 import { BlendingMode } from '../src/util/blending_mode.js';
 
 import { Rasterizer } from '../src/rasterize/rasterizer.js';
-
-import { GLDoubleBufferedRasterizer } from '../src/rasterize/gl_double_buffered_rasterizer.js';
-
-import { GLCompositor } from '../src/compositor.js';
 
 import { PictureBuffer } from '../src/picture_buffer/picture_buffer.js';
 
