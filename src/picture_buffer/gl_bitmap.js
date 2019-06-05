@@ -12,8 +12,7 @@ import { BlendingMode } from '../util/blending_mode.js';
  * A bitmap stored in a GL texture.
  * @constructor
  * @param {WebGLRenderingContext} gl The rendering context.
- * @param {Object} glManager The state manager returned by glStateManager() in
- * utilgl.
+ * @param {GLStateManager} glManager
  * @param {GLCompositor} compositor The compositor to use for blends that are
  * not supported by blendFunc and merge operations.
  * @param {ShaderProgram} rectBlitProgram Shader program to use for blits. Must

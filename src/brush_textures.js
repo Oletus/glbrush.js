@@ -234,7 +234,7 @@ CanvasBrushTextures.prototype.getTexture = function(textureIndex) {
  * A collection of brush tip textures to use in drawing.
  * @constructor
  * @param {WebGLRenderingContext} gl The rendering context.
- * @param {Object} glManager The state manager returned by glStateManager() in utilgl.
+ * @param {GLStateManager} glManager
  */
 var GLBrushTextures = function(gl, glManager) {
     this.gl = gl;

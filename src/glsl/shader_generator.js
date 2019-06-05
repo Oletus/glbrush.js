@@ -33,7 +33,7 @@ ShaderGenerator.prototype.attributeLocations = function() {
 };
 
 /**
- * @return {Object} Program parameters suitable for ShaderProgram constructor, or glStateManager.shaderProgram().
+ * @return {Object} Program parameters suitable for ShaderProgram constructor, or GLStateManager.shaderProgram().
  */
 ShaderGenerator.prototype.programParameters = function() {
     return {

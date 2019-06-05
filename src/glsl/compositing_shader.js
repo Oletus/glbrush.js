@@ -196,8 +196,7 @@ void main(void) {
 
 
 /**
- * @param {Object} glManager The state manager returned by glStateManager() in
- * utilgl.
+ * @param {GLStateManager} glManager
  * @param {Array.<Object>} layers The array of layers to composit. May contain
  * objects specifying PictureBuffers and objects specifying BaseRasterizers
  * which are blended to the previous PictureBuffer.

@@ -35,11 +35,11 @@ var shaderProgramCache = function(gl) {
 };
 
 /**
- * Create a manager for WebGL context state, such as switching the framebuffer.
+ * A manager for WebGL context state, such as switching the framebuffer.
+ * @constructor
  * @param {WebGLRenderingContext} gl The WebGL context.
- * @return {Object} The manager object.
  */
-var glStateManager = function(gl) {
+var GLStateManager = function(gl) {
     var sharedFbo = gl.createFramebuffer();
     var fboInUse = null;
     var sharedFboTex = null;
@@ -54,28 +54,29 @@ var glStateManager = function(gl) {
     ];
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
 
-    var shaderProgramInternal = shaderProgramCache(gl);
+    this.shaderProgram = shaderProgramCache(gl);
 
-    var fullscreenBlitProgram = shaderProgramInternal({
+    var positionAttribLocation = 0;
+
+    var fullscreenBlitProgram = this.shaderProgram({
         fragmentSource: blitShader.blitSrc,
         vertexSource: blitShader.blitVertSrc,
         uniformTypes: {'uSrcTex': 'tex2d'},
-        attributeLocations: { 'aVertexPosition': 0 }
+        attributeLocations: { 'aVertexPosition': positionAttribLocation }
     });
     var fullscreenBlitUniforms = fullscreenBlitProgram.uniformParameters();
 
-    var useQuadVertexBufferInternal = function() {
+    this.useQuadVertexBuffer = function() {
         gl.bindBuffer(gl.ARRAY_BUFFER, unitQuadVertexBuffer);
-        var positionAttribLocation = 0;
         gl.vertexAttribPointer(positionAttribLocation, 2, gl.FLOAT, false, 0, 0);
     };
 
-    var drawFullscreenQuadInternal = function(program, uniformValues) {
+    this.drawFullscreenQuad = function(program, uniformValues) {
         program.use(uniformValues);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     };
 
-    var drawRectInternal = function(program, uniformValues, rect, fbWidth, fbHeight) {
+    this.drawRect = function(program, uniformValues, rect, fbWidth, fbHeight) {
         if (rect !== undefined) {
             uniformValues['uScale'] = [rect.width() / fbWidth, rect.height() / fbHeight];
             // Without any translation, the scaled rect would be centered in the gl viewport.
@@ -89,38 +90,28 @@ var glStateManager = function(gl) {
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     };
 
-    var useFboInternal = function(fbo) {
+    this.useFbo = function(fbo) {
         if (fboInUse !== fbo) {
             gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
             fboInUse = fbo;
         }
     };
-    var useFboTexInternal = function(tex) {
-        useFboInternal(sharedFbo);
+    this.useFboTex = function(tex) {
+        this.useFbo(sharedFbo);
         if (sharedFboTex !== tex) {
             gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
             sharedFboTex = tex;
         }
     };
 
-    var fullscreenBlitInternal = function(src, dest) {
+    this.fullscreenBlit = function(src, dest) {
         // TODO: Track if quad vertex buffer is in use, make it active if it is not.
-        useFboTexInternal(dest);
+        this.useFboTex(dest);
         fullscreenBlitUniforms['uSrcTex'] = src;
         gl.disable(gl.BLEND);
-        drawFullscreenQuadInternal(fullscreenBlitProgram, fullscreenBlitUniforms);
+        this.drawFullscreenQuad(fullscreenBlitProgram, fullscreenBlitUniforms);
         gl.enable(gl.BLEND);
-    };
-
-    return {
-        shaderProgram: shaderProgramInternal,
-        useQuadVertexBuffer: useQuadVertexBufferInternal,
-        drawFullscreenQuad: drawFullscreenQuadInternal,
-        drawRect: drawRectInternal,
-        useFbo: useFboInternal,
-        useFboTex: useFboTexInternal,
-        fullscreenBlit: fullscreenBlitInternal
     };
 };
 
-export { glStateManager };
+export { GLStateManager };

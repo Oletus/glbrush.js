@@ -14,8 +14,6 @@ import { Vec2 } from '../math/vec2.js';
 
 import { glUtils } from '../gl/utilgl.js';
 
-import { glStateManager } from '../gl/gl_state_manager.js';
-
 import { GLAlphaPackingFormat } from '../gl/gl_alpha_packing_format.js';
 
 import {
@@ -42,8 +40,7 @@ GLFloatRasterizer.prototype = new GLDoubleBufferedRasterizer();
 
 /**
  * @param {WebGLRenderingContext} gl The rendering context.
- * @param {Object} glManager The state manager returned by glStateManager() in
- * utilgl.
+ * @param {GLStateManager} glManager
  * @param {number} width Width of the rasterizer bitmap in pixels.
  * @param {number} height Height of the rasterizer bitmap in pixels.
  * @param {GLBrushTextures} brushTextures Collection of brush tip textures to use.
@@ -61,8 +58,7 @@ var floatLinearGradientShaderGenerator = new GradientShaderGenerator(GLAlphaPack
 
 /**
  * @param {WebGLRenderingContext} gl The rendering context.
- * @param {Object} glManager The state manager returned by glStateManager() in
- * utilgl.
+ * @param {GLStateManager} glManager
  * @param {number} width Width of the rasterizer bitmap in pixels.
  * @param {number} height Height of the rasterizer bitmap in pixels.
  * @param {GLBrushTextures} brushTextures Collection of brush tip textures to use.

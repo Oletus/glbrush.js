@@ -2,7 +2,7 @@
 
 import { glUtils } from './gl/utilgl.js';
 
-import { glStateManager } from './gl/gl_state_manager.js';
+import { GLStateManager } from './gl/gl_state_manager.js';
 
 import { CanvasBrushTextures, GLBrushTextures } from './brush_textures.js';
 
@@ -311,7 +311,7 @@ PictureRenderer.prototype.setupGLState = function() {
     if (!this.gl) {
         return false;
     }
-    this.glManager = glStateManager(this.gl);
+    this.glManager = new GLStateManager(this.gl);
     this.glManager.useQuadVertexBuffer(); // All drawing is done using the same vertex array
     this.loseContext = this.gl.getExtension('WEBGL_lose_context');
 

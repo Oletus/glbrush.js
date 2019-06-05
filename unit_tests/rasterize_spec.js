@@ -36,7 +36,7 @@ import {
     debugGLSettingFromURL
 } from './test_util.js';
 
-import { glStateManager } from '../src/gl/gl_state_manager.js';
+import { GLStateManager } from '../src/gl/gl_state_manager.js';
 
 describe('SWMipmap', function() {
     var canvas = document.createElement('canvas');
@@ -591,7 +591,7 @@ describe('Rasterizing system', function() {
                 height = 456;
             }
             var gl = initTestGl(width, height);
-            var glManager = glStateManager(gl);
+            var glManager = new GLStateManager(gl);
             glManager.useQuadVertexBuffer();
             if (brushTextureData === undefined) {
                 return GLDoubleBufferedRasterizer.create(gl, glManager, width, height, null);
@@ -616,7 +616,7 @@ describe('Rasterizing system', function() {
                 height = 456;
             }
             var gl = initTestGl(width, height);
-            var glManager = glStateManager(gl);
+            var glManager = new GLStateManager(gl);
             glManager.useQuadVertexBuffer();
             if (brushTextureData === undefined) {
                 return GLFloatRasterizer.create(gl, glManager, width, height, null, false);
@@ -641,7 +641,7 @@ describe('Rasterizing system', function() {
                 height = 456;
             }
             var gl = initTestGl(width, height);
-            var glManager = glStateManager(gl);
+            var glManager = new GLStateManager(gl);
             glManager.useQuadVertexBuffer();
             if (brushTextureData === undefined) {
                 return GLFloatRasterizer.create(gl, glManager, width, height, null, true);

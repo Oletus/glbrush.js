@@ -12,8 +12,6 @@ import { Vec2 } from '../math/vec2.js';
 
 import { glUtils } from '../gl/utilgl.js';
 
-import { glStateManager } from '../gl/gl_state_manager.js';
-
 import { GLAlphaPackingFormat } from '../gl/gl_alpha_packing_format.js';
 
 import {
@@ -38,8 +36,7 @@ GLDoubleBufferedRasterizer.prototype = new BaseRasterizer();
 
 /**
  * @param {WebGLRenderingContext} gl The rendering context.
- * @param {Object} glManager The state manager returned by glStateManager() in
- * utilgl.
+ * @param {GLStateManager} glManager
  * @param {number} width Width of the rasterizer bitmap in pixels.
  * @param {number} height Height of the rasterizer bitmap in pixels.
  * @param {GLBrushTextures} brushTextures Collection of brush tip textures to use.
@@ -55,8 +52,7 @@ var doubleBufferedLinearGradientShaderGenerator = new GradientShaderGenerator(GL
 
 /**
  * @param {WebGLRenderingContext} gl The rendering context.
- * @param {Object} glManager The state manager returned by glStateManager() in
- * utilgl.
+ * @param {GLStateManager} glManager
  * @param {number} width Width of the rasterizer bitmap in pixels.
  * @param {number} height Height of the rasterizer bitmap in pixels.
  * @param {GLBrushTextures} brushTextures Collection of brush tip textures to use.
@@ -101,8 +97,7 @@ GLDoubleBufferedRasterizer.prototype.getMemoryBytes = function() {
 /**
  * Initialize the WebGL-based rasterizer.
  * @param {WebGLRenderingContext} gl The rendering context.
- * @param {Object} glManager The state manager returned by glStateManager() in
- * utilgl.
+ * @param {GLStateManager} glManager
  * @param {GLAlphaPackingFormat} format Format of the rasterizers texture.
  * @param {number} maxCircles The maximum amount of circles to render in one
  * pass. Must be an integer > 0.

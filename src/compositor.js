@@ -165,8 +165,7 @@ CanvasCompositor.prototype.flush = function() {
 
 /**
  * A compositor for buffers that have WebGL texture backing.
- * @param {Object} glManager The state manager returned by glStateManager() in
- * utilgl.
+ * @param {GLStateManager} glManager
  * @param {WebGLRenderingContext} gl The rendering context.
  * @param {number} multitexturingLimit Maximum number of textures to access in
  * one fragment shader pass.
