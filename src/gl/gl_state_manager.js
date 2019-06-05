@@ -6,6 +6,8 @@ import { Vec2 } from '../math/vec2.js';
 
 import { ShaderProgram } from './shader_program.js';
 
+import { blitShader } from '../glsl/blit_shader.js';
+
 /**
  * A shader program cache for a specific WebGL context.
  * @param {WebGLRenderingContext} gl The WebGL context.
@@ -52,6 +54,16 @@ var glStateManager = function(gl) {
     ];
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
 
+    var shaderProgramInternal = shaderProgramCache(gl);
+
+    var fullscreenBlitProgram = shaderProgramInternal({
+        fragmentSource: blitShader.blitSrc,
+        vertexSource: blitShader.blitVertSrc,
+        uniformTypes: {'uSrcTex': 'tex2d'},
+        attributeLocations: { 'aVertexPosition': 0 }
+    });
+    var fullscreenBlitUniforms = fullscreenBlitProgram.uniformParameters();
+
     var useQuadVertexBufferInternal = function() {
         gl.bindBuffer(gl.ARRAY_BUFFER, unitQuadVertexBuffer);
         var positionAttribLocation = 0;
@@ -91,13 +103,23 @@ var glStateManager = function(gl) {
         }
     };
 
+    var fullscreenBlitInternal = function(src, dest) {
+        // TODO: Track if quad vertex buffer is in use, make it active if it is not.
+        useFboTexInternal(dest);
+        fullscreenBlitUniforms['uSrcTex'] = src;
+        gl.disable(gl.BLEND);
+        drawFullscreenQuadInternal(fullscreenBlitProgram, fullscreenBlitUniforms);
+        gl.enable(gl.BLEND);
+    };
+
     return {
-        shaderProgram: shaderProgramCache(gl),
+        shaderProgram: shaderProgramInternal,
         useQuadVertexBuffer: useQuadVertexBufferInternal,
         drawFullscreenQuad: drawFullscreenQuadInternal,
         drawRect: drawRectInternal,
         useFbo: useFboInternal,
-        useFboTex: useFboTexInternal
+        useFboTex: useFboTexInternal,
+        fullscreenBlit: fullscreenBlitInternal
     };
 };
 

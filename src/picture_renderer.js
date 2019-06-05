@@ -128,7 +128,7 @@ PictureRenderer.prototype.usesWebGl = function() {
  */
 PictureRenderer.prototype.createBitmap = function(width, height, hasAlpha, metadata) {
     if (this.usesWebGl()) {
-        return new GLBitmap(this.gl, this.glManager, this.compositor, this.texBlitProgram, this.rectBlitProgram,
+        return new GLBitmap(this.gl, this.glManager, this.compositor, this.rectBlitProgram,
                             width, height, hasAlpha, metadata);
     } else {
         // TODO: assert(this.mode === 'canvas');
@@ -146,13 +146,9 @@ PictureRenderer.prototype.blitBitmap = function( clipRect, src, dest ) {
     // TODO: Support blitting between CanvasBitmap and GLBitmap and do it automatically depending on types of src
     // and dst.
     if (this.usesWebGl()) {
-        this.glManager.useFboTex(dest.tex);
         this.gl.viewport(0, 0, dest.width, dest.height);
-        this.texBlitUniforms['uSrcTex'] = src.tex;
         glUtils.updateClip(this.gl, clipRect, dest.height);
-        this.gl.clearColor(0, 0, 0, 0);
-        this.gl.clear(this.gl.COLOR_BUFFER_BIT);
-        this.glManager.drawFullscreenQuad(this.texBlitProgram, this.texBlitUniforms);
+        this.glManager.fullscreenBlit(src.tex, dest.tex);
     } else {
         var br = clipRect.getXYWHRoundedOut();
         dest.ctx.clearRect(br.x, br.y, br.w, br.h);

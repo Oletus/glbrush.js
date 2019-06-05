@@ -16,8 +16,6 @@ import { BlendingMode } from '../util/blending_mode.js';
  * utilgl.
  * @param {GLCompositor} compositor The compositor to use for blends that are
  * not supported by blendFunc and merge operations.
- * @param {ShaderProgram} texBlitProgram Shader program to use for blits. Must
- * have uniform sampler uSrcTex for the source texture.
  * @param {ShaderProgram} rectBlitProgram Shader program to use for blits. Must
  * have uniform sampler uSrcTex for the source texture, and uScale and
  * uTranslate to control the positioning.
@@ -26,9 +24,7 @@ import { BlendingMode } from '../util/blending_mode.js';
  * @param {boolean} hasAlpha Whether the bitmap has an alpha channel.
  * @param {Object} metadata Metadata about the contents of the bitmap, not managed by this class.
  */
-var GLBitmap = function(gl, glManager, compositor, texBlitProgram, rectBlitProgram, width, height, hasAlpha, metadata) {
-    this.texBlitProgram = texBlitProgram;
-    this.texBlitUniforms = texBlitProgram.uniformParameters();
+var GLBitmap = function(gl, glManager, compositor, rectBlitProgram, width, height, hasAlpha, metadata) {
     this.rectBlitProgram = rectBlitProgram;
     this.rectBlitUniforms = rectBlitProgram.uniformParameters();
     this.gl = gl;
@@ -50,7 +46,7 @@ var GLBitmap = function(gl, glManager, compositor, texBlitProgram, rectBlitProgr
  * @return {GLBitmap} The undo state.
  */
 GLBitmap.prototype.copy = function(renderer, metadata) {
-    var bitmap = new GLBitmap(this.gl, this.glManager, this.compositor, this.texBlitProgram, this.rectBlitProgram, this.width, this.height, this.hasAlpha, metadata);
+    var bitmap = new GLBitmap(this.gl, this.glManager, this.compositor, this.rectBlitProgram, this.width, this.height, this.hasAlpha, metadata);
     renderer.blitBitmap(new Rect(0, this.width, 0, this.height), this, bitmap);
     return bitmap;
 };
@@ -140,16 +136,14 @@ GLBitmap.prototype.drawRasterizerWithColor = function(clipRect, raster, color, o
     // that blended with the contents of the rasterizer back to this.tex.
     // TODO: Recycle texture?
     var helper = glUtils.createTexture(this.gl, this.width, this.height);
-    this.glManager.useFboTex(helper);
-    this.texBlitUniforms['uSrcTex'] = this.tex;
-
-    this.glManager.drawFullscreenQuad(this.texBlitProgram, this.texBlitUniforms);
+    this.glManager.fullscreenBlit(this.tex, helper);
 
     this.glManager.useFboTex(this.tex);
     this.compositor.setTargetDimensions(this.width, this.height);
     this.compositor.pushBufferTex(helper, 1.0, false);
     this.compositor.pushRasterizer(raster, color, opacity, mode, null);
     this.compositor.flush();
+
     this.gl.deleteTexture(helper);
 };
 
@@ -192,14 +186,14 @@ GLBitmap.prototype.drawBitmap = function(clipRect, bitmap, opacity) {
     // Copy into helper texture from this.tex, then use compositor to render
     // that blended with the contents of the bitmap back to this.tex.
     var helper = glUtils.createTexture(this.gl, this.width, this.height);
-    this.glManager.useFboTex(helper);
-    this.texBlitUniforms['uSrcTex'] = this.tex;
-    this.glManager.drawFullscreenQuad(this.texBlitProgram, this.texBlitUniforms);
+    this.glManager.fullscreenBlit(this.tex, helper);
+
     this.glManager.useFboTex(this.tex);
     this.compositor.setTargetDimensions(this.width, this.height);
     this.compositor.pushBufferTex(helper, 1.0, false);
     this.compositor.pushBufferTex(bitmap.tex, opacity, false);
     this.compositor.flush();
+
     this.gl.deleteTexture(helper);
 };
 
