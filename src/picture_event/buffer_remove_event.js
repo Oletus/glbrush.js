@@ -31,6 +31,8 @@ var BufferRemoveEvent = function(sid, sessionEventId, undone, bufferId) {
 
 BufferRemoveEvent.prototype = new PictureEvent('bufferRemove');
 
+PictureEvent.types[BufferRemoveEvent.prototype.eventType] = BufferRemoveEvent;
+
 /**
  * @param {Object} json JS object to parse values from.
  */

@@ -32,6 +32,8 @@ var EventHideEvent = function(sid, sessionEventId, undone, hiddenSid, hiddenSess
 
 EventHideEvent.prototype = new PictureEvent('eventHide');
 
+PictureEvent.types[EventHideEvent.prototype.eventType] = EventHideEvent;
+
 /**
  * @param {Object} json JS object to parse values from.
  */

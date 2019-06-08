@@ -33,6 +33,8 @@ var RasterImportEvent = function(sid, sessionEventId, undone, importedImage, rec
 
 RasterImportEvent.prototype = new PictureEvent('rasterImport');
 
+PictureEvent.types[RasterImportEvent.prototype.eventType] = RasterImportEvent;
+
 /**
  * Load an image element. this.loaded will be set to true once loading is complete.
  * @param {HTMLImageElement} importedImage Image to load.

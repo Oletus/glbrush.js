@@ -34,32 +34,8 @@ PictureEvent.parseLegacy = function(json, arr, i, version) {
     json['undone'] = (parseInt(arr[i++]) !== 0);
 
     var eventType = json['eventType'];
-    if (eventType === 'brush') {
-        BrushEvent.parseLegacy(json, arr, i, version);
-        return true;
-    } else if (eventType === 'scatter') {
-        ScatterEvent.parseLegacy(json, arr, i, version);
-        return true;
-    } else if (eventType === 'gradient') {
-        GradientEvent.parseLegacy(json, arr, i, version);
-        return true;
-    } else if (eventType === 'rasterImport') {
-        RasterImportEvent.parseLegacy(json, arr, i, version);
-        return true;
-    } else if (eventType === 'bufferMerge') {
-        BufferMergeEvent.parseLegacy(json, arr, i, version);
-        return true;
-    } else if (eventType === 'bufferAdd') {
-        BufferAddEvent.parseLegacy(json, arr, i, version);
-        return true;
-    } else if (eventType === 'bufferRemove') {
-        BufferRemoveEvent.parseLegacy(json, arr, i, version);
-        return true;
-    } else if (eventType === 'bufferMove') {
-        BufferMoveEvent.parseLegacy(json, arr, i, version);
-        return true;
-    } else if (eventType === 'eventHide') {
-        EventHideEvent.parseLegacy(json, arr, i, version);
+    if (PictureEvent.types.hasOwnProperty(eventType)) {
+        PictureEvent.types[eventType].parseLegacy(json, arr, i, version);
         return true;
     } else {
         console.log('Unexpected picture event type ' + eventType);
@@ -73,24 +49,8 @@ PictureEvent.parseLegacy = function(json, arr, i, version) {
  */
 PictureEvent.fromJS = function(json) {
     var eventType = json['eventType'];
-    if (eventType === 'brush') {
-        var event = new BrushEvent();
-    } else if (eventType === 'scatter') {
-        var event = new ScatterEvent();
-    } else if (eventType === 'gradient') {
-        var event = new GradientEvent();
-    } else if (eventType === 'rasterImport') {
-        var event = new RasterImportEvent();
-    } else if (eventType === 'bufferMerge') {
-        var event = new BufferMergeEvent();
-    } else if (eventType === 'bufferAdd') {
-        var event = new BufferAddEvent();
-    } else if (eventType === 'bufferRemove') {
-        var event = new BufferRemoveEvent();
-    } else if (eventType === 'bufferMove') {
-        var event = new BufferMoveEvent();
-    } else if (eventType === 'eventHide') {
-        var event = new EventHideEvent();
+    if (PictureEvent.types.hasOwnProperty(eventType)) {
+        var event = new PictureEvent.types[eventType]();
     } else {
         console.log('Unexpected picture event type ' + eventType);
         return null;

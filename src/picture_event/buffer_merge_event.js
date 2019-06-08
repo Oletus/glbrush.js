@@ -38,6 +38,8 @@ var BufferMergeEvent = function(sid, sessionEventId, undone, opacity, mergedBuff
 
 BufferMergeEvent.prototype = new PictureEvent('bufferMerge');
 
+PictureEvent.types[BufferMergeEvent.prototype.eventType] = BufferMergeEvent;
+
 /**
  * @param {Object} json JS object to parse values from.
  */

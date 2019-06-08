@@ -36,6 +36,8 @@ var BufferMoveEvent = function(sid, sessionEventId, undone, movedId, fromIndex, 
 
 BufferMoveEvent.prototype = new PictureEvent('bufferMove');
 
+PictureEvent.types[BufferMoveEvent.prototype.eventType] = BufferMoveEvent;
+
 /**
  * @param {Object} json JS object to parse values from.
  */

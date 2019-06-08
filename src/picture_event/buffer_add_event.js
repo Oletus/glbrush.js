@@ -51,6 +51,8 @@ var BufferAddEvent = function(sid, sessionEventId, undone, bufferId, hasAlpha,
 
 BufferAddEvent.prototype = new PictureEvent('bufferAdd');
 
+PictureEvent.types[BufferAddEvent.prototype.eventType] = BufferAddEvent;
+
 /**
  * @param {Object} json JS object to parse values from.
  */

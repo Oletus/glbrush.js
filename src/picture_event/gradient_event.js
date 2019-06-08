@@ -54,6 +54,8 @@ var GradientEvent = function(sid, sessionEventId, undone, color, opacity,
 
 GradientEvent.prototype = new PictureEvent('gradient');
 
+PictureEvent.types[GradientEvent.prototype.eventType] = GradientEvent;
+
 /**
  * @param {Object} json JS object to parse values from.
  */

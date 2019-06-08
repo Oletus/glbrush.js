@@ -62,4 +62,6 @@ PictureEvent.prototype.isBufferStackChange = function() {
  */
 PictureEvent.prototype.scale = function(scale) {};
 
+PictureEvent.types = {};
+
 export { PictureEvent };

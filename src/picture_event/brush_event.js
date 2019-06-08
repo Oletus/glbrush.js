@@ -44,6 +44,8 @@ var coordsStride = 3; // x, y and pressure coordinates belong together
 
 BrushEvent.prototype = new PictureEvent('brush');
 
+PictureEvent.types[BrushEvent.prototype.eventType] = BrushEvent;
+
 /**
  * @param {number} sid Session identifier. Must be an integer.
  * @param {number} sessionEventId An event/session specific identifier. The idea

@@ -12,6 +12,8 @@ import * as colorUtil from '../util/color_util.js';
 
 import { BrushEvent, BrushEventState } from './brush_event.js';
 
+import { PictureEvent } from './picture_event.js';
+
 /**
  * A PictureEvent representing a bunch of individually positioned circles.
  * @constructor
@@ -24,6 +26,8 @@ var ScatterEvent = function() {
 var coordsStride = 5; // x, y, radius, flow and rotation coordinates belong together
 
 ScatterEvent.prototype = new BrushEvent();
+
+PictureEvent.types['scatter'] = ScatterEvent;
 
 /**
  * Parse a ScatterEvent from a tokenized serialization.
