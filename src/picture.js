@@ -111,7 +111,7 @@ Picture.prototype.pushUpdate = function(update, changeState) {
                 return;
             }
         } else if (update.updateType === 'add_picture_event') {
-            this.pushEvent(update.targetLayerId, update.pictureEvent);
+            this.pushEvent(update.pictureEvent);
         }
     }
     this.updates.push(update);
@@ -197,7 +197,7 @@ Picture.prototype.destroy = function() {
 Picture.prototype.addBuffer = function(id, clearColor, hasAlpha) {
     var addEvent = this.createBufferAddEvent(id, hasAlpha, clearColor);
     var update = new PictureUpdate('add_picture_event');
-    update.setPictureEvent(id, addEvent);
+    update.setPictureEvent(addEvent);
     this.pushUpdate(update);
 };
 
@@ -209,7 +209,7 @@ Picture.prototype.addBuffer = function(id, clearColor, hasAlpha) {
 Picture.prototype.removeBuffer = function(id) {
     var removeEvent = this.createBufferRemoveEvent(id);
     var update = new PictureUpdate('add_picture_event');
-    update.setPictureEvent(id, removeEvent);
+    update.setPictureEvent(removeEvent);
     this.pushUpdate(update);
 };
 
@@ -223,7 +223,7 @@ Picture.prototype.removeBuffer = function(id) {
 Picture.prototype.moveBuffer = function(movedId, toIndex) {
     var moveEvent = this.createBufferMoveEvent(movedId, toIndex);
     var update = new PictureUpdate('add_picture_event');
-    update.setPictureEvent(movedId, moveEvent);
+    update.setPictureEvent(moveEvent);
     this.pushUpdate(update);
 };
 
@@ -263,9 +263,17 @@ Picture.prototype.findBuffer = function(id) {
  * @return {number} The buffer's id or -1 if not found.
  */
 Picture.prototype.findBufferContainingEvent = function(event) {
+    return this.findBufferContainingEventId(event.sid, event.sessionEventId);
+};
+
+/**
+ * Find the buffer that contains the given event.
+ * @param {PictureEvent} event The event to look for.
+ * @return {number} The buffer's id or -1 if not found.
+ */
+Picture.prototype.findBufferContainingEventId = function(sid, sessionEventId) {
     for (var i = 0; i < this.buffers.length; ++i) {
-        if (this.buffers[i].eventIndexBySessionId(event.sid,
-            event.sessionEventId) >= 0) {
+        if (this.buffers[i].eventIndexBySessionId(sid, sessionEventId) >= 0) {
             return this.buffers[i].id;
         }
     }
@@ -411,8 +419,9 @@ Picture.parse = function(id, serialization, bitmapScale, renderer, finishedCallb
                 if (event.eventType === 'bufferMerge' && !pushedBufferUpdates(event.mergedBuffer)) {
                     pushBufferUpdates(event.mergedBuffer);
                 }
+                event.targetLayerId = buf.id;
                 var update = new PictureUpdate('add_picture_event');
-                update.setPictureEvent(buf.id, event);
+                update.setPictureEvent(event);
                 pic.pushUpdate(update, false);
                 if (event.undone) {
                     var undoUpdate = new PictureUpdate('undo');
@@ -470,7 +479,8 @@ Picture.parse = function(id, serialization, bitmapScale, renderer, finishedCallb
                 if (pictureEvent.eventType === 'rasterImport') {
                     rasterImportEvents.push(pictureEvent);
                 }
-                pic.pushEvent(currentId, pictureEvent);
+                pictureEvent.targetLayerId = currentId;
+                pic.pushEvent(pictureEvent);
                 currentId = pic.buffers[pic.buffers.length - 1].id;
                 ++i;
             }
@@ -626,13 +636,14 @@ Picture.prototype.setActiveSession = function(sid) {
  * @param {number} textureId Id of the brush tip shape texture. 0 is a circle, others are bitmap textures.
  * @param {number} softness Value controlling the softness. Range 0 to 1. Only applies to circles.
  * @param {BlendingMode} mode Blending mode to use.
+ * @param {number} targetLayerId Id of the target layer.
  * @return {BrushEvent} The created brush event.
  */
 Picture.prototype.createBrushEvent = function(color, flow, opacity, radius,
-                                              textureId, softness, mode) {
+                                              textureId, softness, mode, targetLayerId) {
     var event = new BrushEvent();
     event.init(this.activeSid, this.activeSessionEventId, false,
-               color, flow, opacity, radius, textureId, softness, mode);
+               color, flow, opacity, radius, textureId, softness, mode, targetLayerId);
     this.activeSessionEventId++;
     return event;
 };
@@ -650,13 +661,14 @@ Picture.prototype.createBrushEvent = function(color, flow, opacity, radius,
  * @param {number} textureId Id of the brush tip shape texture. 0 is a circle, others are bitmap textures.
  * @param {number} softness Value controlling the softness. Range 0 to 1. Only applies to circles.
  * @param {BlendingMode} mode Blending mode to use.
+ * @param {number} targetLayerId Id of the target layer.
  * @return {ScatterEvent} The created scatter event.
  */
 Picture.prototype.createScatterEvent = function(color, flow, opacity, radius,
-                                                textureId, softness, mode) {
+                                                textureId, softness, mode, targetLayerId) {
     var event = new ScatterEvent();
     event.init(this.activeSid, this.activeSessionEventId,
-               false, color, flow, opacity, radius, textureId, softness, mode);
+               false, color, flow, opacity, radius, textureId, softness, mode, targetLayerId);
     this.activeSessionEventId++;
     return event;
 };
@@ -669,11 +681,12 @@ Picture.prototype.createScatterEvent = function(color, flow, opacity, radius,
  * @param {number} opacity Alpha value controlling blending the rasterized
  * gradient to the target buffer. Range 0 to 1.
  * @param {BlendingMode} mode Blending mode to use.
+ * @param {number} targetLayerId Id of the target layer.
  * @return {GradientEvent} The created gradient event.
  */
-Picture.prototype.createGradientEvent = function(color, opacity, mode) {
+Picture.prototype.createGradientEvent = function(color, opacity, mode, targetLayerId) {
     var event = new GradientEvent(this.activeSid, this.activeSessionEventId,
-                                  false, color, opacity, mode);
+                                  false, color, opacity, mode, targetLayerId);
     this.activeSessionEventId++;
     return event;
 };
@@ -683,10 +696,11 @@ Picture.prototype.createGradientEvent = function(color, opacity, mode) {
  * marked as not undone.
  * @param {HTMLImageElement} importedImage The imported image.
  * @param {Rect} rect Rectangle defining the position and scale of the imported image in the buffer.
+ * @param {number} targetLayerId Id of the target layer.
  * @return {RasterImportEvent} The created raster import event.
  */
-Picture.prototype.createRasterImportEvent = function(importedImage, rect) {
-    var event = new RasterImportEvent(this.activeSid, this.activeSessionEventId, false, importedImage, rect);
+Picture.prototype.createRasterImportEvent = function(importedImage, rect, targetLayerId) {
+    var event = new RasterImportEvent(this.activeSid, this.activeSessionEventId, false, importedImage, rect, targetLayerId);
     this.activeSessionEventId++;
     return event;
 };
@@ -746,13 +760,14 @@ Picture.prototype.createBufferMoveEvent = function(movedId, toIndex) {
  * merged. The buffer must not be already merged.
  * @param {number} opacity Alpha value controlling blending the top buffer.
  * Range 0 to 1.
+ * @param {number} targetLayerId Id of the target layer.
  * @return {BufferMergeEvent} The created merge event.
  */
-Picture.prototype.createMergeEvent = function(mergedBufferIndex, opacity) {
+Picture.prototype.createMergeEvent = function(mergedBufferIndex, opacity, targetLayerId) {
     // TODO: assert(mergedBufferIndex >= 0);
     var event = new BufferMergeEvent(this.activeSid, this.activeSessionEventId,
                                      false, opacity,
-                                     this.buffers[mergedBufferIndex]);
+                                     this.buffers[mergedBufferIndex], targetLayerId);
     this.activeSessionEventId++;
     return event;
 };
@@ -988,11 +1003,9 @@ Picture.prototype.afterRemove = function(buffer) {
  * Add an event to the top of one of this picture's buffers. Using this
  * directly requires that you also add the same event through pushUpdate,
  * otherwise you can not use serialization or animation functionality.
- * @param {number} targetBufferId The id of the buffer to apply the event to. In
- * case the event is a buffer add event, the id is ignored.
  * @param {PictureEvent} event Event to add.
  */
-Picture.prototype.pushEvent = function(targetBufferId, event) {
+Picture.prototype.pushEvent = function(event) {
     if (event.isBufferStackChange()) {
         if (event.eventType === 'bufferAdd') {
             var buffer = this.createBuffer(event, true);
@@ -1014,7 +1027,18 @@ Picture.prototype.pushEvent = function(targetBufferId, event) {
             return;
         }
     }
-    var targetBuffer = this.findBuffer(targetBufferId);
+    var targetBuffer;
+    if (event.eventType == 'eventHide') {
+        var bufferIndex = this.findBufferContainingEventId(event.hiddenSid, event.hiddenSessionEventId);
+        if (bufferIndex < 0) {
+            console.log('Could not find correct buffer for eventHideEvent');
+            return;
+        }
+        targetBuffer = this.buffers[bufferIndex];
+        // TODO: Don't store eventHideEvents in buffers but just store them in Picture.
+    } else {
+        targetBuffer = this.findBuffer(event.targetLayerId);
+    }
     if (this.renderer.currentEventRasterizer.drawEvent === event) {
         targetBuffer.pushEvent(event, this.renderer.currentEventRasterizer);
     } else {
@@ -1037,11 +1061,10 @@ Picture.prototype.pushEvent = function(targetBufferId, event) {
  * sessionEventIds. Using this directly requires that you also add the same
  * event through pushUpdate, otherwise you can not use serialization or
  * animation functionality.
- * @param {number} targetBufferId The id of the buffer to insert the event to.
  * @param {PictureEvent} event Event to insert. Can not be a BufferAddEvent or
  * a BufferMoveEvent. TODO: Fix this for BufferMoveEvent.
  */
-Picture.prototype.insertEvent = function(targetBufferId, event) {
+Picture.prototype.insertEvent = function(event) {
     // TODO: assert(event.eventType !== 'bufferAdd' &&
     //              event.eventType !== 'bufferMove');
     if (event.eventType === 'bufferRemove') {
@@ -1051,7 +1074,7 @@ Picture.prototype.insertEvent = function(targetBufferId, event) {
         this.afterRemove(this.buffers[bufferIndex]);
         return;
     }
-    var targetBuffer = this.findBuffer(targetBufferId);
+    var targetBuffer = this.findBuffer(event.targetLayerId);
     if (event.eventType === 'bufferMerge') {
         this.undummify(event);
         // TODO: assert(event.mergedBuffer !== targetBuffer);
@@ -1311,18 +1334,18 @@ Picture.prototype.setCurrentAnimationEvent = function(cEvent, untilCoord) {
  * higher sessionEventIds from the same session are closer to the top of the
  * buffer than events with lower sessionEventIds.
  * TODO: Moves are not supported in animation/serialization. Fix this.
- * @param {number} targetBufferId The id of the buffer to push the event to.
+ * @param {number} targetLayerId The id of the buffer to push the event to.
  * @param {number} sourceBufferId The id of the buffer to search the event
  * from.
  * @param {PictureEvent} event The event to transfer.
  */
-Picture.prototype.moveEvent = function(targetBufferId, sourceBufferId, event) {
+Picture.prototype.moveEvent = function(targetLayerId, sourceBufferId, event) {
     var src = this.findBuffer(sourceBufferId);
     var eventIndex = src.eventIndexBySessionId(event.sid, event.sessionEventId);
     if (eventIndex >= 0) {
         src.removeEventIndex(eventIndex, this.renderer.sharedRasterizer);
     }
-    this.pushEvent(targetBufferId, event);
+    this.pushEvent(targetLayerId, event);
 };
 
 /**
@@ -1441,7 +1464,7 @@ Picture.prototype.animate = function(speed, animationFinishedCallBack) {
                     picEvent = update.pictureEvent;
                     picEvent.undone = false;
                     if (picEvent.eventType === 'brush') {
-                        that.animationData.picture.setCurrentEventAttachment(update.targetLayerId);
+                        that.animationData.picture.setCurrentEventAttachment(picEvent.targetLayerId);
                         that.animationData.picture.setCurrentAnimationEvent(picEvent, 0);
                     } else {
                         updateT = 1;

@@ -17,15 +17,13 @@ var PictureUpdate = function(updateType) {
 
 /**
  * Set data for adding a picture event.
- * @param {number} targetLayerId Id of the layer where to add the event.
  * @param {PictureEvent} pictureEvent The event.
  */
-PictureUpdate.prototype.setPictureEvent = function(targetLayerId, pictureEvent) {
+PictureUpdate.prototype.setPictureEvent = function(pictureEvent) {
     if (this.updateType !== 'add_picture_event') {
         console.log('Set picture event properties for "' + this.updateType + '" update');
         return;
     }
-    this.targetLayerId = targetLayerId;
     this.pictureEvent = pictureEvent;
 };
 
@@ -64,7 +62,6 @@ PictureUpdate.prototype.serialize = function(json) {
     json['updateType'] = this.updateType;
     if (this.updateType === 'add_picture_event') {
         var eventJson = {};
-        eventJson['targetLayerId'] = this.targetLayerId;
         this.pictureEvent.serialize(eventJson);
         json['event'] = eventJson;
     } else if (this.updateType === 'undo') {
@@ -86,7 +83,7 @@ PictureUpdate.fromJS = function(json) {
         if (!pictureEvent) {
             return null;
         }
-        update.setPictureEvent(json['event']['targetLayerId'], pictureEvent);
+        update.setPictureEvent(pictureEvent);
     } else if (update.updateType === 'undo') {
         var undoneSid = json['undo']['sid'];
         var undoneSessionEventId = json['undo']['sessionEventId'];

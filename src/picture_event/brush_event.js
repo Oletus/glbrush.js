@@ -64,9 +64,10 @@ PictureEvent.types[BrushEvent.prototype.eventType] = BrushEvent;
  * @param {number} textureId Id of the brush tip shape texture. 0 is a circle, others are bitmap textures.
  * @param {number} softness Value controlling the softness. Range 0 to 1.
  * @param {BlendingMode} mode Blending mode to use.
+ * @param {number} targetLayerId Id of the target layer.
  */
 BrushEvent.prototype.init = function(sid, sessionEventId, undone, color, flow, opacity, radius, textureId, softness,
-                                     mode) {
+                                     mode, targetLayerId) {
     if (sid !== undefined) {
         // TODO: assert(color.length == 3);
         this.sid = sid;
@@ -79,6 +80,7 @@ BrushEvent.prototype.init = function(sid, sessionEventId, undone, color, flow, o
         this.textureId = textureId; // Id 0 is a circle, others are bitmap textures.
         this.soft = softness > 0.5;
         this.mode = mode;
+        this.targetLayerId = targetLayerId;
     }
     this.coords = []; // holding x,y,pressure triplets
     this.boundingBoxRasterizer = new BrushEvent.BBRasterizer();
@@ -95,6 +97,7 @@ BrushEvent.prototype.init = function(sid, sessionEventId, undone, color, flow, o
  */
 BrushEvent.prototype.fromJS = function(json) {
     this.init();
+    this.targetLayerId = json['targetLayerId'];
     this.color = json['color'];
     this.flow = json['flow'];
     this.opacity = json['opacity'];
@@ -113,6 +116,7 @@ BrushEvent.prototype.fromJS = function(json) {
  */
 BrushEvent.prototype.serialize = function(json) {
     this.serializePictureEvent(json);
+    json['targetLayerId'] = this.targetLayerId;
     json['color'] = colorUtil.serializeRGB(this.color);
     json['flow'] = this.flow;
     json['opacity'] = this.opacity;

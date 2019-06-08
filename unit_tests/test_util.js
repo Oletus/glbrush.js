@@ -43,7 +43,7 @@ function testRGB() {
 
 function testBrushEvent() {
     var event = new BrushEvent();
-    event.init(0, 1, false, testRGB(), 0.78, 0.9, 25, 0, 1.0, BlendingMode.normal);
+    event.init(0, 1, false, testRGB(), 0.78, 0.9, 25, 0, 1.0, BlendingMode.normal, 324);
     return event;
 }
 
@@ -81,13 +81,14 @@ function expectTestBrushEvent(brushEvent, coordsLength) {
     expect(brushEvent.soft).toBe(true);
     expect(brushEvent.coords.length).toBe(coordsLength);
     expect(brushEvent.mode).toBe(BlendingMode.normal);
+    expect(brushEvent.targetLayerId).toBe(324);
 }
 
 function testScatterEvent() {
     var radius = 25;
     var flowAlpha = 0.78;
     var event = new ScatterEvent();
-    event.init(0, 1, false, testRGB(), flowAlpha, 0.9, radius, 0, 1.0, BlendingMode.normal);
+    event.init(0, 1, false, testRGB(), flowAlpha, 0.9, radius, 0, 1.0, BlendingMode.normal, 324);
     return event;
 }
 

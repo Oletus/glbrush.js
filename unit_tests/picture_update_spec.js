@@ -18,20 +18,18 @@ describe('PictureUpdate', function() {
 
     it('can contain a PictureEvent', function() {
         var testUpdate = new PictureUpdate('add_picture_event');
-        testUpdate.setPictureEvent(3, testBrushEvent());
+        testUpdate.setPictureEvent(testBrushEvent());
         expect(testUpdate.updateType).toBe('add_picture_event');
-        expect(testUpdate.targetLayerId).toBe(3);
         expectTestBrushEvent(testUpdate.pictureEvent);
     });
 
     it('adds the same PictureEvent after a round of serialization and parsing', function() {
         var testUpdate = new PictureUpdate('add_picture_event');
-        testUpdate.setPictureEvent(3, testBrushEvent());
+        testUpdate.setPictureEvent(testBrushEvent());
         var jsonStr = serializeToString(testUpdate);
         var parsedJson = JSON.parse(jsonStr);
         var parsedUpdate = PictureUpdate.fromJS(parsedJson);
         expect(parsedUpdate.updateType).toBe('add_picture_event');
-        expect(parsedUpdate.targetLayerId).toBe(3);
         expectTestBrushEvent(parsedUpdate.pictureEvent);
     });
 

@@ -34,9 +34,10 @@ var GradientEventState = function() {
  * @param {number} opacity Alpha value controlling blending the rasterizer
  * stroke to the target buffer. Range 0 to 1.
  * @param {BlendingMode} mode Blending mode to use.
+ * @param {number} targetLayerId Id of the target layer.
  */
 var GradientEvent = function(sid, sessionEventId, undone, color, opacity,
-                             mode) {
+                             mode, targetLayerId) {
     // TODO: assert(color.length == 3);
     if (sid !== undefined) {
         this.sid = sid;
@@ -47,6 +48,7 @@ var GradientEvent = function(sid, sessionEventId, undone, color, opacity,
         this.coords0 = new Vec2(0, 0);
         this.coords1 = new Vec2(1, 1);
         this.mode = mode;
+        this.targetLayerId = targetLayerId;
     }
     this.hideCount = 0;
     this.generation = 0;
@@ -60,6 +62,7 @@ PictureEvent.types[GradientEvent.prototype.eventType] = GradientEvent;
  * @param {Object} json JS object to parse values from.
  */
 GradientEvent.prototype.fromJS = function(json) {
+    this.targetLayerId = json['targetLayerId'];
     this.color = json['color'];
     this.opacity = json['opacity'];
     this.coords0 = new Vec2(json['x0'], json['y0']);
@@ -94,6 +97,7 @@ GradientEvent.parseLegacy = function(json, arr, i, version) {
  */
 GradientEvent.prototype.serialize = function(json) {
     this.serializePictureEvent(json);
+    json['targetLayerId'] = this.targetLayerId;
     json['color'] = colorUtil.serializeRGB(this.color);
     json['opacity'] = this.opacity;
     json['mode'] = this.mode;

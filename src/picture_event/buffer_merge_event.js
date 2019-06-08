@@ -25,14 +25,16 @@ import { PictureEvent } from './picture_event.js';
  * @param {number} opacity Alpha value controlling blending the merged buffer to
  * the target buffer. Range 0 to 1.
  * @param {PictureBuffer} mergedBuffer The merged buffer.
+ * @param {number} targetLayerId Id of the target layer.
  */
-var BufferMergeEvent = function(sid, sessionEventId, undone, opacity, mergedBuffer) {
+var BufferMergeEvent = function(sid, sessionEventId, undone, opacity, mergedBuffer, targetLayerId) {
     if (sid !== undefined) {
         this.sid = sid;
         this.sessionEventId = sessionEventId;
         this.undone = undone;
         this.opacity = opacity;
         this.mergedBuffer = mergedBuffer;
+        this.targetLayerId = targetLayerId;
     }
 };
 
@@ -49,6 +51,7 @@ BufferMergeEvent.prototype.fromJS = function(json) {
         id: json['mergedBufferId'],
         isDummy: true
     };
+    this.targetLayerId = json['targetLayerId'];
 };
 
 /**
@@ -85,6 +88,7 @@ BufferMergeEvent.prototype.serialize = function(json) {
     this.serializePictureEvent(json);
     json['opacity'] = this.opacity;
     json['mergedBufferId'] = this.mergedBuffer.id;
+    json['targetLayerId'] = this.targetLayerId;
 };
 
 /**

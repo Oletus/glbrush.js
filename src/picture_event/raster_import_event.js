@@ -20,14 +20,16 @@ import { PictureEvent } from './picture_event.js';
  * @param {boolean} undone Whether this event is undone.
  * @param {HTMLImageElement} importedImage The imported image.
  * @param {Rect} rect Rectangle defining the position and scale of the imported image in the buffer.
+ * @param {number} targetLayerId Id of the target layer.
  */
-var RasterImportEvent = function(sid, sessionEventId, undone, importedImage, rect) {
+var RasterImportEvent = function(sid, sessionEventId, undone, importedImage, rect, targetLayerId) {
     if (sid !== undefined) {
         this.sid = sid;
         this.sessionEventId = sessionEventId;
         this.undone = undone;
         this.rect = rect;
         this.loadImg(importedImage);
+        this.targetLayerId = targetLayerId;
     }
 };
 
@@ -62,6 +64,7 @@ RasterImportEvent.prototype.loadImg = function(importedImage) {
  * @param {Object} json JS object to parse values from.
  */
 RasterImportEvent.prototype.fromJS = function(json) {
+    this.targetLayerId = json['targetLayerId'];
     this.rect = new Rect();
     this.rect.left = json['left'];
     this.rect.right = json['right'];
@@ -93,6 +96,7 @@ RasterImportEvent.parseLegacy = function(json, arr, i, version) {
  */
 RasterImportEvent.prototype.serialize = function(json) {
     this.serializePictureEvent(json);
+    json['targetLayerId'] = this.targetLayerId;
     json['src'] = this.importedImage.src;
     json['left'] = this.rect.left;
     json['right'] = this.rect.right;

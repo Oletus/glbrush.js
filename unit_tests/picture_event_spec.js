@@ -269,6 +269,7 @@ describe('PictureEvent', function() {
             var serialization = testEvent.serializeLegacy(1.0, version);
             var splitSerialization = serialization.split(' ');
             var json = {};
+            json['targetLayerId'] = 324;
             PictureEvent.parseLegacy(json, splitSerialization, 0, version);
             var parsedEvent = PictureEvent.fromJS(json);
             expectTestBrushEvent(parsedEvent);
@@ -325,6 +326,7 @@ describe('PictureEvent', function() {
                 var serialization = testEvent.serializeLegacy(1.0, version);
                 var splitSerialization = serialization.split(' ');
                 var json = {};
+                json['targetLayerId'] = 324;
                 PictureEvent.parseLegacy(json, splitSerialization, 0, version);
                 var parsedEvent = PictureEvent.fromJS(json);
                 expectTestScatterEvent(parsedEvent, 5);
