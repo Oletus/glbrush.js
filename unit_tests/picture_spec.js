@@ -953,7 +953,7 @@ describe('Picture', function() {
             expect(pic.parsedVersion).toBe(6);
             expect(pic.id).toBe(-1);
             expect(pic.buffers.length).toBe(1);
-            expect(pic.buffers[0].events.length).toBe(5);
+            expect(pic.buffers[0].events.length).toBe(4);
             expect(pic.name).toBe('microflowers');
             expect(pic.width()).toBeNear(347.75, 0.01);
             expect(pic.height()).toBeNear(526.31, 0.01);
@@ -1009,7 +1009,7 @@ describe('Picture', function() {
             expect(event.mode).toBe(BlendingMode.screen);
             expect(event.coords.length).toBe(5);
 
-            event = pic.buffers[0].events[4];
+            event = pic.eventContainer.events[0];
             expect(event.eventType).toBe('eventHide');
             expect(event.sid).toBe(1);
             expect(event.sessionEventId).toBe(4);

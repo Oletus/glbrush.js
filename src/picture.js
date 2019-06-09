@@ -29,6 +29,8 @@ import { serializeToString } from './util/serialization.js';
 
 import { BaseRasterizer } from './rasterize/base_rasterizer.js';
 
+import { EventContainer } from './picture_buffer/event_container.js';
+
 import { PictureBuffer } from './picture_buffer/picture_buffer.js';
 
 import { PictureUpdate } from './picture_update.js';
@@ -56,6 +58,10 @@ var Picture = function(id, name, boundsRect, bitmapScale, renderer) {
     this.activeSid = 0;
     this.activeSessionEventId = 0;
     this.lastSavedSessionEventId = 0;
+
+    // Event container for events that aren't specific to a single buffer.
+    this.eventContainer = new EventContainer();
+    this.eventContainer.initEventContainer();
 
     this.buffers = []; // PictureBuffers
     this.updates = []; // PictureUpdates (state changes used as the basis of serialization and animation).
@@ -999,22 +1005,32 @@ Picture.prototype.afterRemove = function(buffer) {
     }
 };
 
-/*
+/**
  * @param {PictureEvent} event Event to add.
- * @return {PictureBuffer} Container where the event should be added.
+ * @return {EventContainer} Container where the event should be added.
  */
 Picture.prototype.getEventContainerFor = function(event) {
-    if (event.eventType == 'eventHide') {
-        var bufferIndex = this.findBufferContainingEventId(event.hiddenSid, event.hiddenSessionEventId);
-        if (bufferIndex < 0) {
-            console.log('Could not find correct container for eventHideEvent');
-            return;
-        }
-        return this.buffers[bufferIndex];
-        // TODO: Don't store eventHideEvents in buffers but just store them in Picture.
+    if (event.eventType === 'eventHide') {
+        return this.eventContainer;
     }
     return this.findBuffer(event.targetLayerId);
 };
+
+/**
+ * Apply effects of an event that isn't added to buffer contents.
+ * @param {PictureEvent} event Event to apply.
+ */
+Picture.prototype.applyNonBufferEvent = function(event) {
+    if (event.eventType == 'eventHide') {
+        var hiddenEventBufferIndex = this.findBufferContainingEventId(event.hiddenSid, event.hiddenSessionEventId);
+        if (hiddenEventBufferIndex < 0) {
+            console.log('Could not find buffer with event referred by eventHideEvent');
+            return;
+        }
+        this.buffers[hiddenEventBufferIndex].addToEventHideCount(event.hiddenSid, event.hiddenSessionEventId, 1,
+                                                                 this.renderer.sharedRasterizer);
+    }
+}
 
 /**
  * Add an event to the top of one of this picture's buffers. Using this
@@ -1045,6 +1061,7 @@ Picture.prototype.pushEvent = function(event) {
         }
     }
     var targetContainer = this.getEventContainerFor(event);
+    this.applyNonBufferEvent(event);
     if (this.renderer.currentEventRasterizer.drawEvent === event) {
         targetContainer.pushEvent(event, this.renderer.currentEventRasterizer);
     } else {
@@ -1081,6 +1098,7 @@ Picture.prototype.insertEvent = function(event) {
         return;
     }
     var targetContainer = this.getEventContainerFor(event);
+    this.applyNonBufferEvent(event);
     if (event.eventType === 'bufferMerge') {
         this.undummify(event);
         // TODO: assert(event.mergedBuffer !== targetContainer);
@@ -1110,25 +1128,32 @@ Picture.prototype.undummify = function(event) {
  * @param {number} sid The session id to search.
  * @param {boolean} canBeUndone Whether to consider undone events.
  * @return {Object} The latest event indices or null if no event found. The
- * object will have keys eventIndex, bufferIndex, and sessionEventId.
+ * object will have keys eventContainer, eventIndex, and sessionEventId.
  * @protected
  */
 Picture.prototype.findLatest = function(sid, canBeUndone) {
     var latestIdx = 0;
-    var latestBufferIndex = 0;
+    var latestContainer = null;
     var latestId = -1;
     var i;
     for (i = 0; i < this.buffers.length; ++i) {
         var candidateIndex = this.buffers[i].findLatest(sid, canBeUndone);
         if (candidateIndex >= 0 &&
             this.buffers[i].events[candidateIndex].sessionEventId > latestId) {
-            latestBufferIndex = i;
+            latestContainer = this.buffers[i];
             latestIdx = candidateIndex;
             latestId = this.buffers[i].events[latestIdx].sessionEventId;
         }
     }
+    var candidateIndex = this.eventContainer.findLatest(sid, canBeUndone);
+    if (candidateIndex >= 0 &&
+        this.eventContainer.events[candidateIndex].sessionEventId > latestId) {
+        latestContainer = this.eventContainer;
+        latestIdx = candidateIndex;
+        latestId = this.eventContainer.events[latestIdx].sessionEventId;
+    }
     if (latestId >= 0) {
-        return {eventIndex: latestIdx, bufferIndex: latestBufferIndex, sessionEventId: latestId};
+        return {eventIndex: latestIdx, eventContainer: latestContainer, sessionEventId: latestId};
     }
     return null;
 };
@@ -1162,11 +1187,11 @@ Picture.prototype.undoLatest = function(keepLastBuffer) {
     if (latest === null) {
         return null;
     }
-    var buffer = this.buffers[latest.bufferIndex];
+    var eventContainer = latest.eventContainer;
     if (keepLastBuffer === undefined) {
         keepLastBuffer = true;
     }
-    if (keepLastBuffer && latest.eventIndex === 0) {
+    if (keepLastBuffer && latest.eventIndex === 0 && eventContainer !== this.eventContainer) {
         var buffersLeft = 0;
         for (var i = 0; i < this.buffers.length; ++i) {
             if (!this.buffers[i].isRemoved() && !this.buffers[i].isMerged()) {
@@ -1174,10 +1199,11 @@ Picture.prototype.undoLatest = function(keepLastBuffer) {
             }
         }
         if (buffersLeft === 1) {
+            console.log('Only one buffer left, not undoing its creation');
             return null;
         }
     }
-    return this.undoEventIndex(buffer, latest.eventIndex);
+    return this.undoEventIndex(eventContainer, latest.eventIndex);
 };
 
 /**
@@ -1189,26 +1215,39 @@ Picture.prototype.undoLatest = function(keepLastBuffer) {
  * @return {PictureEvent} Undone event or null if couldn't undo.
  * @protected
  */
-Picture.prototype.undoEventIndex = function(buffer, eventIndex) {
+Picture.prototype.undoEventIndex = function(eventContainer, eventIndex) {
+    if (eventContainer === this.eventContainer) {
+        var undone = eventContainer.events[eventIndex];
+        if (undone.eventType === 'eventHide') {
+            var hiddenEventBufferIndex = this.findBufferContainingEventId(undone.hiddenSid, undone.hiddenSessionEventId);
+            if (hiddenEventBufferIndex < 0) {
+                console.log('Could not find buffer with event referred by eventHideEvent');
+                return null;
+            }
+            undone.undone = true;
+            this.buffers[hiddenEventBufferIndex].addToEventHideCount(undone.hiddenSid, undone.hiddenSessionEventId, -1, this.renderer.sharedRasterizer);
+        }
+        return undone;
+    }
     // Disallowing undoing merge events from merged buffers.
     // TODO: Consider lifting undo restrictions from merged buffers.
-    var allowUndoMerge = !buffer.isMerged();
-    var undone = buffer.undoEventIndex(eventIndex, this.renderer.sharedRasterizer,
-                                       allowUndoMerge);
+    var allowUndoMerge = !eventContainer.isMerged();
+    var undone = eventContainer.undoEventIndex(eventIndex, this.renderer.sharedRasterizer,
+                                               allowUndoMerge);
     if (undone) {
         if (eventIndex === 0) {
             // TODO: assert(undone.eventType === 'bufferAdd');
-            this.freeBuffer(buffer);
+            this.freeBuffer(eventContainer);
         } else if (undone.eventType === 'bufferRemove') {
-            if (!buffer.isRemoved()) { // Removed buffers can be freed
-                this.regenerateBuffer(buffer);
+            if (!eventContainer.isRemoved()) { // Removed buffers can be freed
+                this.regenerateBuffer(eventContainer);
             }
-        } else if (undone.eventType === 'bufferMove' && !buffer.isMerged()) {
+        } else if (undone.eventType === 'bufferMove' && !eventContainer.isMerged()) {
             // TODO: a better solution for undoing move events. This way works
             // for in-sequence undo but out-of-sequence undo will behave
             // unintuitively. Also, undoing moves for merged buffers is
             // simply ignored.
-            var undoneIndex = this.findBufferIndex(this.buffers, buffer.id);
+            var undoneIndex = this.findBufferIndex(this.buffers, eventContainer.id);
             var toIndex = Math.min(this.buffers.length - 1, undone.fromIndex);
             this.moveBufferInternal(undoneIndex, toIndex);
         }
@@ -1237,6 +1276,14 @@ Picture.prototype.undoEventSessionId = function(sid, sessionEventId) {
             return this.buffers[j].events[i];
         }
     }
+    var i = this.eventContainer.eventIndexBySessionId(sid, sessionEventId);
+    if (i >= 0) {
+        if (!this.eventContainer.events[i].undone) {
+            return this.undoEventIndex(this.eventContainer, i);
+        }
+        return this.eventContainer.events[i];
+    }
+    console.log("Did not find event to undo with session id");
     return null;
 };
 

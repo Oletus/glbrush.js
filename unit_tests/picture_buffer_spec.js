@@ -543,7 +543,6 @@ var testBuffer = function(initTestCanvas, resizeTestCanvas, createBuffer, create
     singleEventTests(null, 'a brush event');
     singleEventTests(createTestMergeEvent, 'a buffer merge event');
     singleEventTests(createTestRemoveEvent, 'a buffer remove event');
-    singleEventTests(createTestHideEvent, 'an event hiding event');
 
     it('does not use an invalid undo state', function() {
         initTestCanvas();

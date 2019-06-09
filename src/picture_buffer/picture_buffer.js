@@ -12,6 +12,8 @@ import { Rasterizer } from '../rasterize/rasterizer.js';
 
 import { BlendingMode } from '../util/blending_mode.js';
 
+import { EventContainer } from './event_container.js';
+
 /**
  * A buffer for 2D picture data. Contains a series of picture events in back-
  * to-front order and may have a combined bitmap representation of them.
@@ -27,10 +29,10 @@ import { BlendingMode } from '../util/blending_mode.js';
  */
 var PictureBuffer = function(createEvent, width, height, transform, hasUndoStates, freed, renderer) {
     // TODO: assert(createEvent.hasAlpha || createEvent.clearColor[3] === 255);
+    this.initEventContainer();
     this.hasAlpha = createEvent.hasAlpha;
     this.id = createEvent.bufferId;
     this.transform = transform;
-    this.events = [];
     this.isDummy = false;
     this.mergedTo = null;
     // How many remove events are not undone in this buffer. There could be
@@ -54,7 +56,6 @@ var PictureBuffer = function(createEvent, width, height, transform, hasUndoState
     this.blameRasterizer = new Rasterizer(width, height, null);
 
     this.visible = true;
-    this.insertionPoint = 0;
     this.renderer = renderer;
 
     if (freed === undefined) {
@@ -70,6 +71,8 @@ var PictureBuffer = function(createEvent, width, height, transform, hasUndoState
 
     this.insertEvent(createEvent, null); // will clear the buffer
 };
+
+PictureBuffer.prototype = new EventContainer();
 
 /**
  * Clean up any allocated resources. To make the buffer usable again after this,
@@ -252,8 +255,7 @@ PictureBuffer.prototype.applyEvent = function(event, rasterizer) {
 PictureBuffer.prototype.applyCountingEvent = function(event, rasterizer) {
     if (event.eventType === 'bufferRemove') {
         ++this.removeCount;
-    } else if (event.eventType === 'eventHide') {
-        this.addToEventHideCount(event.hiddenSid, event.hiddenSessionEventId, 1, rasterizer);
+        return;
     }
 };
 
@@ -319,7 +321,6 @@ PictureBuffer.prototype.mergedBufferChanged = function(changedBuffer,
  * closer to the top of the buffer than events with lower sessionEventIds.
  * @param {PictureEvent} event Event to insert.
  * @param {BaseRasterizer} rasterizer The rasterizer to use.
- *
  */
 PictureBuffer.prototype.insertEvent = function(event, rasterizer) {
     if (this.insertionPoint === this.events.length) {
@@ -442,44 +443,6 @@ PictureBuffer.prototype.popClip = function() {
     for (var i = 0; i < this.clipStack.length; ++i) {
         this.currentClipRect.intersectRectRoundedOut(this.clipStack[i]);
     }
-};
-
-/**
- * Search for an event in the buffer by session id and session event id.
- * @param {number} searchSid Session identifier. Must be an integer.
- * @param {number} searchSessionEventId An event/session specific identifier.
- * @return {number} Index of the event in the buffer or -1 if not found.
- */
-PictureBuffer.prototype.eventIndexBySessionId = function(searchSid,
-                                                         searchSessionEventId) {
-    for (var e = 0; e < this.events.length; e++) {
-        if (this.events[e].sid === searchSid) {
-            if (this.events[e].sessionEventId === searchSessionEventId) {
-                return e;
-            } else if (this.events[e].sessionEventId > searchSessionEventId) {
-                return -1;
-            }
-        }
-    }
-    return -1;
-};
-
-/**
- * @param {number} sid Session identifier. Must be an integer.
- * @param {boolean} canBeUndone Whether to consider undone events.
- * @return {number} The index of the latest event added with the given session
- * id or -1 if not found.
- */
-PictureBuffer.prototype.findLatest = function(sid, canBeUndone) {
-    var i = this.events.length - 1;
-    while (i >= 0) {
-        if ((canBeUndone || !this.events[i].undone) &&
-            this.events[i].sid === sid) {
-            return i;
-        }
-        i--;
-    }
-    return -1;
 };
 
 /**
@@ -701,8 +664,6 @@ PictureBuffer.prototype.undoEventIndex = function(eventIndex, rasterizer,
         this.events[eventIndex].mergedBuffer.mergedTo = null;
     } else if (this.events[eventIndex].eventType === 'bufferRemove') {
         --this.removeCount;
-    } else if (this.events[eventIndex].eventType === 'eventHide') {
-        this.addToEventHideCount(this.events[eventIndex].hiddenSid, this.events[eventIndex].hiddenSessionEventId, -1, rasterizer);
     }
     this.events[eventIndex].undone = true;
     // TODO: Buffer moves or removes and event hides don't actually cost
