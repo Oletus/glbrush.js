@@ -999,6 +999,23 @@ Picture.prototype.afterRemove = function(buffer) {
     }
 };
 
+/*
+ * @param {PictureEvent} event Event to add.
+ * @return {PictureBuffer} Container where the event should be added.
+ */
+Picture.prototype.getEventContainerFor = function(event) {
+    if (event.eventType == 'eventHide') {
+        var bufferIndex = this.findBufferContainingEventId(event.hiddenSid, event.hiddenSessionEventId);
+        if (bufferIndex < 0) {
+            console.log('Could not find correct container for eventHideEvent');
+            return;
+        }
+        return this.buffers[bufferIndex];
+        // TODO: Don't store eventHideEvents in buffers but just store them in Picture.
+    }
+    return this.findBuffer(event.targetLayerId);
+};
+
 /**
  * Add an event to the top of one of this picture's buffers. Using this
  * directly requires that you also add the same event through pushUpdate,
@@ -1027,27 +1044,16 @@ Picture.prototype.pushEvent = function(event) {
             return;
         }
     }
-    var targetBuffer;
-    if (event.eventType == 'eventHide') {
-        var bufferIndex = this.findBufferContainingEventId(event.hiddenSid, event.hiddenSessionEventId);
-        if (bufferIndex < 0) {
-            console.log('Could not find correct buffer for eventHideEvent');
-            return;
-        }
-        targetBuffer = this.buffers[bufferIndex];
-        // TODO: Don't store eventHideEvents in buffers but just store them in Picture.
-    } else {
-        targetBuffer = this.findBuffer(event.targetLayerId);
-    }
+    var targetContainer = this.getEventContainerFor(event);
     if (this.renderer.currentEventRasterizer.drawEvent === event) {
-        targetBuffer.pushEvent(event, this.renderer.currentEventRasterizer);
+        targetContainer.pushEvent(event, this.renderer.currentEventRasterizer);
     } else {
         if (event.eventType === 'bufferMerge') {
             this.undummify(event);
-            // TODO: assert(event.mergedBuffer !== targetBuffer);
-            targetBuffer.pushEvent(event, this.renderer.sharedRasterizer);
+            // TODO: assert(event.mergedBuffer !== targetContainer);
+            targetContainer.pushEvent(event, this.renderer.sharedRasterizer);
         } else {
-            targetBuffer.pushEvent(event, this.renderer.sharedRasterizer);
+            targetContainer.pushEvent(event, this.renderer.sharedRasterizer);
         }
     }
 };
@@ -1074,13 +1080,13 @@ Picture.prototype.insertEvent = function(event) {
         this.afterRemove(this.buffers[bufferIndex]);
         return;
     }
-    var targetBuffer = this.findBuffer(event.targetLayerId);
+    var targetContainer = this.getEventContainerFor(event);
     if (event.eventType === 'bufferMerge') {
         this.undummify(event);
-        // TODO: assert(event.mergedBuffer !== targetBuffer);
-        targetBuffer.insertEvent(event, this.renderer.sharedRasterizer);
+        // TODO: assert(event.mergedBuffer !== targetContainer);
+        targetContainer.insertEvent(event, this.renderer.sharedRasterizer);
     } else {
-        targetBuffer.insertEvent(event, this.renderer.sharedRasterizer);
+        targetContainer.insertEvent(event, this.renderer.sharedRasterizer);
     }
 };
 
