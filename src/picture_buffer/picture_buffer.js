@@ -253,15 +253,25 @@ PictureBuffer.prototype.applyCountingEvent = function(event, rasterizer) {
     if (event.eventType === 'bufferRemove') {
         ++this.removeCount;
     } else if (event.eventType === 'eventHide') {
-        var i = this.eventIndexBySessionId(event.hiddenSid,
-                                           event.hiddenSessionEventId);
-        if (i >= 0) {
-            // TODO: assert(this.events[i].isRasterized());
-            ++this.events[i].hideCount;
-            if (this.events[i].hideCount === 1) {
-                this.playbackAfterChange(i, rasterizer, 0, 0);
-            }
+        this.addToEventHideCount(event.hiddenSid, event.hiddenSessionEventId, 1, rasterizer);
+    }
+};
+
+/**
+ * @param {number} hiddenSid Session id of the event that's hidden / unhidden.
+ * @param {number} hiddenSessionEventId Session event id of the event that's hidden / unhidden.
+ * @param {number} hideCountChange Number to add to the hide count.
+ * @param {BaseRasterizer} rasterizer The rasterizer to use in case the hidden status of the event changes.
+ */
+PictureBuffer.prototype.addToEventHideCount = function(hiddenSid, hiddenSessionEventId, hideCountChange, rasterizer) {
+    var i = this.eventIndexBySessionId(hiddenSid, hiddenSessionEventId);
+    if (i >= 0) {
+        // TODO: assert(this.events[i].isRasterized());
+        this.events[i].hideCount += hideCountChange;
+        if (this.events[i].hideCount === 1 || this.events[i].hideCount === 0) {
+            this.playbackAfterChange(i, rasterizer, 0, 0);
         }
+        // TODO: Whether events are hidden or not should factor into undo state cost.
     }
 };
 
@@ -692,16 +702,7 @@ PictureBuffer.prototype.undoEventIndex = function(eventIndex, rasterizer,
     } else if (this.events[eventIndex].eventType === 'bufferRemove') {
         --this.removeCount;
     } else if (this.events[eventIndex].eventType === 'eventHide') {
-        var i = this.eventIndexBySessionId(this.events[eventIndex].hiddenSid,
-                                  this.events[eventIndex].hiddenSessionEventId);
-        if (i >= 0) {
-            --this.events[i].hideCount;
-            if (this.events[i].hideCount === 0) {
-                // TODO: Whether events are hidden should factor into undo state
-                // cost.
-                this.playbackAfterChange(i, rasterizer, 0, 0);
-            }
-        }
+        this.addToEventHideCount(this.events[eventIndex].hiddenSid, this.events[eventIndex].hiddenSessionEventId, -1, rasterizer);
     }
     this.events[eventIndex].undone = true;
     // TODO: Buffer moves or removes and event hides don't actually cost
