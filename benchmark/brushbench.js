@@ -53,7 +53,7 @@ var measureBrushStrokeTime = function(testPic, eventCount, radius, textureId, so
     var angle = 0;
     var startTime = new Date().getTime();
     for (var i = 0; i < eventCount; ++i) {
-        var event = testPic.createBrushEvent(color, flow, opacity, radius, textureId, softness, bMode);
+        var event = testPic.createBrushEvent(color, flow, opacity, radius, textureId, softness, bMode, 0);
         angle += 0.2;
         for (var j = 0; j < 20; ++j) {
             var xa = Math.cos(angle + j * 0.02) / 20;
@@ -62,7 +62,7 @@ var measureBrushStrokeTime = function(testPic, eventCount, radius, textureId, so
             var y = (ya * j + 1) * w * 0.5;
             event.pushCoordTriplet(x, y, 1.0);
         }
-        testPic.pushEvent(0, event);
+        testPic.pushEvent(event);
     }
     testPic.display();
     var totalTime = new Date().getTime() - startTime;

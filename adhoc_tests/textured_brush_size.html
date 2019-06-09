@@ -91,7 +91,7 @@ var runTest = function() {
         var currentTime = new Date().getTime();
         var t = (currentTime - startTime) * 0.001;
         var radius = 160 * (-Math.sin(t * 0.5) * 0.5 + 0.5);
-        var event = testPic.createScatterEvent(color, flow, opacity, radius, textureId, softness, mode);
+        var event = testPic.createScatterEvent(color, flow, opacity, radius, textureId, softness, mode, 0);
         event.fillCircle(0.5 * w, 0.5 * w, radius, 1.0, 0.0);
         testPic.setCurrentEvent(event);
         testPic.display();

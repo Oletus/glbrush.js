@@ -61,13 +61,13 @@ var loadApp = function() {
         var blue = 42;
         currentEvent = picture.createBrushEvent([red, green, blue], 0.8, 1.0,
                                                 20, 0, 1,
-                                                BlendingMode.normal);
+                                                BlendingMode.normal, 0);
     };
     drawArea.onmouseup = function(e) {
         if (currentEvent !== null) {
             picture.setCurrentEvent(null);
             var update = new PictureUpdate('add_picture_event');
-            update.setPictureEvent(0, currentEvent);
+            update.setPictureEvent(currentEvent);
             picture.pushUpdate(update);
             picture.display();
             currentEvent = null;

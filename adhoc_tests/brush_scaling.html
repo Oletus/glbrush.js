@@ -29,7 +29,7 @@ var runTest = function() {
     testPic.addBuffer(0, [255, 255, 255, 255], false);
     var pushEvent = function(event) {
         var update = new PictureUpdate('add_picture_event');
-        update.setPictureEvent(0, event);
+        update.setPictureEvent(event);
         testPic.pushUpdate(update);
     };
     var color = [0, 0, 0];
@@ -38,7 +38,7 @@ var runTest = function() {
     var radius = 20;
     var softness = 1.0;
     var mode = BlendingMode.normal;
-    var event = testPic.createBrushEvent(color, flow, opacity, radius, 0, softness, mode);
+    var event = testPic.createBrushEvent(color, flow, opacity, radius, 0, softness, mode, 0);
     var yStep = 1/6;
     var ySteps = yStep;
     for (var j = 0; j < 101; ++j) {
@@ -48,7 +48,7 @@ var runTest = function() {
     }
     pushEvent(event);
     ySteps += yStep;
-    event = testPic.createBrushEvent(color, flow, opacity, radius, 0, softness, mode);
+    event = testPic.createBrushEvent(color, flow, opacity, radius, 0, softness, mode, 0);
     for (var j = 0; j < 2; ++j) {
         var x = (0.5 * j + 0.2) * w;
         var y = (ySteps - 0.02) * w;
@@ -57,7 +57,7 @@ var runTest = function() {
     pushEvent(event);
     ySteps += yStep;
     softness = 0.0;
-    event = testPic.createBrushEvent(color, flow, opacity, radius, 0, softness, mode);
+    event = testPic.createBrushEvent(color, flow, opacity, radius, 0, softness, mode, 0);
     for (var j = 0; j < 101; ++j) {
         var x = (0.005 * j + 0.2) * w;
         var y = ySteps * w - Math.sin(x / w * Math.PI * 4) * 0.03 * w;
@@ -65,7 +65,7 @@ var runTest = function() {
     }
     pushEvent(event);
     ySteps += yStep;
-    event = testPic.createBrushEvent(color, flow, opacity, radius, 0, softness, mode);
+    event = testPic.createBrushEvent(color, flow, opacity, radius, 0, softness, mode, 0);
     for (var j = 0; j < 2; ++j) {
         var x = (0.5 * j + 0.2) * w;
         var y = (ySteps - 0.01) * w;
@@ -75,7 +75,7 @@ var runTest = function() {
     ySteps += yStep;
     softness = 0.0;
     flow = 0.999;
-    event = testPic.createBrushEvent(color, flow, opacity, radius, 0, softness, mode);
+    event = testPic.createBrushEvent(color, flow, opacity, radius, 0, softness, mode, 0);
     for (var j = 0; j < 2; ++j) {
         var x = j * 2 + 0.25 * w;
         var y = ySteps * w;
@@ -83,7 +83,7 @@ var runTest = function() {
     }
     pushEvent(event);
     flow = 0.95;
-    event = testPic.createBrushEvent(color, flow, opacity, radius, 0, softness, mode);
+    event = testPic.createBrushEvent(color, flow, opacity, radius, 0, softness, mode, 0);
     for (var j = 0; j < 25; ++j) {
         var x = j * 0.9 + 0.45 * w;
         var y = ySteps * w;
@@ -98,7 +98,7 @@ var runTest = function() {
         event.pushCoordTriplet(x, y, 0.5 + j / 100);
     }
     pushEvent(event);
-    event = testPic.createBrushEvent(color, flow, opacity, radius, 0, softness, mode);
+    event = testPic.createBrushEvent(color, flow, opacity, radius, 0, softness, mode, 0);
     for (var j = 0; j < 20; ++j) {
         var x = j % 2 + 0.7 * w;
         var y = ySteps * w;
@@ -106,7 +106,7 @@ var runTest = function() {
     }
     pushEvent(event);
     
-    event = testPic.createGradientEvent(color, opacity, mode);
+    event = testPic.createGradientEvent(color, opacity, mode, 0);
     event.coords0.y = 50;
     event.coords0.x = 50;
     event.coords1.y = 10;
