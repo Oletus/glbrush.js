@@ -2,7 +2,6 @@
  * Copyright Olli Etuaho 2013.
  */
 
-'use strict';
 
 import { CanvasBitmap } from './picture_buffer/canvas_bitmap.js';
 

@@ -2,7 +2,6 @@
  * Copyright Olli Etuaho 2019.
  */
 
-'use strict';
 
 import { serializeToString } from './util/serialization.js';
 

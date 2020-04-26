@@ -2,7 +2,6 @@
  * Copyright Olli Etuaho 2013.
  */
 
-'use strict';
 
 import { GLAlphaPackingFormat } from '../gl/gl_alpha_packing_format.js';
 

@@ -2,7 +2,6 @@
  * Copyright Olli Etuaho 2013.
  */
 
-'use strict';
 
 import { glUtils } from '../gl/utilgl.js';
 

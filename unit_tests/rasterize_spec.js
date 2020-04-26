@@ -2,7 +2,6 @@
  * Copyright Olli Etuaho 2013-2018.
  */
 
-'use strict';
 
 import { Rect } from '../src/math/rect.js';
 

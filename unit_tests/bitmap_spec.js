@@ -3,7 +3,6 @@
  */
 
 
-'use strict';
 
 import { Rect } from '../src/math/rect.js';
 

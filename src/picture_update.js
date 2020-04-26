@@ -2,7 +2,6 @@
  * Copyright Olli Etuaho 2014.
  */
 
-'use strict';
 
 import { PictureEvent } from './picture_event.js';
 

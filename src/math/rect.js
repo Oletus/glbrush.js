@@ -2,8 +2,6 @@
  * Copyright Olli Etuaho 2012-2014.
  */
 
-'use strict';
-
 /**
  * @constructor
  * @param {number} left Left edge of the rectangle.

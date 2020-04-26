@@ -2,8 +2,6 @@
  * Copyright Olli Etuaho 2013.
  */
 
-'use strict';
-
 import { Vec2 } from '../src/math/vec2.js';
 
 beforeEach(function() {

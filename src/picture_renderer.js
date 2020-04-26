@@ -1,4 +1,3 @@
-'use strict';
 
 import { glUtils } from './gl/utilgl.js';
 
