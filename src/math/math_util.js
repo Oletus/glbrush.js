@@ -44,6 +44,11 @@ var mixWithWrap = function(a, b, f, w) {
     return fmod(mix(a, b, f), w);
 };
 
+var mixSmooth = function(a, b, f) {
+    var f2 = (1 - Math.cos(f * Math.PI)) / 2;
+    return mix(a, b, f2);
+};
+
 /**
  * Linear interpolation of angles a and b in radians by weight f
  * @param {number} a Angle a, if f == 0.0, a + n * PI * 2 is returned.
@@ -140,15 +145,43 @@ var bezierLength = function(x0, y0, x1, y1, x2, y2, steps) {
     return len;
 };
 
+/**
+ * @return {number} Binomial coefficient n over k (can be interpreted as number of unique combinations of k elements
+ * taken from a set of n elements)
+ */
+var binomialCoefficient = function(n, k) {
+    // Use recursive method - don't need to worry about overflow.
+    if (k === 0) {
+        return 1;
+    }
+    if (n === k) {
+        return 1;
+    }
+    return binomialCoefficient(n - 1, k - 1) + binomialCoefficient(n - 1, k);
+};
+
+/**
+ * @param {number} n Positive integer.
+ * @return {number} Factorial of n.
+ */
+var factorial = function(n) {
+    if (n <= 1) {
+        return 1;
+    }
+    return n * factorial(n - 1);
+};
 
 export {
     angleDifference,
     angleGreater,
     bezierLength,
+    binomialCoefficient,
     clamp,
     ease,
+    factorial,
     fmod,
     mix,
     mixAngles,
+    mixSmooth,
     mixWithWrap
 };
